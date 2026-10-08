@@ -1,20 +1,14 @@
-// components/Providers.tsx
 "use client";
 
-import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
 import { Toaster } from "sonner";
 
+// Storefront is light-only (Shopify Dawn look), so no theme provider.
 export default function Providers({ children }: { children: ReactNode }) {
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-    >
+    <>
       {children}
-      <Toaster richColors />
-    </ThemeProvider>
+      <Toaster position="top-center" toastOptions={{ style: { borderRadius: 0 } }} />
+    </>
   );
 }

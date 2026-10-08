@@ -72,7 +72,8 @@ export const createFoodOrder = async (req, res) => {
       }
     }
 
-    if (!paymentMethod || !["COD", "BANK", "QPAY", "LEMON"].includes(paymentMethod)) {
+    // No card payments: QPay, bank transfer, or cash on delivery only.
+    if (!paymentMethod || !["COD", "BANK", "QPAY"].includes(paymentMethod)) {
       return res.status(400).json({ message: "Invalid payment method" });
     }
 

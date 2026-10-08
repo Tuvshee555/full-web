@@ -42,4 +42,4 @@ Production: `npm run build && npm start`.
 - **One proxy** (`src/proxy.ts`) handles locale redirects for both apps plus the admin auth redirect.
 - **One `.env.local`** for everything; see `.env.example`.
 - Password-reset emails link to `ADMIN_URL`, or `FRONTEND_URL/admin` when it isn't set.
-- External webhooks/callbacks now live under `/api`. Update them in the provider dashboards when you deploy: Stripe `/api/stripe/webhook`, Lemon Squeezy `/api/webhook/lemon-squeezy`, QPay `BACKEND_URL/qpay/webhook`.
+- External webhooks/callbacks now live under `/api`. Update the QPay callback when you deploy: `BACKEND_URL/qpay/webhook`. Payments are QPay and bank transfer only (no cards).

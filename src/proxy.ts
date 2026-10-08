@@ -3,10 +3,10 @@ import type { NextRequest } from "next/server";
 
 const PUBLIC_PATHS = ["/_next/", "/favicon", "/images", "/api", "/public"];
 
-const LOCALES = ["mn", "en", "ko"];
+const LOCALES = ["mn", "en"];
 const DEFAULT_LOCALE = "mn";
 
-const LOCALE_RE = /^\/(mn|en|ko)(?=\/|$)/;
+const LOCALE_RE = /^\/(mn|en)(?=\/|$)/;
 
 // Admin auth pages that are always accessible without a token
 const ADMIN_PUBLIC_AUTH_PATHS = [

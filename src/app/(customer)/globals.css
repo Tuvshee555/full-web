@@ -67,6 +67,79 @@
   }
 }
 
+/* ---------- Storefront (Shopify Dawn look) ---------- */
+@layer components {
+  .page-width {
+    @apply mx-auto w-full max-w-[1200px] px-[15px] md:px-[50px];
+  }
+  .store-body {
+    font-family: var(--font-store), system-ui, sans-serif;
+    color: rgba(18, 18, 18, 0.75);
+    letter-spacing: 0.06rem;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .store-heading {
+    color: rgb(18, 18, 18);
+    letter-spacing: 0.06rem;
+    font-weight: 400;
+    line-height: 1.3;
+  }
+  .btn {
+    @apply relative inline-flex items-center justify-center min-h-[45px] px-[30px] text-[15px] tracking-[0.1rem]
+      bg-[#121212] text-white transition-shadow disabled:opacity-50 disabled:cursor-not-allowed;
+    box-shadow: 0 0 0 1px #121212;
+  }
+  .btn:not(:disabled):hover {
+    box-shadow: 0 0 0 2px #121212;
+  }
+  .btn-secondary {
+    @apply relative inline-flex items-center justify-center min-h-[45px] px-[30px] text-[15px] tracking-[0.1rem]
+      bg-transparent text-[#121212] transition-shadow disabled:opacity-50 disabled:cursor-not-allowed;
+    box-shadow: inset 0 0 0 1px #121212;
+  }
+  .btn-secondary:not(:disabled):hover {
+    box-shadow: inset 0 0 0 2px #121212;
+  }
+  .link-underline {
+    @apply underline-offset-[3px] hover:underline;
+  }
+  /* Floating-label input: <div class="field"><input placeholder=" " /><label/></div> */
+  .field {
+    @apply relative w-full;
+  }
+  .field > input,
+  .field > select,
+  .field > textarea {
+    @apply w-full bg-white text-[15px] text-[#121212] outline-none appearance-none
+      h-[45px] px-[15px] pt-[16px] pb-[4px];
+    box-shadow: 0 0 0 1px rgba(18, 18, 18, 0.55);
+  }
+  .field > textarea {
+    @apply h-[90px] pt-[22px] resize-none;
+  }
+  .field > input:focus,
+  .field > select:focus,
+  .field > textarea:focus {
+    box-shadow: 0 0 0 2px #121212;
+  }
+  .field > label {
+    @apply pointer-events-none absolute left-[15px] top-[13px] text-[15px] text-[rgba(18,18,18,0.6)]
+      transition-all origin-left;
+  }
+  .field > input:focus + label,
+  .field > input:not(:placeholder-shown) + label,
+  .field > textarea:focus + label,
+  .field > textarea:not(:placeholder-shown) + label,
+  .field > select + label {
+    @apply top-[4px] text-[11px];
+  }
+  .field[data-error="true"] > input,
+  .field[data-error="true"] > select {
+    box-shadow: 0 0 0 1px #d72c0d;
+  }
+}
+
 .label {
   @apply text-sm text-gray-400;
 }

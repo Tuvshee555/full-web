@@ -152,7 +152,7 @@ export const FoodReviews = ({ foodId }: { foodId: string }) => {
 
   return (
     <div className="w-full">
-      <div className="rounded-xl border border-border bg-card p-4 sm:p-6">
+      <div className="rounded-none border border-border bg-card p-4 sm:p-6">
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
           {/* Left: summary */}
           <div className="w-full lg:w-[340px]">
@@ -182,7 +182,7 @@ export const FoodReviews = ({ foodId }: { foodId: string }) => {
             </div>
 
             {/* info block */}
-            <div className="mt-6 rounded-lg border border-border bg-background p-3">
+            <div className="mt-6 rounded-none border border-border bg-background p-3">
               <div className="text-sm font-medium">
                 {t("write_review") ?? "Write a review"}
               </div>
@@ -246,7 +246,7 @@ export const FoodReviews = ({ foodId }: { foodId: string }) => {
                 reviews.map((r) => (
                   <div
                     key={r.id}
-                    className="rounded-xl border border-border bg-background p-4"
+                    className="rounded-none border border-border bg-background p-4"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex flex-col gap-1">

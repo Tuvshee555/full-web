@@ -54,7 +54,7 @@ export default function OrderDetailPage() {
     if (authLoading) return;
 
     if (!token || !userId) {
-      router.push(`/${locale}/log-in`);
+      router.push(`/${locale}/sign-in?redirect=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
 

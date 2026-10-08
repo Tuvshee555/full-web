@@ -1,53 +1,49 @@
 "use client";
 
-import { ReactNode, useState, useCallback } from "react";
+import { ReactNode, useState, useCallback, useEffect } from "react";
 import { usePathname } from "next/navigation";
 
-import Footer from "@/components/footer/Footer";
-import FooterPolicies from "./footer/FooterPolicies";
-import MobileBottomNav from "@/components/navigation/MobileBottomNav";
 import Email from "@/components/header/email/Email";
-import HeaderClient from "./header/HeaderClient";
-import { useCartSync } from "./header/sheetRight/components/useCartSync";
 import TopLoader from "./header/TopLoader";
-import ScrollProgress from "./motion/ScrollProgress";
-import PageEnter from "./motion/PageEnter";
+import { AnnouncementBar, StoreHeader } from "./store/StoreHeader";
+import { StoreFooter } from "./store/StoreFooter";
+import { CartDrawer } from "./store/CartDrawer";
 
 export default function AppShellClient({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [emailOpen, setEmailOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
 
-  const cartCount = useCartSync();
+  const openAccount = useCallback(() => setAccountOpen(true), []);
+  const closeCart = useCallback(() => setCartOpen(false), []);
 
-  const openProfile = useCallback(() => setEmailOpen(true), []);
-  const onOpenChange = useCallback((v: boolean) => setEmailOpen(v), []);
+  // "Add to cart" anywhere fires "cart-open" (Shopify cart drawer behaviour)
+  useEffect(() => {
+    const open = () => setCartOpen(true);
+    window.addEventListener("cart-open", open);
+    return () => window.removeEventListener("cart-open", open);
+  }, []);
 
-  const isCheckoutPage = pathname?.includes("/checkout");
-
-  const isHome =
-    pathname === "/mn" ||
-    pathname === "/en" ||
-    pathname === "/ko" ||
-    pathname === "/mn/home-page" ||
-    pathname === "/en/home-page" ||
-    pathname === "/ko/home-page";
+  // Shopify checkout has its own minimal header and no store chrome
+  const isCheckout = /^\/(mn|en)\/checkout(\/|$)/.test(pathname ?? "");
 
   return (
     <>
-      <PageEnter />
-      <ScrollProgress />
       <TopLoader />
 
-      <HeaderClient onOpenProfile={openProfile} cartCount={cartCount} />
+      {!isCheckout && (
+        <>
+          <AnnouncementBar />
+          <StoreHeader onOpenAccount={openAccount} onOpenCart={() => setCartOpen(true)} />
+        </>
+      )}
 
-      <main className="min-h-screen pt-[64px] md:pt-24">{children}</main>
+      <main className="min-h-[60vh]">{children}</main>
 
-      {isHome && <FooterPolicies />}
-      {isHome && <Footer />}
+      {!isCheckout && <StoreFooter />}
 
-      {!isCheckoutPage && <MobileBottomNav onOpenProfile={openProfile} />}
-
-      <Email open={emailOpen} onOpenChange={onOpenChange} />
+      <CartDrawer open={cartOpen} onClose={closeCart} />
+      <Email open={accountOpen} onOpenChange={setAccountOpen} />
     </>
   );
 }

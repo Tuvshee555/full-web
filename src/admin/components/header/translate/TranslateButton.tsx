@@ -8,7 +8,6 @@ import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 const languages = [
   { code: "mn", label: "Монгол", flag: "🇲🇳" },
   { code: "en", label: "English", flag: "🇺🇸" },
-  { code: "ko", label: "한국어", flag: "🇰🇷" },
 ];
 
 export default function TranslateButton() {

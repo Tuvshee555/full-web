@@ -12,12 +12,9 @@ import { qpayRouter } from "./routers/qpay.router.js";
 import { orderRouter } from "./routers/order.router.js";
 import { statRouter } from "./routers/stat.router.js";
 import { emailRouter } from "./routers/email.routes.js";
-import stripeRouter from "./routers/stripe.router.js";
 import uploadRouter from "./routers/upload.router.js";
 import { expireUnpaidOrders } from "./jobs/expireOrders.js";
 import { cleanupGuestUsers } from "./jobs/cleanupGuests.js";
-import lemonWebhookRouter from "./routers/lemonWebhook.router.js";
-import lemonRouter from "./routers/lemon.router.js";
 import { reviewRouter } from "./routers/review.router.js";
 import aiRouter from "./routers/ai.router.js";
 import { connectPrismaWithRetry } from "./utils/prisma.js";
@@ -59,9 +56,6 @@ if (!process.env.JWT_SECRET) {
   console.error("Missing JWT_SECRET. Set it in your environment.");
   process.exit(1);
 }
-if (!process.env.STRIPE_WEBHOOK_SECRET) {
-  console.warn("Warning: STRIPE_WEBHOOK_SECRET not set. Stripe webhooks will fail verification.");
-}
 
 app.use(
   cors({
@@ -80,8 +74,6 @@ app.use(
 );
 
 app.options("*", cors());
-
-app.use("/stripe", stripeRouter);
 
 app.use(express.json({
   limit: "10mb",
@@ -107,9 +99,6 @@ app.use("/email", emailRouter);
 app.use("/upload", uploadRouter);
 app.use("/review", reviewRouter);
 app.use("/ai", aiRouter);
-
-app.use("/payment/lemon", lemonRouter);
-app.use("/webhook/lemon-squeezy", lemonWebhookRouter);
 
 app.use((err, req, res, next) => {
   console.error("GLOBAL ERROR:", err);

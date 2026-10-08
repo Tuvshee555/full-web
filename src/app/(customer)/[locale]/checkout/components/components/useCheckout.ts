@@ -1,32 +1,17 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { API_BASE_URL } from "@/lib/api";
 import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
-import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/components/i18n/ClientI18nProvider";
 import { useAuth } from "@/app/(customer)/[locale]/provider/AuthProvider";
-import {
-  DELIVERY_FEE,
-  DeliveryZone,
-  ULAANBAATAR_DISTRICTS,
-} from "@/data/mongoliaLocations";
+import { DELIVERY_FEE, DeliveryZone, ULAANBAATAR_DISTRICTS } from "@/data/mongoliaLocations";
+import { clearCart, type StoreCartItem } from "@/components/store/lib/cart";
 
-/** CANONICAL (match backend) */
-export type PaymentMethod = "QPAY" | "BANK" | "COD" | "LEMON" | null;
-
-export type CartItem = {
-  foodId?: string;
-  quantity: number;
-  selectedSize?: string | null;
-  food?: {
-    id?: string;
-    price?: number;
-  };
-};
+/** Payment methods offered at checkout (no cards). Must match the backend enum. */
+export type PaymentMethod = "QPAY" | "BANK";
 
 export type DeliveryFormData = {
   deliveryZone?: DeliveryZone;
@@ -40,351 +25,147 @@ export type DeliveryFormData = {
   notes?: string;
 };
 
-const CART_KEY = "cart";
+const REQUIRED: (keyof DeliveryFormData)[] = ["phonenumber", "firstName", "lastName", "city", "district", "khoroo", "address"];
 
-export function useCheckout(cart: CartItem[]) {
+const newKey = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+/** Shopify-style guest checkout: get a real server-issued guest JWT on demand. */
+async function createGuestSession(): Promise<string | null> {
+  let guestId = localStorage.getItem("userId");
+  if (!guestId || !guestId.startsWith("guest-")) guestId = `guest-${newKey()}`;
+  const res = await fetch(`${API_BASE_URL}/user/guest`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ guestId }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data?.token) return null;
+  localStorage.setItem("token", data.token);
+  localStorage.setItem("userId", data.user?.id ?? guestId);
+  localStorage.setItem("email", data.user?.email ?? "Guest User");
+  localStorage.setItem("guest", "true");
+  window.dispatchEvent(new Event("auth-changed"));
+  return data.token;
+}
+
+export function useCheckout(cart: StoreCartItem[]) {
   const router = useRouter();
   const { userId, token } = useAuth();
   const { locale, t } = useI18n();
+  const st = (k: string) => t(`store.${k}`);
 
   const [form, setForm] = useState<DeliveryFormData>({
     deliveryZone: "UB",
     city: "Улаанбаатар",
     district: ULAANBAATAR_DISTRICTS[0],
   });
-  const [errors, setErrors] = useState<Record<string, boolean>>({});
-  const [openTerms, setOpenTerms] = useState(false);
-  const [orderId, setOrderId] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("QPAY");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const idempotencyKey = useRef(newKey());
 
-  // NEW: submission lock
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  /* use backend enum everywhere */
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(null);
-
-  const productTotal = useMemo(
-    () => cart.reduce((s, i) => s + (i.food?.price ?? 0) * i.quantity, 0),
-    [cart]
-  );
-
+  const productTotal = useMemo(() => cart.reduce((s, i) => s + Number(i.food?.price ?? 0) * (Number(i.quantity) || 0), 0), [cart]);
   const deliveryFee = DELIVERY_FEE;
-  const totalPrice = productTotal + deliveryFee;
+  const total = productTotal + deliveryFee;
 
-  const initialLoadRef = useRef(true);
-  const saveTimerRef = useRef<number | null>(null);
-
+  // Prefill from the saved profile (logged-in or returning guest)
+  const loaded = useRef(false);
   useEffect(() => {
-    if (!userId || !token) return;
-
-    initialLoadRef.current = true;
-
+    if (!userId || !token || loaded.current) return;
+    loaded.current = true;
     axios
-      .get(`${API_BASE_URL}/user/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      .get(`${API_BASE_URL}/user/${userId}`, { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => {
-        if (res.data?.user) {
-          setForm({
-            deliveryZone:
-              res.data.user.deliveryZone === "RURAL" ? "RURAL" : "UB",
-            firstName: res.data.user.firstName ?? "",
-            lastName: res.data.user.lastName ?? "",
-            phonenumber: res.data.user.phonenumber ?? "",
-            city: res.data.user.city ?? "Улаанбаатар",
-            district: res.data.user.district ?? ULAANBAATAR_DISTRICTS[0],
-            khoroo: res.data.user.khoroo ?? "",
-            address: res.data.user.address ?? "",
-            notes: res.data.user.notes ?? "",
-          });
-        }
+        const u = res.data?.user;
+        if (!u) return;
+        setForm((prev) => ({
+          ...prev,
+          deliveryZone: u.deliveryZone === "RURAL" ? "RURAL" : prev.deliveryZone,
+          firstName: u.firstName || prev.firstName,
+          lastName: u.lastName || prev.lastName,
+          phonenumber: u.phonenumber || prev.phonenumber,
+          city: u.city || prev.city,
+          district: u.district || prev.district,
+          khoroo: u.khoroo || prev.khoroo,
+          address: u.address || prev.address,
+        }));
       })
-      .catch(() => toast.error(t("err_user_info")))
-      .finally(() => {
-        initialLoadRef.current = false;
-      });
-  }, [userId, token, t]);
+      .catch(() => {});
+  }, [userId, token]);
 
-  useEffect(() => {
-    if (!userId || !token || initialLoadRef.current) return;
+  const validate = () => {
+    const next: Record<string, string> = {};
+    for (const k of REQUIRED) if (!String(form[k] ?? "").trim()) next[k] = st("required");
+    const phone = String(form.phonenumber ?? "").replace(/\s|-/g, "");
+    if (phone && !/^\d{8}$/.test(phone)) next.phonenumber = st("phone_invalid");
+    setErrors(next);
+    if (Object.keys(next).length) {
+      document.querySelector(`[data-field="${Object.keys(next)[0]}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return false;
+    }
+    return true;
+  };
 
-    const hasAny = Object.values(form).some(
-      (v) => typeof v === "string" && v.trim()
+  const postOrder = (bearer: string) =>
+    axios.post(
+      `${API_BASE_URL}/order`,
+      {
+        items: cart
+          .map((i) => ({ foodId: i.food?.id ?? i.foodId, quantity: Number(i.quantity) || 0, size: i.selectedSize ?? null }))
+          .filter((i) => i.foodId && i.quantity > 0),
+        totalPrice: total,
+        paymentMethod,
+        deliveryZone: form.deliveryZone ?? "UB",
+        firstName: form.firstName?.trim(),
+        lastName: form.lastName?.trim(),
+        phone: String(form.phonenumber ?? "").replace(/\s|-/g, ""),
+        city: form.city,
+        district: form.district,
+        khoroo: form.khoroo?.trim(),
+        address: form.address?.trim(),
+        notes: form.notes?.trim() ?? "",
+        idempotencyKey: idempotencyKey.current,
+      },
+      { headers: { Authorization: `Bearer ${bearer}` }, timeout: 60_000 },
     );
-    if (!hasAny) return;
 
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-
-    saveTimerRef.current = window.setTimeout(async () => {
-      try {
-        await axios.put(
-          `${API_BASE_URL}/user/${userId}`,
-          {
-            deliveryZone: form.deliveryZone ?? "UB",
-            firstName: form.firstName ?? "",
-            lastName: form.lastName ?? "",
-            phonenumber: form.phonenumber ?? "",
-            city: form.city ?? "",
-            district: form.district ?? "",
-            khoroo: form.khoroo ?? "",
-            address: form.address ?? "",
-            notes: form.notes ?? "",
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      } catch {
-        toast.error(t("profile_save_error"));
-      } finally {
-        saveTimerRef.current = null;
-      }
-    }, 800);
-
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    };
-  }, [form, userId, token, t]);
-
-  const handleSubmit = (newErrors: Record<string, boolean>) => {
-    if (Object.keys(newErrors).length) {
-      setErrors(newErrors);
-      toast.error(t("err_fill_required"));
-      return;
-    }
-    if (!paymentMethod) {
-      toast.error(t("choose_payment_method"));
-      return;
-    }
-    setOpenTerms(true);
-  };
-
-  // create idempotency key (UUID fallback)
-  const createIdempotencyKey = () => {
+  const placeOrder = async () => {
+    if (submitting || !cart.length) return;
+    setSubmitError(null);
+    if (!validate()) return;
+    setSubmitting(true);
     try {
-      // modern browsers
-      // @ts-ignore
-      if (globalThis?.crypto?.randomUUID) return globalThis.crypto.randomUUID();
-      // fallback
-      return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    } catch {
-      return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    }
-  };
+      let bearer = localStorage.getItem("token") || (await createGuestSession());
+      if (!bearer) throw new Error("session");
 
-  const handlePaymentStart = async () => {
-    if (isSubmitting) return;
-
-    setIsSubmitting(true);
-
-    try {
-      // ✅ don’t close terms dialog yet (prevents clicking order again)
-      if (!cart.length) {
-        toast.error(t("cart_empty"));
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (!token) {
-        router.push(`/${locale}/log-in`);
-        setIsSubmitting(false);
-        return;
-      }
-
-      const normalizedItems = cart
-        .map((i) => ({
-          foodId: i.food?.id ?? i.foodId ?? null,
-          quantity: Number(i.quantity) || 0,
-          size: i.selectedSize ?? null,
-        }))
-        .filter((i) => i.foodId && i.quantity > 0);
-
-      if (!normalizedItems.length) {
-        toast.error(t("err_invalid_cart_items"));
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (!paymentMethod) {
-        toast.error(t("choose_payment_method"));
-        setIsSubmitting(false);
-        return;
-      }
-
-      const idempotencyKey = createIdempotencyKey();
-
-      const res = await axios.post(
-        `${API_BASE_URL}/order`,
-        {
-          items: normalizedItems,
-          totalPrice,
-          paymentMethod,
-          deliveryZone: form.deliveryZone ?? "UB",
-          firstName: form.firstName ?? null,
-          lastName: form.lastName ?? null,
-          phone: form.phonenumber ?? null,
-          city: form.city ?? null,
-          district: form.district ?? null,
-          khoroo: form.khoroo ?? null,
-          address: form.address ?? null,
-          notes: form.notes ?? "",
-          idempotencyKey,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          timeout: 60_000,
-        }
-      );
-
-      const order = res.data ?? {};
-      // backend sometimes returns order.id or order.orderId - handle both
-      const returnedOrderId =
-        order.id ?? order.orderId ?? order.orderId ?? null;
-
-      if (!returnedOrderId) {
-        toast.error(t("err_create_order"));
-        setIsSubmitting(false);
-        return;
-      }
-
-      // If Lemon flow, create checkout and redirect to Lemon
-      if (paymentMethod === "LEMON") {
-        // make redirect back to your frontend success page
-        const redirectUrl = `${window.location.origin}/${locale}/profile/orders/${returnedOrderId}`;
-
-        // Prefer raw string env (NEXT_PUBLIC is required for client)
-        const variantFromEnv =
-          process.env.NEXT_PUBLIC_LEMON_VARIANT_ID ?? undefined;
-
-        console.log("LEMON flow: variantFromEnv:", variantFromEnv);
-        if (!variantFromEnv) {
-          toast.error(
-            t("payment.lemon_variant_missing") ||
-              "LEMON variant id missing. Contact admin."
-          );
-
-          // store lastOrderId then route to order detail as fallback
-          setOpenTerms(false);
-          localStorage.removeItem(CART_KEY);
-          try {
-            localStorage.setItem("lastOrderId", returnedOrderId);
-          } catch {}
-          setOrderId(returnedOrderId);
-          router.push(`/${locale}/profile/orders/${returnedOrderId}`);
-          setIsSubmitting(false);
-          return;
-        }
-
-        try {
-          console.log("Calling backend /payment/lemon/checkout", {
-            orderId: returnedOrderId,
-            variantId: variantFromEnv,
-            redirectUrl,
-          });
-
-          const lemonRes = await axios.post(
-            `${API_BASE_URL}/payment/lemon/checkout`,
-            {
-              orderId: returnedOrderId,
-              variantId: variantFromEnv,
-              redirectUrl,
-            },
-            { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }
-          );
-
-          console.log("LEMON checkout response:", lemonRes?.data);
-
-          const data = lemonRes.data ?? {};
-          // try multiple possible keys (checkoutUrl, checkout_url, data.data.attributes.url)
-          const checkoutUrl =
-            data.checkoutUrl ??
-            data.checkout_url ??
-            (data.data && data.data.attributes && data.data.attributes.url) ??
-            (data.data &&
-              data.data.attributes &&
-              data.data.attributes.checkout_url) ??
-            null;
-
-          if (!checkoutUrl) {
-            console.error(
-              "No checkoutUrl found in lemon response",
-              lemonRes.data
-            );
-            throw new Error("no checkout url");
-          }
-
-          // close terms, clear cart, store last order id
-          setOpenTerms(false);
-          localStorage.removeItem(CART_KEY);
-          try {
-            localStorage.setItem("lastOrderId", returnedOrderId);
-          } catch {}
-          window.dispatchEvent(new Event("cart-updated"));
-          setOrderId(returnedOrderId);
-
-          // hard redirect to Lemon checkout (use location.assign)
-          window.location.assign(checkoutUrl);
-          // NOTE: return so function ends here (redirect happening)
-          return;
-        } catch (err: any) {
-          console.error("LEMON checkout error:", err?.response?.data || err);
-          toast.error(
-            t("err_create_lemon_checkout") ||
-              "Failed to start payment — try again"
-          );
-
-          // fallback: route to order detail so user can retry (but keep lastOrderId)
-          setOpenTerms(false);
-          localStorage.removeItem(CART_KEY);
-          try {
-            localStorage.setItem("lastOrderId", returnedOrderId);
-          } catch {}
-          setOrderId(returnedOrderId);
-          router.push(`/${locale}/profile/orders/${returnedOrderId}`);
-          setIsSubmitting(false);
-          return;
-        }
-      }
-
-      // non-LEMON flows:
-      // close terms
-      setOpenTerms(false);
-
-      // clear cart
-      localStorage.removeItem(CART_KEY);
-      window.dispatchEvent(new Event("cart-updated"));
-
-      setOrderId(returnedOrderId);
+      let res;
       try {
-        localStorage.setItem("lastOrderId", returnedOrderId);
+        res = await postOrder(bearer);
+      } catch (err: any) {
+        // Stale/invalid stored token: start a fresh guest session and retry once
+        if (err?.response?.status !== 401) throw err;
+        bearer = await createGuestSession();
+        if (!bearer) throw new Error("session");
+        res = await postOrder(bearer);
+      }
+
+      const orderId = res.data?.orderId ?? res.data?.id;
+      if (!orderId) throw new Error("order");
+
+      try {
+        localStorage.setItem("lastOrderId", orderId);
       } catch {}
+      clearCart();
 
-      if (paymentMethod === "QPAY") {
-        router.push(
-          `/${locale}/checkout/payment-pending?orderId=${returnedOrderId}`
-        );
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (paymentMethod === "BANK") {
-        router.push(
-          `/${locale}/checkout/bank-transfer?orderId=${returnedOrderId}`
-        );
-        setIsSubmitting(false);
-        return;
-      }
-
-      toast.success(t("order_success"));
-      router.push(`/${locale}/profile/orders/${returnedOrderId}`);
+      router.push(
+        paymentMethod === "QPAY"
+          ? `/${locale}/checkout/payment-pending?orderId=${orderId}`
+          : `/${locale}/checkout/bank-transfer?orderId=${orderId}`,
+      );
     } catch (err: any) {
-      if (err?.response?.status === 401) {
-        router.push(`/${locale}/log-in`);
-        setIsSubmitting(false);
-        return;
-      }
-      console.error("handlePaymentStart error:", err?.response?.data || err);
-      toast.error(t("err_create_order"));
-    } finally {
-      // ✅ only reset after request finishes if we didn't redirect away
-      setIsSubmitting(false);
+      setSubmitError(err?.message === "session" ? st("err_session") : (err?.response?.data?.message ?? st("err_order")));
+      setSubmitting(false);
     }
   };
 
@@ -392,18 +173,13 @@ export function useCheckout(cart: CartItem[]) {
     form,
     setForm,
     errors,
-    openTerms,
-    setOpenTerms,
-    orderId,
     paymentMethod,
     setPaymentMethod,
     productTotal,
     deliveryFee,
-    totalPrice,
-    handleSubmit,
-    handlePaymentStart,
-    isSubmitting, // expose loading flag for UI
-    t,
-    router,
+    total,
+    submitting,
+    submitError,
+    placeOrder,
   };
 }
