@@ -501,6 +501,25 @@
     "terms": "terms of service.",
     "err_order": "Couldn't create your order. Please try again.",
     "err_session": "Connection problem. Please try again.",
-    "shop": "Shop"
+    "shop": "Shop",
+    "badge_new": "New",
+    "badge_best": "Best seller",
+    "reviews_count": "{n} reviews",
+    "description": "Description",
+    "how_to": "How to use",
+    "key_ingredients": "Key ingredients",
+    "full_ingredients": "Full ingredients",
+    "product_faq": "FAQ",
+    "shop_by_category": "Shop by category",
+    "best_sellers": "Best sellers",
+    "new_arrivals": "New arrivals",
+    "customers_say": "What customers say",
+    "verified": "Verified purchase",
+    "step": "Step {n}",
+    "trust_delivery": "Delivery {fee}",
+    "trust_payment": "QPay or bank transfer",
+    "trust_tracking": "Track your order online",
+    "our_values": "What we stand for",
+    "pairs_well": "Pairs well with"
   }
 }

@@ -8,6 +8,53 @@ import { money, onSale } from "./lib/product";
 import { useStoreT } from "./lib/useStoreT";
 
 export const SALE_RED = "#c4302b";
+export const CREAM = "#f6f2ed";
+
+/** ★★★★★ 4.8 (120): only rendered when there are real reviews. */
+export function Stars({
+  avg,
+  count,
+  size = 14,
+  showAvg = false,
+  hideCount = false,
+  className = "",
+}: {
+  avg: number;
+  count: number;
+  size?: number;
+  showAvg?: boolean;
+  hideCount?: boolean;
+  className?: string;
+}) {
+  if (!count) return null;
+  const pct = Math.max(0, Math.min(100, (avg / 5) * 100));
+  const row = "★★★★★";
+  return (
+    <span className={`inline-flex items-center gap-[6px] ${className}`} aria-label={`${avg.toFixed(1)} / 5 (${count})`}>
+      <span className="relative inline-block leading-none" style={{ fontSize: size }}>
+        <span className="text-[#d9d4cf]">{row}</span>
+        <span className="absolute inset-0 overflow-hidden whitespace-nowrap text-[#121212]" style={{ width: `${pct}%` }}>
+          {row}
+        </span>
+      </span>
+      {!hideCount && (
+        <span className="text-[13px] text-[rgba(18,18,18,0.7)]">
+          {showAvg && <span className="mr-[4px] font-semibold text-[#121212]">{avg.toFixed(1)}</span>}({count})
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** Dashed "fill this in" box, only in `npm run dev`. Never shown to customers. */
+export function DevHint({ children }: { children: ReactNode }) {
+  if (process.env.NODE_ENV !== "development") return null;
+  return (
+    <div className="border border-dashed border-[#c9a96e] bg-[#fffaf0] px-[14px] py-[10px] text-[13px] text-[#7a5b1f]">
+      <b>DEV:</b> {children}
+    </div>
+  );
+}
 
 /** Price, sale price in red, compare-at struck through after it. */
 export function Price({ product, className = "" }: { product: any; className?: string }) {
@@ -36,12 +83,15 @@ export const salePercent = (p: any) => {
   return compare > price ? Math.round(((compare - price) / compare) * 100) : 0;
 };
 
-export function Badge({ kind, children }: { kind: "sale" | "soldout"; children: ReactNode }) {
+export function Badge({ kind, children }: { kind: "sale" | "soldout" | "label"; children: ReactNode }) {
+  const style =
+    kind === "sale"
+      ? { background: SALE_RED, color: "#fff" }
+      : kind === "label"
+        ? { background: "#fff", color: "#121212" }
+        : { background: "#fff", color: "#121212", boxShadow: "inset 0 0 0 1px #121212" };
   return (
-    <span
-      className="inline-block px-[8px] py-[4px] text-[12px] font-semibold leading-none"
-      style={kind === "sale" ? { background: SALE_RED, color: "#fff" } : { background: "#fff", color: "#121212", boxShadow: "inset 0 0 0 1px #121212" }}
-    >
+    <span className="inline-block px-[8px] py-[4px] text-[12px] font-semibold leading-none" style={style}>
       {children}
     </span>
   );

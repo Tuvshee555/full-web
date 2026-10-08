@@ -4,16 +4,16 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronLeft, ChevronRight, CreditCard, Share2, Truck, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, CreditCard, HelpCircle, PackageSearch, Share2, Truck, X } from "lucide-react";
 import { toast } from "sonner";
-import { STORE } from "@/config/store";
+import { STORE, productContent, type ProductContent } from "@/config/store";
 import { DELIVERY_FEE } from "@/data/mongoliaLocations";
 import { FoodReviews } from "@/components/review/FoodReviews";
 import { addToCart } from "./lib/cart";
-import { isSoldOut, money, onSale, sizeLabel, sizeSoldOut } from "./lib/product";
+import { isSoldOut, money, onSale, rating, sizeLabel, sizeSoldOut } from "./lib/product";
 import { useStoreT } from "./lib/useStoreT";
 import { ProductCard } from "./ProductCard";
-import { Badge, Price, QuantityInput, salePercent } from "./ui";
+import { Badge, CREAM, DevHint, Price, QuantityInput, salePercent, Stars } from "./ui";
 
 type Media = { type: "image" | "video"; src: string };
 
@@ -40,6 +40,21 @@ export function ProductPage({ product, related }: { product: any; related: any[]
   const soldOut = isSoldOut(product);
   const sizeOut = sizes.some((s) => sizeLabel(s) === size && sizeSoldOut(s));
   const unavailable = soldOut || sizeOut;
+  const stars = rating(product);
+  const content = productContent(product.id);
+
+  // Track whether the main buttons are on screen (drives the mobile sticky bar)
+  const ctaRef = useRef<HTMLDivElement>(null);
+  const [ctaVisible, setCtaVisible] = useState(true);
+  useEffect(() => {
+    const check = () => {
+      const el = ctaRef.current;
+      if (el) setCtaVisible(el.getBoundingClientRect().bottom > 0);
+    };
+    check();
+    window.addEventListener("scroll", check, { passive: true });
+    return () => window.removeEventListener("scroll", check);
+  }, []);
 
   const share = async () => {
     const url = window.location.href;
@@ -80,11 +95,33 @@ export function ProductPage({ product, related }: { product: any; related: any[]
             <p className="text-[12px] uppercase tracking-[0.06em]">{STORE.name}</p>
             <h1 className="store-heading mt-[8px] text-[30px] md:text-[40px]">{product.foodName}</h1>
 
+            {/* Grande / REFY: rating right under the title, jumps to reviews */}
+            {stars.count > 0 && (
+              <a href="#reviews" className="mt-[8px] inline-block hover:underline underline-offset-[3px]">
+                <Stars avg={stars.avg} count={stars.count} showAvg />
+              </a>
+            )}
+
             <div className="mt-[14px] flex flex-wrap items-center gap-[12px]">
-              <Price product={product} className="text-[18px]" />
+              <Price product={product} className="text-[20px]" />
               {soldOut ? <Badge kind="soldout">{st("sold_out")}</Badge> : onSale(product) && <Badge kind="sale">-{salePercent(product)}%</Badge>}
             </div>
             <p className="mt-[6px] text-[13px]">{st("shipping_note")}</p>
+
+            {/* REFY benefit tags */}
+            {content.benefits?.length ? (
+              <ul className="mt-[16px] flex flex-wrap gap-[6px]">
+                {content.benefits.map((b) => (
+                  <li key={b} className="px-[10px] py-[5px] text-[13px] text-[#121212]" style={{ background: CREAM }}>
+                    {b}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="mt-[16px]">
+                <DevHint>PRODUCT_CONTENT.benefits: short true tags, e.g. «Веган», «Үнэргүй», «5 мл» (src/config/store.ts)</DevHint>
+              </div>
+            )}
 
             {sizes.length > 0 && (
               <fieldset className="mt-[24px]">
@@ -117,7 +154,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
               <QuantityInput value={qty} onChange={setQty} />
             </div>
 
-            <div className="mt-[24px] flex max-w-[440px] flex-col gap-[10px]">
+            <div ref={ctaRef} className="mt-[24px] flex max-w-[440px] flex-col gap-[10px]">
               <button type="button" className="btn-secondary w-full" disabled={unavailable} onClick={() => addToCart(product, qty, size)}>
                 {unavailable ? st("sold_out") : st("add_to_cart")}
               </button>
@@ -135,7 +172,21 @@ export function ProductPage({ product, related }: { product: any; related: any[]
               )}
             </div>
 
-            {product.ingredients && <div className="mt-[30px] whitespace-pre-line text-[15px] leading-relaxed">{product.ingredients}</div>}
+            {/* Grande-style trust row: only facts that are true for every order */}
+            <ul className="mt-[18px] grid max-w-[440px] grid-cols-3 gap-[6px] text-center text-[12px] leading-tight text-[#121212]">
+              {[
+                { icon: Truck, text: st("trust_delivery", { fee: money(DELIVERY_FEE) }) },
+                { icon: CreditCard, text: st("trust_payment") },
+                { icon: PackageSearch, text: st("trust_tracking") },
+              ].map(({ icon: Icon, text }) => (
+                <li key={text} className="flex flex-col items-center gap-[6px] px-[6px] py-[10px]" style={{ background: CREAM }}>
+                  <Icon className="h-[18px] w-[18px]" strokeWidth={1.4} />
+                  {text}
+                </li>
+              ))}
+            </ul>
+
+            {product.ingredients && <div className="mt-[26px] whitespace-pre-line text-[15px] leading-relaxed">{product.ingredients}</div>}
 
             <div className="mt-[30px] border-b border-[rgba(18,18,18,0.08)]">
               <Collapsible icon={Truck} title={st("shipping")}>
@@ -152,13 +203,15 @@ export function ProductPage({ product, related }: { product: any; related: any[]
           </div>
         </div>
 
-        <section className="mt-[60px]">
+        <DetailTabs content={content} />
+
+        <section id="reviews" className="mt-[60px] scroll-mt-[90px]">
           <FoodReviews foodId={product.id} />
         </section>
 
         {related.length > 0 && (
           <section className="mt-[60px]">
-            <h2 className="store-heading text-[24px]">{st("you_may_also_like")}</h2>
+            <h2 className="store-heading text-[24px]">{st("pairs_well")}</h2>
             <div className="mt-[24px] grid grid-cols-2 gap-x-[8px] gap-y-[24px] md:grid-cols-4 md:gap-x-[16px]">
               {related.slice(0, 4).map((p) => (
                 <ProductCard key={p.id} product={p} quickAdd={false} />
@@ -168,8 +221,114 @@ export function ProductPage({ product, related }: { product: any; related: any[]
         )}
       </div>
 
+      {/* Mobile: buy bar sticks to the bottom once the main buttons scroll away */}
+      {!unavailable && (
+        <div
+          className={`fixed inset-x-0 bottom-0 z-[80] flex items-center gap-[12px] border-t border-[rgba(18,18,18,0.1)] bg-white px-[15px] py-[10px] transition-transform duration-300 md:hidden ${
+            ctaVisible ? "translate-y-full" : "translate-y-0"
+          }`}
+        >
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[14px] font-medium text-[#121212]">{product.foodName}</p>
+            <Price product={product} className="text-[14px]" />
+          </div>
+          <button type="button" className="btn !min-h-[44px] !px-[18px]" onClick={() => addToCart(product, qty, size)}>
+            {st("add_to_cart")}
+          </button>
+        </div>
+      )}
+
       {zoom !== null && <Lightbox media={media} start={zoom} alt={product.foodName} onClose={() => setZoom(null)} />}
     </>
+  );
+}
+
+/** REFY-style tabs: How to use / Key ingredients / Full ingredients / FAQ.
+ *  A tab exists only when its content is filled in (src/config/store.ts). */
+function DetailTabs({ content }: { content: ProductContent }) {
+  const { st } = useStoreT();
+  const tabs = [
+    content.howTo?.length && {
+      id: "how",
+      label: st("how_to"),
+      body: (
+        <ol className="grid gap-[16px] md:grid-cols-4">
+          {content.howTo.map((step, i) => (
+            <li key={i} className="p-[18px]" style={{ background: CREAM }}>
+              <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[rgba(18,18,18,0.6)]">{st("step", { n: i + 1 })}</p>
+              <p className="mt-[6px] text-[15px] text-[#121212]">{step}</p>
+            </li>
+          ))}
+        </ol>
+      ),
+    },
+    content.keyIngredients?.length && {
+      id: "key",
+      label: st("key_ingredients"),
+      body: (
+        <ul className="grid gap-[16px] md:grid-cols-3">
+          {content.keyIngredients.map((ing) => (
+            <li key={ing.name} className="p-[18px]" style={{ background: CREAM }}>
+              <p className="store-heading text-[16px]">{ing.name}</p>
+              <p className="mt-[6px] text-[14px]">{ing.text}</p>
+            </li>
+          ))}
+        </ul>
+      ),
+    },
+    content.fullIngredients && {
+      id: "inci",
+      label: st("full_ingredients"),
+      body: <p className="max-w-[800px] text-[14px] leading-relaxed">{content.fullIngredients}</p>,
+    },
+    content.faq?.length && {
+      id: "faq",
+      label: st("product_faq"),
+      body: (
+        <div className="max-w-[800px] border-b border-[rgba(18,18,18,0.08)]">
+          {content.faq.map((f) => (
+            <Collapsible key={f.q} icon={HelpCircle} title={f.q}>
+              {f.a}
+            </Collapsible>
+          ))}
+        </div>
+      ),
+    },
+  ].filter(Boolean) as { id: string; label: string; body: React.ReactNode }[];
+
+  const [active, setActive] = useState(0);
+
+  if (!tabs.length) {
+    return (
+      <section className="mt-[60px]">
+        <DevHint>
+          PRODUCT_CONTENT in src/config/store.ts: fill howTo (steps), keyIngredients, fullIngredients (INCI from the box) and faq. Each one becomes a
+          tab here, REFY-style. Hidden on the live site until filled.
+        </DevHint>
+      </section>
+    );
+  }
+
+  return (
+    <section className="mt-[60px]">
+      <div role="tablist" className="flex gap-[24px] overflow-x-auto border-b border-[rgba(18,18,18,0.12)] [scrollbar-width:none]">
+        {tabs.map((tab, i) => (
+          <button
+            key={tab.id}
+            role="tab"
+            type="button"
+            aria-selected={active === i}
+            onClick={() => setActive(i)}
+            className={`-mb-px shrink-0 border-b-2 pb-[12px] text-[15px] ${
+              active === i ? "border-[#121212] font-semibold text-[#121212]" : "border-transparent text-[rgba(18,18,18,0.6)] hover:text-[#121212]"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      <div className="pt-[24px]">{tabs[Math.min(active, tabs.length - 1)].body}</div>
+    </section>
   );
 }
 

@@ -150,6 +150,20 @@ export const FoodReviews = ({ foodId }: { foodId: string }) => {
     return filtered;
   }, [data?.reviews, onlyPhotos, sort]);
 
+  // No reviews yet: a quiet line instead of an empty 0.0 / five empty bars box
+  if (loading && !data) return null;
+  if (count === 0) {
+    return (
+      <div className="w-full border-t border-border pt-6">
+        <h2 className="text-[20px] font-semibold text-[#121212]">{t("reviews") ?? "Reviews"}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {t("no_reviews") ?? "No reviews yet."}{" "}
+          {t("review_after_purchase") ?? "You can leave a review from your Order page after purchase."}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full">
       <div className="rounded-none border border-border bg-card p-4 sm:p-6">

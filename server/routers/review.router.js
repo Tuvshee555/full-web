@@ -5,11 +5,12 @@ import { getFoodReviews } from "../controller/reviews/get-food-reviews.js";
 import { createFoodReview } from "../controller/reviews/create-food-review.js";
 import { updateReview } from "../controller/reviews/update-review.js";
 import { deleteReview } from "../controller/reviews/delete-review.js";
-
+import { getLatestReviews } from "../controller/reviews/get-latest-reviews.js";
 
 export const reviewRouter = Router();
 
 // public
+reviewRouter.get("/latest", publicCache(), getLatestReviews);
 reviewRouter.get("/food/:foodId", publicCache(), getFoodReviews);
 
 // protected

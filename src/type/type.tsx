@@ -5,6 +5,8 @@ export type FoodType = {
   isFeatured: any;
   foodId: string;
   salesCount: number;
+  avgRating?: number;
+  reviewCount?: number;
   createdAt: number;
   available: boolean;
   stock: number;
