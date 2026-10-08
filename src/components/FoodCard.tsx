@@ -2,9 +2,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useI18n } from "@/components/i18n/ClientI18nProvider";
 import type { FoodCardPropsType } from "@/type/type";
 import { fadeUp } from "@/utils/animations";
@@ -15,7 +15,6 @@ const CART_KEY = "cart";
 
 export const FoodCard: React.FC<FoodCardPropsType> = ({ food }) => {
   const { locale, t } = useI18n();
-  const [hoverIndex, setHoverIndex] = useState(0);
 
   const price = Number(food.price ?? NaN);
   const oldPrice = Number(food.oldPrice ?? NaN);
@@ -26,7 +25,6 @@ export const FoodCard: React.FC<FoodCardPropsType> = ({ food }) => {
 
   const hasDiscount = !Number.isNaN(discount) && discount > 0;
   const showOldPrice = !Number.isNaN(oldPrice) && !Number.isNaN(price) && oldPrice > price;
-  const savings = showOldPrice && !Number.isNaN(price) ? Number((oldPrice - price).toFixed(2)) : undefined;
 
   /* Image handling */
   const displayImages = useMemo(() => {
@@ -50,15 +48,10 @@ export const FoodCard: React.FC<FoodCardPropsType> = ({ food }) => {
     };
   }, [displayImages]);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (displayImages.length <= 1) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const index = Math.floor(((e.clientX - rect.left) / rect.width) * displayImages.length);
-    setHoverIndex(Math.min(displayImages.length - 1, Math.max(0, index)));
-  };
-
   const fmt = (v: number) => (Number.isNaN(v) ? "-" : v.toLocaleString());
-  const mainImage = displayImages[hoverIndex] ?? "/placeholder.png";
+  const mainImage = displayImages[0] ?? "/placeholder.png";
+  // Second photo crossfades in on hover (desktop only, like most fashion/beauty stores)
+  const hoverImage = displayImages[1];
 
   const addToCartLocal = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -98,51 +91,42 @@ export const FoodCard: React.FC<FoodCardPropsType> = ({ food }) => {
 
   return (
     <Link href={`/${locale}/food/${food.id}`} className="block w-full focus:outline-none">
-      <motion.div
-        variants={fadeUp}
-        whileHover={{ y: -4 }}
-        transition={{ duration: 0.2 }}
-        className="group relative bg-card rounded-2xl overflow-hidden border border-border/60
-          hover:border-border hover:shadow-xl hover:shadow-black/5 transition-shadow duration-300 cursor-pointer"
-      >
-        {/* Image area */}
-        <div
-          className="relative aspect-[4/3] overflow-hidden bg-muted"
-          onMouseLeave={() => setHoverIndex(0)}
-          onMouseMove={handleMouseMove}
-        >
-          <AnimatePresence mode="wait">
-            <motion.img
-              key={mainImage}
-              src={mainImage}
-              alt={food.foodName || ""}
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              initial={{ opacity: 0.6 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.18 }}
+      <motion.div variants={fadeUp} className="group relative bg-transparent cursor-pointer">
+        {/* Image area: square, sharp edges */}
+        <div className="relative aspect-square overflow-hidden bg-muted">
+          <img
+            src={mainImage}
+            alt={food.foodName || ""}
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500
+              ${hoverImage ? "md:group-hover:opacity-0" : ""}`}
+            draggable={false}
+          />
+          {hoverImage && (
+            <img
+              src={hoverImage}
+              alt=""
+              aria-hidden
+              loading="lazy"
+              className="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-500
+                hidden md:block md:group-hover:opacity-100"
               draggable={false}
             />
-          </AnimatePresence>
-
-          {/* Gradient overlay on hover */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent
-            opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          )}
 
           {/* Badges */}
-          <div className="absolute top-3 left-3 z-20 flex flex-col gap-1.5">
+          <div className="absolute top-2 left-2 z-20 flex flex-col items-start gap-1">
             {isFeatured && (
-              <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">
+              <span className="bg-foreground text-background text-[10px] font-semibold uppercase tracking-widest px-2 py-1">
                 {t("featured")}
               </span>
             )}
             {!isFeatured && salesCount >= BESTSELLER_THRESHOLD && (
-              <span className="bg-muted text-foreground text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border border-border">
+              <span className="bg-background text-foreground text-[10px] font-semibold uppercase tracking-widest px-2 py-1">
                 {t("bestseller")}
               </span>
             )}
             {hasDiscount && (
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isDiscountFake ? "bg-yellow-400 text-black" : "bg-rose-500 text-white"}`}>
+              <span className={`text-[10px] font-semibold tracking-wider px-2 py-1 ${isDiscountFake ? "bg-yellow-400 text-black" : "bg-rose-600 text-white"}`}>
                 -{discount}%
               </span>
             )}
@@ -150,40 +134,45 @@ export const FoodCard: React.FC<FoodCardPropsType> = ({ food }) => {
 
           {/* Sold out */}
           {(food as any)?.stock === 0 && (
-            <div className="absolute inset-0 z-30 bg-black/60 flex items-center justify-center text-white font-semibold">
+            <div className="absolute inset-0 z-30 bg-background/70 flex items-center justify-center text-foreground text-xs font-semibold uppercase tracking-widest">
               {t("sold_out")}
             </div>
           )}
 
-          {/* Quick add button */}
+          {/* Quick add bar: slides up on hover (desktop) */}
           <button
-            className="absolute bottom-3 left-3 right-3 z-20 bg-background/90 backdrop-blur-sm
-              text-foreground text-sm font-medium py-2 rounded-xl border border-border/50
-              opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0
-              transition-all duration-300"
+            className="absolute bottom-0 inset-x-0 z-20 hidden md:block bg-foreground text-background
+              text-xs font-semibold uppercase tracking-widest py-3
+              translate-y-full group-hover:translate-y-0 transition-transform duration-300"
             onClick={addToCartLocal}
           >
-            + {t("add_to_cart")}
+            {t("add_to_cart")}
           </button>
         </div>
 
         {/* Info area */}
-        <div className="p-4">
-          <h3 className="font-semibold text-sm leading-tight line-clamp-2 mb-2 group-hover:text-primary transition-colors">
+        <div className="pt-3">
+          <h3 className="text-sm font-medium leading-snug line-clamp-2 mb-1">
             {food.foodName}
           </h3>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-baseline gap-2">
-              <span className="text-base font-bold text-primary">{fmt(price)}₮</span>
-              {showOldPrice && (
-                <span className="text-xs text-muted-foreground line-through">{fmt(oldPrice)}₮</span>
-              )}
-            </div>
-            {savings && savings > 0 && (
-              <span className="text-xs font-medium text-green-500">{t("save")} {fmt(savings)}₮</span>
+          <div className="flex items-baseline gap-2">
+            <span className={`text-sm font-semibold ${showOldPrice ? "text-rose-600" : "text-foreground"}`}>
+              {fmt(price)}₮
+            </span>
+            {showOldPrice && (
+              <span className="text-xs text-muted-foreground line-through">{fmt(oldPrice)}₮</span>
             )}
           </div>
+
+          {/* Mobile has no hover, so the add button is always visible there */}
+          <button
+            className="md:hidden mt-2 w-full border border-foreground text-foreground text-[11px] font-semibold
+              uppercase tracking-widest py-2 active:bg-foreground active:text-background"
+            onClick={addToCartLocal}
+          >
+            {t("add_to_cart")}
+          </button>
         </div>
       </motion.div>
     </Link>

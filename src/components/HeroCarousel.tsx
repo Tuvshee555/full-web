@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useI18n } from "@/components/i18n/ClientI18nProvider";
 import Link from "next/link";
-import MagneticButton from "@/components/motion/MagneticButton";
 
 const slides = [
   {
@@ -166,15 +165,13 @@ export function HeroCarousel() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.45 }}
             >
-              <MagneticButton strength={0.3}>
-                <Link
-                  href={`/${locale}/category/all`}
-                  className="inline-flex items-center px-8 py-3 rounded-full bg-white text-black text-sm font-semibold
-                    hover:bg-white/90 transition-all duration-300 tracking-wide shadow-lg"
-                >
-                  {t("shop_now")}
-                </Link>
-              </MagneticButton>
+              <Link
+                href={`/${locale}/category/all`}
+                className="inline-flex items-center px-8 py-3 rounded-full bg-white text-black text-sm font-semibold
+                  hover:bg-white/90 transition-all duration-300 tracking-wide shadow-lg"
+              >
+                {t("shop_now")}
+              </Link>
             </motion.div>
           </div>
         </motion.div>
