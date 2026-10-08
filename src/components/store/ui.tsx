@@ -7,30 +7,40 @@ import { Minus, Plus, X } from "lucide-react";
 import { money, onSale } from "./lib/product";
 import { useStoreT } from "./lib/useStoreT";
 
-/** Dawn price: compare-at struck through, then the price. */
+export const SALE_RED = "#c4302b";
+
+/** Price, sale price in red, compare-at struck through after it. */
 export function Price({ product, className = "" }: { product: any; className?: string }) {
   const { st } = useStoreT();
   const sale = onSale(product);
   return (
-    <div className={`flex flex-wrap items-center gap-x-[10px] tracking-[0.1rem] ${className}`}>
+    <div className={`flex flex-wrap items-baseline gap-x-[8px] ${className}`}>
+      {sale && <span className="sr-only">{st("sale_price")}</span>}
+      <span className="font-semibold" style={{ color: sale ? SALE_RED : "#121212" }}>
+        {money(product.price)}
+      </span>
       {sale && (
         <>
           <span className="sr-only">{st("regular_price")}</span>
-          <s className="text-[rgba(18,18,18,0.75)] text-[0.85em]">{money(product.oldPrice)}</s>
-          <span className="sr-only">{st("sale_price")}</span>
+          <s className="text-[0.88em] text-[rgba(18,18,18,0.5)]">{money(product.oldPrice)}</s>
         </>
       )}
-      <span className="text-[#121212]">{money(product.price)}</span>
     </div>
   );
 }
 
+/** "-16%" from the real compare-at price. */
+export const salePercent = (p: any) => {
+  const price = Number(p?.price);
+  const compare = Number(p?.oldPrice);
+  return compare > price ? Math.round(((compare - price) / compare) * 100) : 0;
+};
+
 export function Badge({ kind, children }: { kind: "sale" | "soldout"; children: ReactNode }) {
   return (
     <span
-      className={`inline-block rounded-[40px] px-[13px] py-[5px] text-[12px] leading-none tracking-[0.1rem] ${
-        kind === "sale" ? "bg-[#334fb4] text-white" : "bg-[#121212] text-white"
-      }`}
+      className="inline-block px-[8px] py-[4px] text-[12px] font-semibold leading-none"
+      style={kind === "sale" ? { background: SALE_RED, color: "#fff" } : { background: "#fff", color: "#121212", boxShadow: "inset 0 0 0 1px #121212" }}
     >
       {children}
     </span>

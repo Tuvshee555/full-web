@@ -27,7 +27,7 @@ export function AnnouncementBar() {
   if (!messages.length) return null;
   return (
     <div className="border-b border-[rgba(18,18,18,0.08)] bg-white">
-      <p className="page-width py-[10px] text-center text-[13px] tracking-[0.1rem] text-[#121212]">{messages[i]}</p>
+      <p className="page-width py-[10px] text-center text-[13px] tracking-normal text-[#121212]">{messages[i]}</p>
     </div>
   );
 }
@@ -60,18 +60,19 @@ export function StoreHeader({ onOpenAccount, onOpenCart }: { onOpenAccount: () =
     setSearchOpen(false);
   }, [pathname]);
 
-  const nav = useMemo(
-    () => [
+  // Fixed short menu so it always fits one line; categories live under "Shop".
+  const nav = useMemo(() => {
+    const categories = tree.flatMap((c: CategoryNode) => [
+      { label: c.categoryName, href: collectionUrl(locale, c.id) },
+      ...(c.children ?? []).map((ch) => ({ label: ch.categoryName, href: collectionUrl(locale, ch.id), sub: true })),
+    ]);
+    return [
       { label: st("home"), href: `/${locale}` },
-      { label: st("all_products"), href: collectionUrl(locale) },
-      ...tree.map((c: CategoryNode) => ({
-        label: c.categoryName,
-        href: collectionUrl(locale, c.id),
-        children: (c.children ?? []).map((ch) => ({ label: ch.categoryName, href: collectionUrl(locale, ch.id) })),
-      })),
-    ],
-    [tree, locale, st],
-  );
+      { label: st("shop"), href: collectionUrl(locale), children: [{ label: st("all_products"), href: collectionUrl(locale) }, ...categories] },
+      { label: st("faq"), href: `/${locale}/faq` },
+      { label: st("contact"), href: `/${locale}/contact` },
+    ];
+  }, [tree, locale, st]);
 
   const iconBtn = "flex h-[44px] w-[44px] items-center justify-center text-[#121212] transition-transform hover:scale-[1.07]";
 
@@ -79,7 +80,7 @@ export function StoreHeader({ onOpenAccount, onOpenCart }: { onOpenAccount: () =
     <>
       <div className={`sticky top-0 z-[90] transition-transform duration-300 ${hidden ? "-translate-y-full" : "translate-y-0"}`}>
         <header className="border-b border-[rgba(18,18,18,0.08)] bg-white">
-          <div className="page-width grid h-[64px] md:h-[84px] grid-cols-[1fr_auto_1fr] items-center md:grid-cols-[auto_1fr_auto] md:gap-[30px]">
+          <div className="page-width grid h-[64px] md:h-[76px] grid-cols-[1fr_auto_1fr] items-center md:gap-[30px]">
             {/* mobile: menu + search */}
             <div className="flex items-center md:hidden -ml-[10px]">
               <button type="button" className={iconBtn} aria-label={st("menu")} onClick={() => setMenuOpen(true)}>
@@ -90,13 +91,13 @@ export function StoreHeader({ onOpenAccount, onOpenCart }: { onOpenAccount: () =
               </button>
             </div>
 
-            <Link href={`/${locale}`} className="store-heading justify-self-center md:justify-self-start text-[20px] md:text-[24px] whitespace-nowrap">
+            <Link href={`/${locale}`} className="store-heading justify-self-center md:justify-self-start text-[20px] md:text-[22px] whitespace-nowrap">
               {STORE.name}
             </Link>
 
-            {/* desktop menu */}
+            {/* desktop menu: one line, centered */}
             <nav className="hidden md:block">
-              <ul className="flex flex-wrap items-center gap-x-[6px]">
+              <ul className="flex flex-nowrap items-center gap-x-[4px] whitespace-nowrap">
                 {nav.map((item: any) => (
                   <NavItem key={item.href} item={item} active={pathname === item.href} />
                 ))}
@@ -131,8 +132,8 @@ export function StoreHeader({ onOpenAccount, onOpenCart }: { onOpenAccount: () =
 
 function NavItem({ item, active }: { item: any; active: boolean }) {
   const [open, setOpen] = useState(false);
-  const base = `inline-flex items-center gap-[4px] px-[12px] py-[12px] text-[15px] ${
-    active ? "text-[#121212] underline underline-offset-[3px]" : "text-[rgba(18,18,18,0.75)] hover:text-[#121212] hover:underline underline-offset-[3px]"
+  const base = `inline-flex items-center gap-[4px] px-[14px] py-[12px] text-[15px] font-medium ${
+    active ? "text-[#121212] underline underline-offset-[6px]" : "text-[rgba(18,18,18,0.8)] hover:text-[#121212] hover:underline underline-offset-[6px]"
   }`;
   if (!item.children?.length) {
     return (
@@ -150,10 +151,13 @@ function NavItem({ item, active }: { item: any; active: boolean }) {
         <ChevronDown className={`h-[12px] w-[12px] transition-transform ${open ? "rotate-180" : ""}`} />
       </Link>
       {open && (
-        <ul className="absolute left-0 top-full z-20 min-w-[200px] border border-[rgba(18,18,18,0.1)] bg-white py-[12px]">
+        <ul className="absolute left-0 top-full z-20 min-w-[240px] max-h-[70vh] overflow-y-auto border border-[rgba(18,18,18,0.1)] bg-white py-[10px] shadow-[0_8px_24px_rgba(0,0,0,0.06)]">
           {item.children.map((c: any) => (
-            <li key={c.href}>
-              <Link href={c.href} className="block px-[20px] py-[6px] text-[14px] text-[rgba(18,18,18,0.75)] hover:text-[#121212] hover:underline">
+            <li key={c.href + c.label}>
+              <Link
+                href={c.href}
+                className={`block py-[7px] pr-[20px] text-[15px] text-[rgba(18,18,18,0.8)] hover:bg-[rgba(18,18,18,0.04)] hover:text-[#121212] ${c.sub ? "pl-[34px] text-[14px]" : "pl-[20px]"}`}
+              >
                 {c.label}
               </Link>
             </li>
@@ -180,14 +184,9 @@ function MenuDrawer({ open, onClose, nav, onOpenAccount }: { open: boolean; onCl
               <ChevronRight className="h-[16px] w-[16px] rotate-180" /> {sub.label}
             </button>
             <ul className="py-[10px]">
-              <li>
-                <Link href={sub.href} onClick={onClose} className="block px-[30px] py-[11px] text-[18px] text-[#121212]">
-                  {st("view_all")}
-                </Link>
-              </li>
               {sub.children.map((c: any) => (
-                <li key={c.href}>
-                  <Link href={c.href} onClick={onClose} className="block px-[30px] py-[11px] text-[18px] text-[#121212]">
+                <li key={c.href + c.label}>
+                  <Link href={c.href} onClick={onClose} className={`block py-[11px] text-[#121212] ${c.sub ? "pl-[46px] pr-[30px] text-[16px]" : "px-[30px] text-[18px]"}`}>
                     {c.label}
                   </Link>
                 </li>
@@ -289,7 +288,7 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
             <div className="mx-auto max-w-[740px] border-t border-[rgba(18,18,18,0.08)]">
               {results.length ? (
                 <>
-                  <p className="pt-[14px] pb-[6px] text-[11px] uppercase tracking-[0.13rem]">{st("products")}</p>
+                  <p className="pt-[14px] pb-[6px] text-[11px] uppercase tracking-[0.06em]">{st("products")}</p>
                   <ul>
                     {results.map((p: any) => (
                       <li key={p.id}>

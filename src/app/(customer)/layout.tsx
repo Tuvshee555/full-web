@@ -9,7 +9,7 @@ import { STORE } from "@/config/store";
 const storeFont = Source_Sans_3({
   variable: "--font-store",
   subsets: ["latin", "cyrillic", "cyrillic-ext"],
-  weight: ["400", "600", "700"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {

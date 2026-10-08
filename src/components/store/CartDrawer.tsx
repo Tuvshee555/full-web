@@ -35,7 +35,7 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
         </div>
       ) : (
         <>
-          <div className="mx-[20px] md:mx-[30px] flex justify-between border-b border-[rgba(18,18,18,0.08)] pb-[10px] text-[10px] uppercase tracking-[0.13rem] text-[rgba(18,18,18,0.75)]">
+          <div className="mx-[20px] md:mx-[30px] flex justify-between border-b border-[rgba(18,18,18,0.08)] pb-[10px] text-[10px] uppercase tracking-[0.06em] text-[rgba(18,18,18,0.75)]">
             <span>{st("product")}</span>
             <span>{st("total")}</span>
           </div>
@@ -47,7 +47,7 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
           <div className="border-t border-[rgba(18,18,18,0.08)] px-[20px] md:px-[30px] pt-[20px] pb-[25px]">
             <div className="flex items-center justify-between">
               <h3 className="store-heading text-[16px]">{st("estimated_total")}</h3>
-              <span className="text-[16px] tracking-[0.1rem] text-[#121212]">{money(cartSubtotal(items))}</span>
+              <span className="text-[16px] tracking-normal text-[#121212]">{money(cartSubtotal(items))}</span>
             </div>
             <p className="mt-[8px] text-[13px]">{st("shipping_note")}</p>
             <button
@@ -80,7 +80,7 @@ function CartLine({ item, onNavigate, locale }: { item: StoreCartItem; onNavigat
           <Link href={href} onClick={onNavigate} className="store-heading text-[15px] link-underline">
             {item.food?.foodName}
           </Link>
-          <span className="shrink-0 text-[15px] tracking-[0.1rem] text-[#121212]">
+          <span className="shrink-0 text-[15px] tracking-normal text-[#121212]">
             {money(Number(item.food?.price ?? 0) * item.quantity)}
           </span>
         </div>

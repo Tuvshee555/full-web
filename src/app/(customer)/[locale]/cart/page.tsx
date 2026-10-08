@@ -37,7 +37,7 @@ export default function CartPage() {
 
       <table className="mt-[30px] w-full">
         <thead>
-          <tr className="border-b border-[rgba(18,18,18,0.08)] text-left text-[10px] uppercase tracking-[0.13rem]">
+          <tr className="border-b border-[rgba(18,18,18,0.08)] text-left text-[10px] uppercase tracking-[0.06em]">
             <th className="pb-[12px] font-normal">{st("product")}</th>
             <th className="hidden pb-[12px] font-normal md:table-cell">{st("quantity")}</th>
             <th className="pb-[12px] text-right font-normal">{st("total")}</th>
@@ -76,7 +76,7 @@ export default function CartPage() {
                   </div>
                 </td>
                 <td className="hidden py-[24px] md:table-cell">{qty}</td>
-                <td className="py-[24px] text-right text-[15px] tracking-[0.1rem] text-[#121212]">
+                <td className="py-[24px] text-right text-[15px] tracking-normal text-[#121212]">
                   {money(Number(item.food?.price ?? 0) * item.quantity)}
                 </td>
               </tr>
@@ -89,7 +89,7 @@ export default function CartPage() {
         <div className="w-full md:w-[360px] text-center md:text-right">
           <div className="flex items-baseline justify-center gap-[16px] md:justify-end">
             <h2 className="store-heading text-[16px]">{st("estimated_total")}</h2>
-            <span className="text-[18px] tracking-[0.1rem] text-[#121212]">{money(cartSubtotal(items))}</span>
+            <span className="text-[18px] tracking-normal text-[#121212]">{money(cartSubtotal(items))}</span>
           </div>
           <p className="mt-[8px] text-[13px]">{st("shipping_note")}</p>
           <Link href={`/${locale}/checkout`} className="btn mt-[18px] w-full">

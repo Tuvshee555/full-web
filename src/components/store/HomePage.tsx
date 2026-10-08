@@ -40,7 +40,7 @@ export function HomePage() {
         <div className="absolute inset-0 bg-black/40" />
         <div className="relative z-10 px-[20px] text-center text-white">
           <h1 className="store-heading !text-white text-[40px] md:text-[52px]">{STORE.name}</h1>
-          <p className="mt-[10px] text-[16px] tracking-[0.06rem] text-white/90">{st("hero_text")}</p>
+          <p className="mt-[10px] text-[16px] tracking-normal text-white/90">{st("hero_text")}</p>
           <Link href={collectionUrl(locale)} className="btn mt-[30px] !bg-white !text-[#121212] !shadow-[0_0_0_1px_#fff] hover:!shadow-[0_0_0_2px_#fff]">
             {st("shop_all")}
           </Link>

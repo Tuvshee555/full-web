@@ -13,7 +13,7 @@ import { addToCart } from "./lib/cart";
 import { isSoldOut, money, onSale, sizeLabel, sizeSoldOut } from "./lib/product";
 import { useStoreT } from "./lib/useStoreT";
 import { ProductCard } from "./ProductCard";
-import { Badge, Price, QuantityInput } from "./ui";
+import { Badge, Price, QuantityInput, salePercent } from "./ui";
 
 type Media = { type: "image" | "video"; src: string };
 
@@ -77,12 +77,12 @@ export function ProductPage({ product, related }: { product: any; related: any[]
 
           {/* Info */}
           <div className="md:sticky md:top-[30px] self-start">
-            <p className="text-[12px] uppercase tracking-[0.13rem]">{STORE.name}</p>
+            <p className="text-[12px] uppercase tracking-[0.06em]">{STORE.name}</p>
             <h1 className="store-heading mt-[8px] text-[30px] md:text-[40px]">{product.foodName}</h1>
 
             <div className="mt-[14px] flex flex-wrap items-center gap-[12px]">
               <Price product={product} className="text-[18px]" />
-              {soldOut ? <Badge kind="soldout">{st("sold_out")}</Badge> : onSale(product) && <Badge kind="sale">{st("sale")}</Badge>}
+              {soldOut ? <Badge kind="soldout">{st("sold_out")}</Badge> : onSale(product) && <Badge kind="sale">-{salePercent(product)}%</Badge>}
             </div>
             <p className="mt-[6px] text-[13px]">{st("shipping_note")}</p>
 
@@ -100,7 +100,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
                         type="button"
                         onClick={() => setSize(label)}
                         aria-pressed={active}
-                        className={`relative min-w-[60px] rounded-[40px] px-[20px] py-[10px] text-[14px] tracking-[0.1rem] transition-colors
+                        className={`relative min-w-[60px] rounded-[40px] px-[20px] py-[10px] text-[14px] tracking-normal transition-colors
                           ${active ? "bg-[#121212] text-white" : "bg-white text-[#121212] shadow-[0_0_0_1px_rgba(18,18,18,0.55)] hover:shadow-[0_0_0_1px_#121212]"}
                           ${out ? "line-through opacity-60" : ""}`}
                       >

@@ -500,6 +500,7 @@
     "terms_note": "By completing your order you agree to the",
     "terms": "terms of service.",
     "err_order": "Couldn't create your order. Please try again.",
-    "err_session": "Connection problem. Please try again."
+    "err_session": "Connection problem. Please try again.",
+    "shop": "Shop"
   }
 }

@@ -94,12 +94,12 @@ export function StoreFooter() {
           </label>
           <ul className="flex gap-[8px]" aria-label={st("payment_methods")}>
             {["QPay", st("bank")].map((m) => (
-              <li key={m} className="rounded-[3px] border border-[rgba(18,18,18,0.2)] px-[8px] py-[3px] text-[11px] tracking-[0.05rem] text-[#121212]">
+              <li key={m} className="rounded-[3px] border border-[rgba(18,18,18,0.2)] px-[8px] py-[3px] text-[11px] text-[#121212]">
                 {m}
               </li>
             ))}
           </ul>
-          <p className="text-[11px] tracking-[0.05rem]">
+          <p className="text-[11px]">
             © {new Date().getFullYear()}, {STORE.name}
           </p>
         </div>
