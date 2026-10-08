@@ -1,0 +1,25 @@
+# dependencies
+/node_modules
+
+# next.js build output
+/.next/
+/out/
+/build
+next-env.d.ts
+*.tsbuildinfo
+
+# env files hold secrets; only the template is committed
+.env*
+!.env.example
+
+# local throwaway Postgres (npm run db:local)
+/.local-db
+
+# misc
+.DS_Store
+*.pem
+/coverage
+.vercel
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

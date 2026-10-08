@@ -1,0 +1,223 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id               String      @id @default(uuid())
+  email            String      @unique
+  password         String?
+  phonenumber      String?
+  address          String?
+  role             Role        @default(USER)
+  isVerified       Boolean     @default(false)
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  city             String?
+  district         String?
+  firstName        String?
+  khoroo           String?
+  lastName         String?
+  notes            String?
+  FoodOrder        FoodOrder[]
+  orderedFoods     OrderItem[]
+
+  reviews Review[]
+}
+
+model Payment {
+  id        String        @id @default(uuid())
+  invoiceId String        @unique
+  orderId   String        @unique
+  amount    Float
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  qrText    String?
+  status    PaymentStatus @default(PENDING)
+  qrImage   String?
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([status, createdAt])
+}
+
+model Food {
+  id          String      @id @default(uuid())
+  foodName    String
+  price       Float
+  image       String
+  address     String?
+  ingredients String
+  categoryId  String?
+  createdAt   DateTime    @default(now())
+  extraImages String[]    @default([])
+  updatedAt   DateTime    @default(now()) @updatedAt
+  video       String?
+  category    Category?   @relation(fields: [categoryId], references: [id])
+  sizes       FoodSize[]
+  OrderItem   OrderItem[]
+  isFeatured  Boolean     @default(false)
+  salesCount  Int         @default(0)
+  oldPrice    Float?
+  discount    Int?        @default(0)
+
+  reviews     Review[]
+  avgRating   Float    @default(0)
+  reviewCount Int      @default(0)
+
+  @@index([categoryId])
+  @@index([createdAt])
+  @@index([salesCount])
+}
+
+model FoodSize {
+  id     String @id @default(uuid())
+  foodId String
+  label  String
+  stock  Int?
+  food   Food   @relation(fields: [foodId], references: [id])
+
+  @@index([foodId])
+}
+
+model Category {
+  id           String @id @default(uuid())
+  categoryName String
+
+  parentId String? // 👈 allow category to have parent
+  parent   Category?  @relation("CategoryChildren", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryChildren")
+
+  foods Food[] // food can belong to any category level
+
+  @@index([parentId])
+}
+
+model FoodOrder {
+  id             String        @id @default(uuid())
+  orderNumber    String        @unique
+  idempotencyKey String?       @unique
+  userId         String
+  totalPrice     Float
+  deliveryFee    Float         @default(0)
+  deliveryZone   String?
+  status         OrderStatus
+  paymentMethod  PaymentMethod
+
+  firstName String?
+  lastName  String?
+  phone     String?
+  city      String?
+  district  String?
+  khoroo    String?
+  address   String?
+  notes     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user           User        @relation(fields: [userId], references: [id])
+  foodOrderItems OrderItem[]
+
+  lemonPayments LemonPayment[]
+
+  @@index([userId, status])
+  @@index([status])
+}
+
+model OrderItem {
+  id       String    @id @default(uuid())
+  foodId   String
+  quantity Int
+  size     String?
+  orderId  String
+  userId   String?
+  food     Food      @relation(fields: [foodId], references: [id])
+  order    FoodOrder @relation(fields: [orderId], references: [id])
+  User     User?     @relation(fields: [userId], references: [id])
+
+  @@index([orderId])
+  @@index([foodId])
+  @@index([userId])
+  @@index([foodId, orderId])
+}
+
+model LemonPayment {
+  id           String   @id @default(uuid())
+  orderId      String   @unique
+  checkoutId   String?
+  lemonOrderId String?  @unique
+  status       String   @default("PENDING") // PENDING | PAID | FAILED | REFUNDED
+  amount       Float?
+  currency     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  checkoutUrl  String? // ✅ add this
+
+  order FoodOrder @relation(fields: [orderId], references: [id])
+}
+
+model Review {
+  id               String   @id @default(uuid())
+  foodId           String
+  userId           String
+  rating           Int
+  comment          String
+  verifiedPurchase Boolean  @default(false)
+  images           String[] @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  food Food @relation(fields: [foodId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([foodId, userId]) // 1 review per user per food
+  @@index([foodId])
+}
+
+model EmailOtp {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+}
+
+enum OrderStatus {
+  PENDING
+  WAITING_PAYMENT
+  COD_PENDING
+  PAID
+  DELIVERING
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  COD
+  BANK
+  QPAY
+  LEMON
+}
