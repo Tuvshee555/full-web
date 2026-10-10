@@ -1,13 +1,14 @@
 "use client";
 
-import { BRAND, STORE } from "@/config/store";
+import { STORE, brandFor } from "@/config/store";
 import { InfoPage } from "@/components/store/InfoPage";
 import { DevHint } from "@/components/store/ui";
 import { useStoreT } from "@/components/store/lib/useStoreT";
 
 export default function AboutPage() {
-  const { st } = useStoreT();
-  const paragraphs = BRAND.about.length ? BRAND.about : [st("about_fallback", { name: STORE.name })];
+  const { st, locale } = useStoreT();
+  const brand = brandFor(locale);
+  const paragraphs = brand.about.length ? brand.about : [st("about_fallback", { name: STORE.name })];
 
   return (
     <InfoPage title={st("about_title")}>
@@ -17,7 +18,7 @@ export default function AboutPage() {
             {p}
           </p>
         ))}
-        {!BRAND.about.length && <DevHint>BRAND.about in src/config/store.ts: your real story, one paragraph per item.</DevHint>}
+        {!brand.about.length && <DevHint>BRAND_COPY.about in src/config/store.ts: your real story, one paragraph per item.</DevHint>}
       </div>
     </InfoPage>
   );

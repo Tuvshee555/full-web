@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { BRAND } from "@/config/store";
+import { brandFor } from "@/config/store";
 import { DELIVERY_FEE } from "@/data/mongoliaLocations";
 import { InfoPage } from "@/components/store/InfoPage";
 import { DevHint } from "@/components/store/ui";
@@ -11,7 +11,8 @@ import { useStoreT } from "@/components/store/lib/useStoreT";
 
 /** FAQ answered from how the site actually works, plus owner-written policies. */
 export default function FAQPage() {
-  const { st } = useStoreT();
+  const { st, locale } = useStoreT();
+  const BRAND = brandFor(locale);
   const [open, setOpen] = useState<number | null>(0);
 
   const items = [
@@ -42,7 +43,7 @@ export default function FAQPage() {
       </ul>
       {!BRAND.faq.length && (
         <div className="mt-[20px]">
-          <DevHint>BRAND.faq in src/config/store.ts: add your own policies (delivery days, returns). Only what you will actually honour.</DevHint>
+          <DevHint>BRAND_COPY.faq in src/config/store.ts: add your own policies (delivery days, returns). Only what you will actually honour.</DevHint>
         </div>
       )}
     </InfoPage>

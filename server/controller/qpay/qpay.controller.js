@@ -322,7 +322,10 @@ export const webhook = async (req, res) => {
       }
     }
 
-    const { invoice_id, paid_amount, status } = req.body;
+    // Only the invoice id is read from the request. Amount/status in the body
+    // are NOT trusted: anyone could POST {status:"PAID"} here. Payment is
+    // confirmed by asking QPay directly (below), same as checkPayment does.
+    const { invoice_id } = req.body;
 
     if (!invoice_id) {
       return res.status(400).json({ error: "Missing invoice_id" });
@@ -358,17 +361,28 @@ export const webhook = async (req, res) => {
       return res.json({ received: true, skipped: true });
     }
 
-    const paidAmount = toMoney(paid_amount || 0);
     const expectedAmount = toMoney(payment.amount || beforeOrder.totalPrice);
-    const effectivePaidAmount =
-      paidAmount > 0
-        ? paidAmount
-        : status === "PAID"
-        ? expectedAmount
-        : 0;
+
+    let verifiedPaidAmount = 0;
+    try {
+      const qpayToken = await getAccessToken();
+      const verify = await axios.post(
+        `${QPAY_BASE_URL}/payment/check`,
+        { object_type: "INVOICE", object_id: invoice_id },
+        { headers: { Authorization: `Bearer ${qpayToken}` } }
+      );
+      verifiedPaidAmount = toMoney(verify.data?.paid_amount || 0);
+    } catch (verifyErr) {
+      console.error(
+        "QPay webhook: could not verify payment with QPay:",
+        verifyErr.response?.data || verifyErr.message
+      );
+      // Let QPay retry later; never mark an order paid on an unverified claim.
+      return res.status(502).json({ error: "Could not verify payment" });
+    }
+
     const isPaid =
-      effectivePaidAmount > 0 &&
-      isPaidEnough(effectivePaidAmount, expectedAmount);
+      verifiedPaidAmount > 0 && isPaidEnough(verifiedPaidAmount, expectedAmount);
 
     if (!isPaid) return res.json({ received: true });
 

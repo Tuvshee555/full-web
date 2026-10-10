@@ -5,7 +5,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, ArrowUpRight, CreditCard, PackageSearch, Truck } from "lucide-react";
-import { BRAND, STORE } from "@/config/store";
+import { STORE, brandFor } from "@/config/store";
 import { DELIVERY_FEE } from "@/data/mongoliaLocations";
 import { API_BASE_URL } from "@/lib/api";
 import { useFood } from "@/hooks/useFood";
@@ -23,6 +23,7 @@ type LatestReview = { id: string; rating: number; comment: string; verifiedPurch
 
 export function HomePage() {
   const { st, locale } = useStoreT();
+  const BRAND = brandFor(locale);
   const { data: products = [], isLoading } = useFood();
   const { data: tree = [] } = useCategoryTree();
   const [reviews, setReviews] = useState<LatestReview[]>([]);
@@ -93,7 +94,7 @@ export function HomePage() {
           </Reveal>
           {!BRAND.heroTitle && (
             <div className="mt-[24px]">
-              <DevHint>BRAND.heroTitle / heroText in src/config/store.ts: your one-line promise (only what is true).</DevHint>
+              <DevHint>BRAND_COPY.heroTitle / heroText in src/config/store.ts: your one-line promise (only what is true).</DevHint>
             </div>
           )}
         </div>
@@ -269,7 +270,7 @@ export function HomePage() {
         </section>
       ) : (
         <div className="page-width pt-[48px]">
-          <DevHint>BRAND.values in src/config/store.ts: up to 4 short brand promises (e.g. «Веган», «Амьтанд туршаагүй»). Only true ones.</DevHint>
+          <DevHint>BRAND_COPY.values in src/config/store.ts: up to 4 short brand promises (e.g. «Веган», «Амьтанд туршаагүй»). Only true ones.</DevHint>
         </div>
       )}
 
