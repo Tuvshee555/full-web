@@ -1,24 +1,16 @@
 "use client";
 
-import { API_BASE_URL } from "@/lib/api";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { motion } from "framer-motion";
-import { Clock, MapPin, Receipt, ArrowRight } from "lucide-react";
-
+import { useQuery } from "@tanstack/react-query";
+import { ArrowRight } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
 import { useAuth } from "../../provider/AuthProvider";
-import { useI18n } from "@/components/i18n/ClientI18nProvider";
-import { fadeUp, staggerContainer } from "@/utils/animations";
+import { useStoreT } from "@/components/store/lib/useStoreT";
+import { collectionUrl, formatDate, money } from "@/components/store/lib/product";
+import { OrderStatusBadge } from "../orders/components/OrderStatusBadge";
 
-export type OrderStatus =
-  | "PENDING"
-  | "WAITING_PAYMENT"
-  | "COD_PENDING"
-  | "PAID"
-  | "DELIVERING"
-  | "DELIVERED"
-  | "CANCELLED";
+export type OrderStatus = "PENDING" | "WAITING_PAYMENT" | "COD_PENDING" | "PAID" | "DELIVERING" | "DELIVERED" | "CANCELLED";
 
 export type OrderListItem = {
   id: string;
@@ -28,167 +20,91 @@ export type OrderListItem = {
   status: OrderStatus;
   paymentMethod: "COD" | "BANK" | "QPAY";
   createdAt: string;
-  firstName?: string | null;
-  lastName?: string | null;
-  phone?: string | null;
-  city?: string | null;
-  district?: string | null;
-  khoroo?: string | null;
-  address?: string | null;
 };
 
-const STATUS_STYLE: Record<OrderStatus, string> = {
-  PENDING:         "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800",
-  WAITING_PAYMENT: "bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800",
-  COD_PENDING:     "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800",
-  PAID:            "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800",
-  DELIVERING:      "bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800",
-  DELIVERED:       "bg-green-50 text-green-700 border border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800",
-  CANCELLED:       "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800",
-};
-
+/** Order history as a clean table (stacked rows on phones). */
 export const OrdersList = () => {
   const { userId, token } = useAuth();
-  const { locale, t } = useI18n();
+  const { st, locale } = useStoreT();
 
-  const fetchOrders = async (): Promise<OrderListItem[]> => {
-    if (!userId || !token) return [];
-    const res = await axios.get(
-      `${API_BASE_URL}/order/user/${userId}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    const payload = res.data;
-    if (Array.isArray(payload)) return payload;
-    if (Array.isArray(payload?.orders)) return payload.orders;
-    if (Array.isArray(payload?.data)) return payload.data;
-    if (Array.isArray(payload?.results)) return payload.results;
-    return [];
-  };
-
-  const { data: orders = [], isLoading, isFetching, isError } = useQuery({
+  const { data: orders = [], isLoading, isError } = useQuery({
     queryKey: ["orders", userId],
-    queryFn: fetchOrders,
     enabled: Boolean(userId && token),
     retry: 1,
-    refetchInterval: (query) => {
-      const list = (query.state.data as OrderListItem[]) || [];
-      return list.some((o) => o.status === "WAITING_PAYMENT" && o.paymentMethod === "QPAY") ? 30000 : false;
-    },
     refetchOnWindowFocus: true,
+    queryFn: async (): Promise<OrderListItem[]> => {
+      const res = await axios.get(`${API_BASE_URL}/order/user/${userId}`, { headers: { Authorization: `Bearer ${token}` } });
+      const p = res.data;
+      return Array.isArray(p) ? p : (p?.orders ?? p?.data ?? p?.results ?? []);
+    },
+    // Keep checking while a QPay order is still waiting
+    refetchInterval: (q) =>
+      ((q.state.data as OrderListItem[]) || []).some((o) => o.status === "WAITING_PAYMENT" && o.paymentMethod === "QPAY") ? 30000 : false,
   });
-
-  const statusLabel: Record<OrderStatus, string> = {
-    PENDING:         t("order_status_pending"),
-    WAITING_PAYMENT: t("order_status_waiting_payment"),
-    COD_PENDING:     t("order_status_cod_pending"),
-    PAID:            t("order_status_paid"),
-    DELIVERING:      t("order_status_delivering"),
-    DELIVERED:       t("order_status_delivered"),
-    CANCELLED:       t("order_status_cancelled"),
-  };
 
   if (isLoading) {
     return (
-      <div className="space-y-3 mt-6">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-28 rounded-2xl bg-card border border-border animate-pulse" />
+      <div className="space-y-[2px]">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="h-[64px] animate-pulse bg-sand/70" />
         ))}
       </div>
     );
   }
 
-  if (isError) {
-    return (
-      <div className="text-center mt-12 space-y-2">
-        <p className="text-sm text-muted-foreground">
-          {t("orders_load_failed", "Захиалгын мэдээлэл ачаалахад алдаа гарлаа.")}
-        </p>
-      </div>
-    );
-  }
+  if (isError) return <p className="text-[15px] text-ink/60">{st("orders_error")}</p>;
 
   if (!orders.length) {
     return (
-      <div className="text-center mt-16 space-y-2">
-        <Receipt className="mx-auto w-6 h-6 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">{t("orders_empty")}</p>
+      <div className="py-[40px]">
+        <p className="store-heading text-[30px]">{st("no_orders")}</p>
+        <Link href={collectionUrl(locale)} className="btn group mt-[24px]">
+          {st("continue_shopping")}
+          <span className="btn-arrow">
+            <ArrowRight className="h-[16px] w-[16px]" strokeWidth={1.3} />
+          </span>
+        </Link>
       </div>
     );
   }
 
+
   return (
-    <div className="space-y-4 mt-5 pb-[200px] sm:pb-8">
-      <div className="flex items-center gap-2 mb-2">
-        <Receipt className="w-5 h-5" />
-        <h1 className="text-lg font-semibold">{t("my_orders")}</h1>
+    <div>
+      <div className="hidden grid-cols-[1.2fr_1fr_1.3fr_1fr_24px] gap-[16px] border-b border-ink/15 pb-[12px] md:grid">
+        {[st("col_order"), st("col_date"), st("col_status"), st("col_total")].map((h, i) => (
+          <span key={h} className={`eyebrow ${i === 3 ? "text-right" : ""}`}>
+            {h}
+          </span>
+        ))}
+        <span />
       </div>
-
-      <motion.div
-        className="space-y-3"
-        variants={staggerContainer}
-        initial="hidden"
-        animate="show"
-      >
-        {orders.map((order) => {
-          const orderId = order.id ?? order._id ?? "";
-          if (!orderId) return null;
-          const addressLine = [order.city, order.district, order.khoroo, order.address]
-            .filter(Boolean)
-            .join(", ");
-
+      <ul>
+        {orders.map((o) => {
+          const id = o.id ?? o._id ?? "";
+          if (!id) return null;
           return (
-            <motion.div key={orderId} variants={fadeUp}>
-              <Link href={`/${locale}/profile/orders/${orderId}`}>
-                <motion.div
-                  whileHover={{ x: 3 }}
-                  transition={{ duration: 0.15 }}
-                  className="group bg-card border border-border rounded-2xl p-5
-                    hover:border-primary/30 hover:shadow-md transition-all duration-200 cursor-pointer"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      {/* Order ID + status */}
-                      <div className="flex items-center gap-3 mb-3 flex-wrap">
-                        <span className="font-mono font-bold text-base">#{order.orderNumber}</span>
-                        <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${STATUS_STYLE[order.status]}`}>
-                          {statusLabel[order.status]}
-                        </span>
-                      </div>
-
-                      {/* Meta row */}
-                      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5" />
-                          {new Date(order.createdAt).toLocaleDateString()}
-                        </span>
-                        {addressLine && (
-                          <span className="flex items-center gap-1.5">
-                            <MapPin className="w-3.5 h-3.5" />
-                            <span className="truncate max-w-[200px]">{addressLine}</span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Price + arrow */}
-                    <div className="text-right shrink-0">
-                      <p className="font-bold text-lg">{order.totalPrice.toLocaleString()}₮</p>
-                      <span className="text-xs text-muted-foreground flex items-center gap-1
-                        justify-end mt-1 group-hover:text-primary transition-colors">
-                        {t("view_details")} <ArrowRight className="w-3 h-3" />
-                      </span>
-                    </div>
-                  </div>
-                </motion.div>
+            <li key={id} className="border-b border-ink/10">
+              <Link
+                href={`/${locale}/profile/orders/${id}`}
+                className="group grid grid-cols-[1fr_auto] items-center gap-x-[16px] gap-y-[6px] py-[18px] transition-colors hover:bg-sand/40 md:grid-cols-[1.2fr_1fr_1.3fr_1fr_24px] md:py-[20px]"
+              >
+                <span className="store-heading text-[22px]">#{o.orderNumber}</span>
+                <span className="text-right text-[15px] font-medium md:hidden">{money(o.totalPrice)}</span>
+                <span className="text-[14px] text-ink/60">{formatDate(o.createdAt, locale)}</span>
+                <span className="justify-self-end md:justify-self-start">
+                  <OrderStatusBadge status={o.status} />
+                </span>
+                <span className="hidden text-right text-[15px] font-medium md:block">{money(o.totalPrice)}</span>
+                <ArrowRight
+                  className="hidden h-[16px] w-[16px] text-ink/40 transition-transform duration-500 ease-silk group-hover:translate-x-[3px] group-hover:text-ink md:block"
+                  strokeWidth={1.3}
+                />
               </Link>
-            </motion.div>
+            </li>
           );
         })}
-      </motion.div>
-
-      {isFetching && (
-        <p className="text-xs text-center text-muted-foreground">{t("refreshing")}</p>
-      )}
+      </ul>
     </div>
   );
 };

@@ -1,184 +1,93 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable react-hooks/rules-of-hooks */
 "use client";
 
-import { API_BASE_URL } from "@/lib/api";
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { useI18n } from "@/components/i18n/ClientI18nProvider";
-import { ClipboardCopyIcon, ExternalLink, Loader2 } from "lucide-react";
-
-type MinimalPayment = {
-  invoiceId?: string | null;
-  qrImage?: string | null;
-  qrText?: string | null;
-  status?: "PENDING" | "PAID" | string | null;
-  amount?: number | null;
-};
+import { QRCodeCanvas } from "qrcode.react";
+import { ArrowRight, Loader2 } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
+import { useStoreT } from "@/components/store/lib/useStoreT";
+import { money } from "@/components/store/lib/product";
 
 type OrderLike = {
   status?: string | null;
   totalPrice?: number | null;
-  payment?: MinimalPayment | null;
+  payment?: { invoiceId?: string | null; qrImage?: string | null; qrText?: string | null; amount?: number | null } | null;
 };
 
-function safeImageSrc(src?: string | null) {
-  if (!src) return null;
-  if (src.startsWith("http")) return src;
-  if (src.startsWith("/")) return src;
-  if (src.startsWith("data:image")) return src;
-  return `data:image/png;base64,${src}`;
-}
-
-export function QPayPaymentBlock({
-  order,
-  onRefresh,
-}: {
-  order: OrderLike;
-  onRefresh?: () => void;
-}) {
-  const { t } = useI18n();
+/** Shown on an order that is still waiting for its QPay payment. */
+export function QPayPaymentBlock({ order, onRefresh }: { order: OrderLike; onRefresh?: () => void }) {
+  const { st } = useStoreT();
   const [checking, setChecking] = useState(false);
-  const stoppedRef = useRef(false);
+  const stopped = useRef(false);
 
   const invoiceId = order.payment?.invoiceId ?? null;
   const qrText = order.payment?.qrText ?? null;
-  const amount = order.totalPrice ?? order.payment?.amount ?? 0;
-  const imgSrc = safeImageSrc(order.payment?.qrImage);
+  const waiting = order.status === "WAITING_PAYMENT" && Boolean(qrText || order.payment?.qrImage);
 
-  // don’t show unless waiting payment
-  if (order?.status !== "WAITING_PAYMENT") return null;
-  if (!order.payment?.qrImage && !order.payment?.qrText) return null;
-
-  const handleCopyInvoice = async () => {
+  const check = async () => {
     if (!invoiceId) return;
-    try {
-      await navigator.clipboard.writeText(invoiceId);
-    } catch {}
-  };
-
-  const checkPayment = async () => {
-    if (!invoiceId) return;
-
     setChecking(true);
     try {
-      const res = await fetch(
-        `${API_BASE_URL}/qpay/check`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ invoiceId }),
-        }
-      );
-
+      const res = await fetch(`${API_BASE_URL}/qpay/check`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceId }),
+      });
       const data = await res.json();
-
       if (data?.paid) {
-        stoppedRef.current = true; // stop polling
-        onRefresh?.(); // refresh order -> will become PAID
+        stopped.current = true;
+        onRefresh?.();
       }
-    } catch (err) {
-      // ignore network error
+    } catch {
+      /* network blip: the next poll retries */
     } finally {
       setChecking(false);
     }
   };
 
-  // ✅ AUTO POLL
+  // Hooks run unconditionally (the old version called useEffect after early returns)
   useEffect(() => {
-    if (!invoiceId) return;
-
-    stoppedRef.current = false;
-
-    // instant check once
-    checkPayment();
-
-    const interval = setInterval(() => {
-      if (stoppedRef.current) return;
-      checkPayment();
-    }, 300000);
-
-    return () => clearInterval(interval);
+    if (!waiting || !invoiceId) return;
+    stopped.current = false;
+    check();
+    const id = setInterval(() => !stopped.current && check(), 30000);
+    return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [invoiceId]);
+  }, [waiting, invoiceId]);
+
+  if (!waiting) return null;
 
   return (
-    <div className="rounded-xl border bg-card p-5 space-y-4 text-center">
-      <h3 className="text-sm font-semibold">{t("complete_payment")}</h3>
-
-      <p className="text-xs text-muted-foreground">{t("scan_qpay_qr")}</p>
-
-      {/* QR IMAGE */}
-      <div className="mx-auto relative w-48 h-48">
-        {imgSrc ? (
-          <Image
-            src={imgSrc}
-            alt="QPay QR"
-            fill
-            sizes="192px"
-            className="object-contain"
-          />
-        ) : (
-          <div className="w-full h-full bg-muted flex items-center justify-center text-xs text-muted-foreground">
-            {t("no_qr_available")}
-          </div>
-        )}
-      </div>
-
-      {/* AMOUNT */}
-      <div className="text-sm font-medium">
-        {t("amount")}: {amount.toLocaleString()}₮
-      </div>
-
-      {/* INVOICE */}
-      {invoiceId && (
-        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-          <span>
-            {t("invoice")}: {invoiceId}
-          </span>
-          <button
-            onClick={handleCopyInvoice}
-            aria-label="Copy invoice id"
-            className="hover:text-foreground"
-            type="button"
-          >
-            <ClipboardCopyIcon className="w-4 h-4" />
-          </button>
+    <section className="border border-ink/10 p-[24px] md:p-[28px]">
+      <h2 className="store-heading text-[30px]">{st("pay_now_title")}</h2>
+      <div className="mt-[20px] flex flex-col items-center gap-[24px] sm:flex-row sm:items-start">
+        <div className="flex h-[200px] w-[200px] shrink-0 items-center justify-center bg-white p-[12px] ring-1 ring-ink/10">
+          {qrText ? (
+            <QRCodeCanvas value={qrText} size={176} fgColor="#1c1714" />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={`data:image/png;base64,${order.payment?.qrImage}`} alt="QPay QR" className="h-full w-full object-contain" />
+          )}
         </div>
-      )}
-
-      <p className="text-xs text-muted-foreground">{t("open_bank_app")}</p>
-
-      {/* ACTIONS */}
-      <div className="flex flex-col sm:flex-row justify-center gap-3 mt-2">
-        {/* Pay with app */}
-        {qrText && (
-          <a
-            href={`https://qpay.mn/q?q=${encodeURIComponent(qrText)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="h-10 px-4 rounded-lg bg-primary text-primary-foreground flex items-center justify-center gap-2 text-sm"
-          >
-            <ExternalLink className="w-4 h-4" />
-            {t("pay_with_qpay")}
-          </a>
-        )}
-
-        {/* Check payment */}
-        <button
-          onClick={checkPayment}
-          className="h-10 px-4 rounded-lg border text-sm text-primary flex items-center justify-center gap-2"
-          type="button"
-          disabled={checking}
-        >
-          {checking && <Loader2 className="w-4 h-4 animate-spin" />}
-          {t("check_payment")}
-        </button>
+        <div className="w-full">
+          <p className="text-[15px] text-ink/70">{st("qpay_step2")}</p>
+          <p className="mt-[10px] text-[20px] font-medium">{money(order.totalPrice ?? order.payment?.amount ?? 0)}</p>
+          <div className="mt-[18px] flex flex-wrap gap-[10px]">
+            {qrText && (
+              <a href={`https://qpay.mn/q?q=${encodeURIComponent(qrText)}`} target="_blank" rel="noopener noreferrer" className="btn group">
+                {st("open_bank_app")}
+                <span className="btn-arrow">
+                  <ArrowRight className="h-[16px] w-[16px]" strokeWidth={1.3} />
+                </span>
+              </a>
+            )}
+            <button type="button" onClick={check} disabled={checking} className="btn-secondary">
+              {checking && <Loader2 className="h-[15px] w-[15px] animate-spin" strokeWidth={1.4} />}
+              {st("check_payment")}
+            </button>
+          </div>
+          <p className="mt-[14px] text-[13px] text-taupe">{st("expire_note")}</p>
+        </div>
       </div>
-
-      <p className="text-xs text-muted-foreground mt-2">
-        {t("payment_waiting_note")}
-      </p>
-    </div>
+    </section>
   );
 }

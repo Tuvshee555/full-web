@@ -221,7 +221,7 @@ export const FoodReviews = ({ foodId }: { foodId: string }) => {
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value as SortKey)}
-                  className="h-[40px] px-3 rounded-md border border-border bg-background text-sm"
+                  className="h-[40px] px-3 rounded-none border border-border bg-background text-sm"
                 >
                   <option value="new">{t("sort_newest") ?? "Newest"}</option>
                   <option value="high">
@@ -234,7 +234,7 @@ export const FoodReviews = ({ foodId }: { foodId: string }) => {
 
                 <button
                   onClick={() => setOnlyPhotos((p) => !p)}
-                  className={`h-[40px] px-3 rounded-md border text-sm ${
+                  className={`h-[40px] px-3 rounded-none border text-sm ${
                     onlyPhotos
                       ? "bg-foreground text-background border-foreground"
                       : "bg-background text-foreground border-border"
@@ -244,7 +244,7 @@ export const FoodReviews = ({ foodId }: { foodId: string }) => {
                 </button>
 
                 {loading && (
-                  <div className="h-[40px] px-3 rounded-md border border-border bg-background text-xs text-muted-foreground flex items-center">
+                  <div className="h-[40px] px-3 rounded-none border border-border bg-background text-xs text-muted-foreground flex items-center">
                     {t("loading") ?? "Loading..."}
                   </div>
                 )}
@@ -292,7 +292,7 @@ export const FoodReviews = ({ foodId }: { foodId: string }) => {
                             key={img}
                             src={img}
                             alt="review"
-                            className="w-full aspect-square object-cover rounded-md border border-border"
+                            className="w-full aspect-square object-cover rounded-none border border-border"
                             loading="lazy"
                           />
                         ))}

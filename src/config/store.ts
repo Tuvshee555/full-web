@@ -25,6 +25,13 @@ export const STORE = {
     facebook: "",
     instagram: "",
   },
+  // Contact page. Empty fields are simply not shown.
+  contact: {
+    phone: "",
+    email: "",
+    messenger: "", // e.g. https://m.me/yourpage
+    address: "",
+  },
 };
 
 /** Checkout buttons/links: brand ink (Shopify default would be #1773b0). */
@@ -73,4 +80,10 @@ export const BRAND = {
   heroText: "",
   /** Brand values strip on the home page (REFY "Community First / Vegan / ..."). Max 4. */
   values: [] as { title: string; text: string }[],
+  /** About page paragraphs (your real story). Empty = one neutral line. */
+  about: [] as string[],
+  /** Extra FAQ items for policies only you can state (delivery days, returns...).
+   *  Delivery fee, payment methods, order tracking and the 15-min QPay window
+   *  are answered automatically from how the site actually works. */
+  faq: [] as { q: string; a: string }[],
 };

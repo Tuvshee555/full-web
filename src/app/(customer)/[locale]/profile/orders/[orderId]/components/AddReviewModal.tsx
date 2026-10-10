@@ -110,7 +110,7 @@ export const AddReviewModal = ({
   return (
     <div className="fixed inset-0 z-[60]">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-4 sm:p-6">
+      <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-none border border-border bg-card p-4 sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="text-sm font-semibold">
@@ -120,7 +120,7 @@ export const AddReviewModal = ({
           </div>
           <button
             onClick={onClose}
-            className="h-9 px-3 rounded-md border border-border bg-background text-sm"
+            className="h-9 px-3 rounded-none border border-border bg-background text-sm"
           >
             {t("close") ?? "Close"}
           </button>
@@ -134,7 +134,7 @@ export const AddReviewModal = ({
             <select
               value={rating}
               onChange={(e) => setRating(Number(e.target.value))}
-              className="h-[40px] px-3 rounded-md border border-border bg-background text-sm"
+              className="h-[40px] px-3 rounded-none border border-border bg-background text-sm"
             >
               {[5, 4, 3, 2, 1].map((r) => (
                 <option key={r} value={r}>
@@ -147,7 +147,7 @@ export const AddReviewModal = ({
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            className="min-h-[100px] w-full rounded-md border border-border bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-foreground/20"
+            className="min-h-[100px] w-full rounded-none border border-border bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-foreground/20"
             placeholder={t("review_placeholder") ?? "Share your experience..."}
             maxLength={800}
           />
@@ -175,7 +175,7 @@ export const AddReviewModal = ({
                     <img
                       src={img}
                       alt="review"
-                      className="w-full aspect-square object-cover rounded-md border border-border"
+                      className="w-full aspect-square object-cover rounded-none border border-border"
                     />
                     <button
                       onClick={() =>
@@ -197,7 +197,7 @@ export const AddReviewModal = ({
           <button
             onClick={submit}
             disabled={!canSubmit}
-            className="h-[44px] w-full rounded-md bg-foreground text-background text-sm font-medium disabled:opacity-50"
+            className="h-[44px] w-full rounded-none bg-foreground text-background text-sm font-medium disabled:opacity-50"
           >
             {submitting
               ? (t("posting") ?? "Posting...")

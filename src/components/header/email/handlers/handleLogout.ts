@@ -3,20 +3,10 @@
 
 import { toast } from "sonner";
 
-export const handleLogout = (
-  router: any,
-  clearToken: () => void,
-  locale: string
-) => {
-  clearToken();
-
-  localStorage.removeItem("token");
-  localStorage.removeItem("userId");
-  localStorage.removeItem("email");
-  localStorage.removeItem("guest");
-
+// Log out but keep the cart.
+export const handleLogout = (router: any, locale: string) => {
+  for (const k of ["token", "userId", "email", "guest"]) localStorage.removeItem(k);
   window.dispatchEvent(new Event("auth-changed"));
-  toast.success("Амжилттай гарлаа");
-
-  router.push(`/${locale}/home-page`);
+  toast.success(locale === "mn" ? "Амжилттай гарлаа" : "Logged out");
+  router.push(`/${locale}`);
 };

@@ -3,7 +3,18 @@
 export const money = (v: number | null | undefined) =>
   `${Math.round(Number(v ?? 0)).toLocaleString("en-US")}₮`;
 
-export const productUrl = (locale: string, id: string) => `/${locale}/products/${id}`;
+/** Browsers have no Mongolian month names, so mn dates are built by hand. */
+export function formatDate(value: string | number | Date, locale: string) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  if (locale === "mn") return `${d.getFullYear()} оны ${d.getMonth() + 1}-р сарын ${d.getDate()}`;
+  return d.toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric" });
+}
+
+/** Guest accounts get a generated "guest-…@guest…" email we should never show. */
+export const isGuestEmail = (email?: string | null) => !email || email === "Guest User" || /^guest-.*@guest\./i.test(email);
+
+export const productUrl =(locale: string, id: string) => `/${locale}/products/${id}`;
 export const collectionUrl = (locale: string, id = "all") => `/${locale}/collections/${id}`;
 
 export const sizeLabel = (s: any): string =>

@@ -2,68 +2,72 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { toast } from "sonner";
-import { useI18n } from "@/components/i18n/ClientI18nProvider";
-import { ProfileSidebar } from "./components/ProfileSidebar";
-import { ProfileContent } from "./components/ProfileContent";
+import { useStoreT } from "@/components/store/lib/useStoreT";
+import { isGuestEmail } from "@/components/store/lib/product";
+import { OrdersList } from "./profile/OrdersList";
+import { ProfileInfo } from "./profile/ProfileInfo";
 
-/* ---------------- types ---------------- */
-export type Tab = "dashboard" | "profile" | "orders" | "tickets";
+export type Tab = "orders" | "profile";
 
-/* ---------------- component ---------------- */
+/** Shopify-style account page in the Lorentz look: greeting, two tabs, log out. */
 export default function ProfileInner() {
-  const { locale, t } = useI18n();
+  const { st, locale } = useStoreT();
   const router = useRouter();
   const searchParams = useSearchParams();
-
   const [email, setEmail] = useState("");
-  const [activeTab, setActiveTab] = useState<Tab>("dashboard");
-
-  const [skeleton, setSkeleton] = useState(true);
-
-  useEffect(() => {
-    const id = setTimeout(() => setSkeleton(false), 200);
-    return () => clearTimeout(id);
-  }, []);
+  const [tab, setTab] = useState<Tab>("orders");
 
   useEffect(() => {
     setEmail(localStorage.getItem("email") ?? "");
-
-    const tab = searchParams.get("tab") as Tab | null;
-    if (tab) setActiveTab(tab);
+    const q = searchParams.get("tab");
+    setTab(q === "profile" ? "profile" : "orders");
   }, [searchParams]);
 
-  const changeTab = (tab: Tab) => {
-    setActiveTab(tab);
-    router.replace(`/${locale}/profile?tab=${tab}`);
+  const changeTab = (next: Tab) => {
+    setTab(next);
+    router.replace(`/${locale}/profile?tab=${next}`, { scroll: false });
   };
 
+  // Log out but keep the cart (old code cleared all of localStorage)
   const logout = () => {
-    localStorage.clear();
-    toast.success(t("logout_success"));
+    for (const k of ["token", "userId", "email", "guest"]) localStorage.removeItem(k);
+    window.dispatchEvent(new Event("auth-changed"));
     router.push(`/${locale}`);
   };
 
-  return (
-    <main
-      className="
-  min-h-screen
-  bg-background text-foreground
-  pt-0 pb-0
-  sm:pt-[120px] sm:pb-20
-"
-    >
-      <div className="max-w-6xl mx-auto lg:px-6 flex flex-col lg:flex-row gap-6 lg:gap-8">
-        <ProfileSidebar
-          email={email}
-          activeTab={activeTab}
-          skeleton={skeleton}
-          onChangeTab={changeTab}
-          onLogout={logout}
-        />
+  const isGuest = isGuestEmail(email);
 
-        <ProfileContent activeTab={activeTab} onChangeTab={changeTab} />
+  return (
+    <div className="page-width pb-[96px] pt-[40px] md:pt-[72px]">
+      <div className="flex flex-wrap items-end justify-between gap-[16px]">
+        <div>
+          <span className="eyebrow">{st("account")}</span>
+          <h1 className="store-heading mt-[10px] text-[48px] md:text-[72px]">{st("greeting")}</h1>
+          {!isGuest && <p className="mt-[6px] text-[15px] text-ink/60">{email}</p>}
+        </div>
+        <button type="button" onClick={logout} className="link-underline text-[14px] text-ink">
+          {st("log_out")}
+        </button>
       </div>
-    </main>
+
+      <div role="tablist" className="mt-[40px] flex gap-[28px] border-b border-ink/15">
+        {(["orders", "profile"] as Tab[]).map((k) => (
+          <button
+            key={k}
+            role="tab"
+            type="button"
+            aria-selected={tab === k}
+            onClick={() => changeTab(k)}
+            className={`-mb-px border-b-2 pb-[14px] text-[15px] transition-colors ${
+              tab === k ? "border-ink text-ink" : "border-transparent text-ink/50 hover:text-ink"
+            }`}
+          >
+            {k === "orders" ? st("tab_orders") : st("tab_profile")}
+          </button>
+        ))}
+      </div>
+
+      <div className="pt-[32px]">{tab === "orders" ? <OrdersList /> : <ProfileInfo />}</div>
+    </div>
   );
 }

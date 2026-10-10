@@ -5,7 +5,7 @@ import PaymentPendingInner from "./PaymentPendingInner";
 
 export default function Page() {
   return (
-    <Suspense fallback={<p className="text-white p-10">Түр хүлээнэ үү...</p>}>
+    <Suspense fallback={<div className="min-h-screen bg-paper" />}>
       <PaymentPendingInner />
     </Suspense>
   );

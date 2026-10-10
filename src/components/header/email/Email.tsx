@@ -1,58 +1,23 @@
-// "use client";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+"use client";
 
+import { Drawer } from "@/components/store/ui";
+import { useStoreT } from "@/components/store/lib/useStoreT";
+import { useAuth } from "@/app/(customer)/[locale]/provider/AuthProvider";
 import { useFacebookSDK } from "./hooks/useFacebookSDK";
 import { EmailLoggedOut } from "./EmailLoggedOut";
 import { EmailLoggedIn } from "./EmailLoggedIn";
-import { useAuth } from "@/app/(customer)/[locale]/provider/AuthProvider";
-import { useI18n } from "@/components/i18n/ClientI18nProvider";
 
-interface EmailProps {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-}
-
-export const Email = ({ open, onOpenChange }: EmailProps) => {
+/** Account drawer (header person icon): same slide-in panel as the cart. */
+export const Email = ({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) => {
   useFacebookSDK();
-
-  const { t } = useI18n();
-  const { token, email, setAuthToken } = useAuth();
-
-  const firstLetter = email ? email[0].toUpperCase() : "?";
+  const { st } = useStoreT();
+  const { token, email } = useAuth();
+  const close = () => onOpenChange(false);
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        aria-describedby={undefined}
-        side="right"
-        className="
-    fixed inset-y-0 right-0
-    w-[85vw] sm:w-full sm:max-w-[538px]
-    bg-card text-card-foreground
-    border-l border-border
-    p-0
-    z-[9999]
-    shadow-2xl
-  "
-      >
-        <VisuallyHidden>
-          <p id="sheet-desc">{t("user_menu")}</p>
-          <SheetTitle>{t("user_menu")}</SheetTitle>
-        </VisuallyHidden>
-
-        {!token ? (
-          <EmailLoggedOut closeSheet={() => onOpenChange(false)} />
-        ) : (
-          <EmailLoggedIn
-            email={email ?? ""}
-            firstLetter={firstLetter}
-            clearToken={() => setAuthToken(null)}
-            closeSheet={() => onOpenChange(false)}
-          />
-        )}
-      </SheetContent>
-    </Sheet>
+    <Drawer open={open} onClose={close} title={st("account")} widthClass="w-[420px]">
+      {token ? <EmailLoggedIn email={email ?? ""} closeSheet={close} /> : <EmailLoggedOut closeSheet={close} />}
+    </Drawer>
   );
 };
 

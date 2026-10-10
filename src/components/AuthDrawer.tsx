@@ -106,11 +106,9 @@ export default function AuthDrawer({
     toast.success(t("auth.login_success"));
     onClose();
 
-    const redirect =
-      new URLSearchParams(window.location.search).get("redirect") ||
-      "/home-page";
-
-    router.push(redirect);
+    // Stay where the shopper is unless a redirect was requested (was "/home-page")
+    const redirect = new URLSearchParams(window.location.search).get("redirect");
+    if (redirect) router.push(redirect);
   };
 
   if (!open) return null;
@@ -120,69 +118,64 @@ export default function AuthDrawer({
   return (
     <AnimatePresence>
       {/* Backdrop */}
+      {/* Above the sticky header (z-90) and drawers (z-1000) */}
       <motion.div
         key="bg"
-        className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm"
+        className="fixed inset-0 z-[1100] bg-espresso/40 backdrop-blur-[2px]"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
       />
 
-      {/* Modal */}
       <motion.div
         key="modal"
-        initial={{ opacity: 0, scale: 0.94 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.94 }}
-        transition={{ duration: 0.25 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 16 }}
+        transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
+        className="pointer-events-none fixed inset-0 z-[1101] flex items-center justify-center p-[16px]"
       >
-        <div className="w-full max-w-lg rounded-3xl bg-card border border-border p-6 sm:p-8 text-foreground shadow-2xl">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold">{t("auth.login_title")}</h2>
+        <div className="pointer-events-auto w-full max-w-[440px] bg-paper p-[28px] text-ink shadow-[0_40px_80px_-30px_rgba(28,23,20,0.45)] sm:p-[36px]">
+          <div className="flex items-start justify-between">
+            <h2 className="store-heading text-[36px]">{t("auth.login_title")}</h2>
             <button
               onClick={onClose}
               aria-label={t("common.close")}
-              className="h-[44px] w-[44px] rounded-md text-muted-foreground hover:bg-muted"
+              className="-mr-[10px] -mt-[6px] p-[10px] text-[22px] leading-none text-ink/60 transition-transform duration-500 hover:rotate-90 hover:text-ink"
             >
               ×
             </button>
           </div>
 
-          {/* PHASE: EMAIL */}
           {phase === "idle" && (
-            <div className="space-y-4">
-              <label className="text-sm text-muted-foreground">
-                {t("auth.email")}
-              </label>
-
-              <input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={t("auth.email_placeholder")}
-                className="h-[44px] w-full rounded-xl border border-border bg-background px-4 text-sm"
-              />
-
-              <button
-                onClick={sendOTP}
-                disabled={loading}
-                className="h-[44px] w-full rounded-xl bg-foreground text-background text-sm font-medium disabled:opacity-60"
-              >
+            <div className="mt-[24px] space-y-[14px]">
+              <div className="field">
+                <input
+                  id="auth-email"
+                  type="email"
+                  placeholder=" "
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && sendOTP()}
+                  autoComplete="email"
+                />
+                <label htmlFor="auth-email">{t("auth.email")}</label>
+              </div>
+              <button onClick={sendOTP} disabled={loading} className="btn w-full">
                 {loading ? t("common.loading") : t("common.continue")}
               </button>
             </div>
           )}
 
-          {/* PHASE: OTP */}
           {phase === "otp" && (
-            <div className="space-y-4">
-              <label className="text-sm text-muted-foreground">
-                {t("auth.otp")}
-              </label>
+            <div className="mt-[24px] space-y-[18px]">
+              <p className="text-[14px] leading-relaxed text-ink/60">
+                <span className="text-ink">{email}</span>
+                {t("auth.otp_sent_to")}
+              </p>
 
-              <div className="flex justify-center gap-2">
+              <div className="flex justify-between gap-[8px]">
                 {digits.map((d, i) => (
                   <motion.input
                     key={i}
@@ -190,54 +183,40 @@ export default function AuthDrawer({
                       inputsRef.current[i] = el;
                     }}
                     value={d}
+                    inputMode="numeric"
                     maxLength={1}
                     onPaste={handlePaste}
                     onChange={(e) => handleDigitChange(i, e.target.value)}
-                    className={`h-[44px] w-[44px] rounded-md border text-center text-sm
-                      ${
-                        isCorrect === true
-                          ? "border-foreground"
-                          : isCorrect === false
-                          ? "border-destructive"
-                          : "border-border"
-                      }`}
-                    animate={
-                      isCorrect === false ? { x: [-4, 4, -4, 4, 0] } : {}
-                    }
+                    className={`h-[56px] w-full bg-white text-center text-[20px] text-ink outline-none ${
+                      isCorrect === true
+                        ? "shadow-[inset_0_0_0_1px_#1c1714]"
+                        : isCorrect === false
+                          ? "shadow-[inset_0_0_0_1px_#a8452f]"
+                          : "shadow-[inset_0_0_0_1px_rgba(28,23,20,0.2)] focus:shadow-[inset_0_0_0_1px_#1c1714]"
+                    }`}
+                    animate={isCorrect === false ? { x: [-4, 4, -4, 4, 0] } : {}}
                   />
                 ))}
               </div>
 
-              <p className="max-w-prose text-center text-sm leading-relaxed text-muted-foreground">
-                {email}
-                {t("auth.otp_sent_to")}
-              </p>
+              <button onClick={() => autoVerify(digits.join(""))} className="btn w-full">
+                {t("common.verify")}
+              </button>
 
-              <div className="flex justify-between">
+              <div className="flex justify-between text-[14px]">
                 <button
                   onClick={() => {
                     setPhase("idle");
                     setDigits(Array(6).fill(""));
                   }}
-                  className="h-[44px] px-4 rounded-md border border-border text-sm"
+                  className="link-underline text-ink/70"
                 >
                   {t("common.back")}
                 </button>
-
-                <button
-                  onClick={sendOTP}
-                  className="h-[44px] px-2 text-sm underline text-muted-foreground"
-                >
+                <button onClick={sendOTP} className="link-underline text-ink/70">
                   {t("auth.resend")}
                 </button>
               </div>
-
-              <button
-                onClick={() => autoVerify(digits.join(""))}
-                className="h-[44px] w-full rounded-xl bg-foreground text-background text-sm font-medium"
-              >
-                {t("common.verify")}
-              </button>
             </div>
           )}
         </div>

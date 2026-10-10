@@ -1,41 +1,24 @@
 "use client";
 
-import Image from "next/image";
-import { useI18n } from "@/components/i18n/ClientI18nProvider";
+import { BRAND, STORE } from "@/config/store";
+import { InfoPage } from "@/components/store/InfoPage";
+import { DevHint } from "@/components/store/ui";
+import { useStoreT } from "@/components/store/lib/useStoreT";
 
 export default function AboutPage() {
-  const { t } = useI18n();
+  const { st } = useStoreT();
+  const paragraphs = BRAND.about.length ? BRAND.about : [st("about_fallback", { name: STORE.name })];
 
   return (
-    <section className="w-full">
-      {/* Image section */}
-      <div className="flex justify-center">
-        <div className="relative w-full max-w-3xl aspect-[4/5]">
-          <Image
-            src="/about.jpg" // put image in /public/about.jpg
-            alt={t("about_title")}
-            fill
-            className="object-cover rounded-sm"
-            priority
-          />
-        </div>
+    <InfoPage title={st("about_title")}>
+      <div className="space-y-[20px]">
+        {paragraphs.map((p, i) => (
+          <p key={i} className={i === 0 ? "display-italic text-[28px] leading-[1.3] text-ink md:text-[34px]" : "text-[16px] leading-relaxed text-ink/75"}>
+            {p}
+          </p>
+        ))}
+        {!BRAND.about.length && <DevHint>BRAND.about in src/config/store.ts: your real story, one paragraph per item.</DevHint>}
       </div>
-
-      {/* Text content */}
-      <div className="max-w-3xl mx-auto px-6 mt-12 space-y-6 text-[16px] leading-7">
-        <p>{t("about_p1")}</p>
-
-        <p>
-          {t("about_p2_strong_prefix")} <strong>{t("about_p2_strong")}</strong>{" "}
-          {t("about_p2_suffix")}
-        </p>
-
-        <p>{t("about_p3")}</p>
-
-        <p className="italic font-medium">✨ {t("about_unique")}</p>
-
-        <p className="font-semibold">{t("about_thanks")} 💜</p>
-      </div>
-    </section>
+    </InfoPage>
   );
 }

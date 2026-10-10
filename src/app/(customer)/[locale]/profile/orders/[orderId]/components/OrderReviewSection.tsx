@@ -198,8 +198,8 @@ export const OrderReviewSection = ({ order, token }: Props) => {
 
   if (!canReview) {
     return (
-      <div className="rounded-2xl border border-border bg-card p-6">
-        <div className="text-sm font-semibold mb-1">{t("write_review") ?? "Write a review"}</div>
+      <div className="rounded-none border border-border bg-card p-6">
+        <div className="store-heading mb-[6px] text-[30px]">{t("write_review") ?? "Write a review"}</div>
         <div className="text-xs text-muted-foreground leading-relaxed">
           {t("review_available_after_paid")}
         </div>
@@ -208,9 +208,9 @@ export const OrderReviewSection = ({ order, token }: Props) => {
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
+    <div className="rounded-none border border-border bg-card p-6 space-y-5">
       <div>
-        <div className="text-sm font-semibold mb-1">{t("write_review") ?? "Write a review"}</div>
+        <div className="store-heading mb-[6px] text-[30px]">{t("write_review") ?? "Write a review"}</div>
         <div className="text-xs text-muted-foreground">{t("review_only_buyers")}</div>
       </div>
 
@@ -221,7 +221,7 @@ export const OrderReviewSection = ({ order, token }: Props) => {
           if (!d) return null;
 
           return (
-            <div key={item.id} className="rounded-xl border border-border bg-background p-5 space-y-4">
+            <div key={item.id} className="rounded-none border border-border bg-background p-5 space-y-4">
               {/* Item header */}
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -258,7 +258,7 @@ export const OrderReviewSection = ({ order, token }: Props) => {
                 onChange={(e) =>
                   setDrafts((prev) => ({ ...prev, [foodId]: { ...prev[foodId], comment: e.target.value } }))
                 }
-                className="min-h-[100px] w-full rounded-xl border border-border bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-ring resize-none"
+                className="min-h-[100px] w-full rounded-none border border-border bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-ring resize-none"
                 placeholder={t("review_placeholder") ?? "Share your experience..."}
                 maxLength={800}
               />
@@ -271,7 +271,7 @@ export const OrderReviewSection = ({ order, token }: Props) => {
 
                 <div
                   onClick={() => fileRefs.current[foodId]?.click()}
-                  className="border-2 border-dashed border-border rounded-xl p-4
+                  className="border-2 border-dashed border-border rounded-none p-4
                     hover:border-primary/40 hover:bg-muted/30 transition-all cursor-pointer
                     flex flex-col items-center gap-2 text-center"
                 >
@@ -308,7 +308,7 @@ export const OrderReviewSection = ({ order, token }: Props) => {
                         <img
                           src={src}
                           alt="preview"
-                          className="w-full aspect-square object-cover rounded-lg border border-border"
+                          className="w-full aspect-square object-cover rounded-none border border-border"
                         />
                         <button
                           onClick={() => removeImage(foodId, idx)}
@@ -326,7 +326,7 @@ export const OrderReviewSection = ({ order, token }: Props) => {
               <button
                 onClick={() => submit(foodId)}
                 disabled={d.posting || d.comment.trim().length < 2}
-                className="w-full h-[44px] rounded-xl bg-primary text-primary-foreground text-sm font-medium
+                className="w-full h-[44px] rounded-none bg-primary text-primary-foreground text-sm font-medium
                   disabled:opacity-50 hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
               >
                 {d.posting && <Loader2 className="w-4 h-4 animate-spin" />}

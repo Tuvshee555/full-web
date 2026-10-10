@@ -1,77 +1,50 @@
 "use client";
 
 import { useState } from "react";
-import { useI18n } from "@/components/i18n/ClientI18nProvider";
-import { ChevronDown } from "lucide-react";
+import { Plus } from "lucide-react";
+import { BRAND } from "@/config/store";
+import { DELIVERY_FEE } from "@/data/mongoliaLocations";
+import { InfoPage } from "@/components/store/InfoPage";
+import { DevHint } from "@/components/store/ui";
+import { money } from "@/components/store/lib/product";
+import { useStoreT } from "@/components/store/lib/useStoreT";
 
-type FAQItem = {
-  question: string;
-  answer: string;
-};
-
+/** FAQ answered from how the site actually works, plus owner-written policies. */
 export default function FAQPage() {
-  const { t } = useI18n();
-  const [openIndex, setOpenIndex] = useState<number | null>(0); // first open looks better
+  const { st } = useStoreT();
+  const [open, setOpen] = useState<number | null>(0);
 
-  const faqs: FAQItem[] = [
-    { question: t("faq_q1"), answer: t("faq_a1") },
-    { question: t("faq_q2"), answer: t("faq_a2") },
-    { question: t("faq_q3"), answer: t("faq_a3") },
-    { question: t("faq_q4"), answer: t("faq_a4") },
-    { question: t("faq_q5"), answer: t("faq_a5") },
+  const items = [
+    { q: st("faq_fee_q"), a: st("faq_fee_a", { fee: money(DELIVERY_FEE) }) },
+    { q: st("faq_pay_q"), a: st("faq_pay_a") },
+    { q: st("faq_track_q"), a: st("faq_track_a") },
+    { q: st("faq_expire_q"), a: st("faq_expire_a") },
+    ...BRAND.faq,
   ];
 
   return (
-    <section className="max-w-4xl mx-auto px-6 py-20">
-      {/* Header */}
-      <div className="text-center mb-14">
-        <h1 className="text-3xl font-bold mb-3">{t("faq_title")}</h1>
-        <p className="text-gray-500">{t("faq_subtitle")}</p>
-      </div>
-
-      {/* FAQ */}
-      <div className="divide-y rounded-xl border bg-white shadow-sm">
-        {faqs.map((item, index) => {
-          const isOpen = openIndex === index;
-
+    <InfoPage title={st("faq_title")}>
+      <ul className="border-t border-ink/15">
+        {items.map((it, i) => {
+          const isOpen = open === i;
           return (
-            <div key={index} className="px-6">
-              <button
-                onClick={() => setOpenIndex(isOpen ? null : index)}
-                className="w-full flex items-center justify-between py-6 text-left group"
-              >
-                <span
-                  className={`text-base font-medium transition-colors ${
-                    isOpen ? "text-black" : "text-gray-700"
-                  }`}
-                >
-                  {item.question}
-                </span>
-
-                <ChevronDown
-                  size={20}
-                  className={`shrink-0 transition-transform duration-300 ${
-                    isOpen ? "rotate-180 text-black" : "text-gray-400"
-                  }`}
-                />
+            <li key={it.q} className="border-b border-ink/10">
+              <button type="button" onClick={() => setOpen(isOpen ? null : i)} className="flex w-full items-center justify-between gap-[16px] py-[22px] text-left" aria-expanded={isOpen}>
+                <span className="store-heading text-[24px] md:text-[26px]">{it.q}</span>
+                <Plus className={`h-[18px] w-[18px] shrink-0 text-ink transition-transform duration-500 ease-silk ${isOpen ? "rotate-45" : ""}`} strokeWidth={1.2} />
               </button>
-
-              {/* Answer */}
-              <div
-                className={`grid transition-all duration-300 ease-in-out ${
-                  isOpen
-                    ? "grid-rows-[1fr] opacity-100 pb-6"
-                    : "grid-rows-[0fr] opacity-0"
-                }`}
-              >
-                <div className="overflow-hidden text-gray-600 leading-relaxed">
-                  {item.answer}
-                </div>
+              <div className={`grid transition-[grid-template-rows,opacity] duration-500 ease-silk ${isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+                <p className="overflow-hidden pb-[22px] text-[16px] leading-relaxed text-ink/70">{it.a}</p>
               </div>
-            </div>
+            </li>
           );
         })}
-      </div>
-    </section>
+      </ul>
+      {!BRAND.faq.length && (
+        <div className="mt-[20px]">
+          <DevHint>BRAND.faq in src/config/store.ts: add your own policies (delivery days, returns). Only what you will actually honour.</DevHint>
+        </div>
+      )}
+    </InfoPage>
   );
 }
