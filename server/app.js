@@ -16,7 +16,6 @@ import uploadRouter from "./routers/upload.router.js";
 import { expireUnpaidOrders } from "./jobs/expireOrders.js";
 import { cleanupGuestUsers } from "./jobs/cleanupGuests.js";
 import { reviewRouter } from "./routers/review.router.js";
-import aiRouter from "./routers/ai.router.js";
 import { connectPrismaWithRetry } from "./utils/prisma.js";
 
 // Optional hardening/perf middleware, loaded defensively so the server still
@@ -98,7 +97,6 @@ app.use("/stats", statRouter);
 app.use("/email", emailRouter);
 app.use("/upload", uploadRouter);
 app.use("/review", reviewRouter);
-app.use("/ai", aiRouter);
 
 app.use((err, req, res, next) => {
   console.error("GLOBAL ERROR:", err);
