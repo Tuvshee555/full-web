@@ -9,7 +9,21 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        display: ["var(--font-display)", "Georgia", "serif"],
+        store: ["var(--font-store)", "system-ui", "sans-serif"],
+      },
+      transitionTimingFunction: {
+        silk: "cubic-bezier(0.32, 0.72, 0, 1)",
+      },
       colors: {
+        // Storefront palette (editorial beauty)
+        paper: "#fbf8f3",
+        sand: "#efe7dd",
+        ink: "#1c1714",
+        espresso: "#2a211c",
+        taupe: "#6f655d",
+        terracotta: "#a8452f",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {

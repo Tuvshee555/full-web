@@ -35,7 +35,7 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
         </div>
       ) : (
         <>
-          <div className="mx-[20px] md:mx-[30px] flex justify-between border-b border-[rgba(18,18,18,0.08)] pb-[10px] text-[10px] uppercase tracking-[0.06em] text-[rgba(18,18,18,0.75)]">
+          <div className="mx-[20px] md:mx-[30px] flex justify-between border-b border-[rgba(28,23,20,0.08)] pb-[10px] text-[10px] uppercase tracking-[0.06em] text-[rgba(28,23,20,0.75)]">
             <span>{st("product")}</span>
             <span>{st("total")}</span>
           </div>
@@ -44,10 +44,10 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
               <CartLine key={`${item.foodId}-${item.selectedSize ?? ""}`} item={item} onNavigate={onClose} locale={locale} />
             ))}
           </ul>
-          <div className="border-t border-[rgba(18,18,18,0.08)] px-[20px] md:px-[30px] pt-[20px] pb-[25px]">
+          <div className="border-t border-[rgba(28,23,20,0.08)] px-[20px] md:px-[30px] pt-[20px] pb-[25px]">
             <div className="flex items-center justify-between">
-              <h3 className="store-heading text-[16px]">{st("estimated_total")}</h3>
-              <span className="text-[16px] tracking-normal text-[#121212]">{money(cartSubtotal(items))}</span>
+              <h3 className="font-medium text-ink text-[16px]">{st("estimated_total")}</h3>
+              <span className="text-[16px] tracking-normal text-[#1c1714]">{money(cartSubtotal(items))}</span>
             </div>
             <p className="mt-[8px] text-[13px]">{st("shipping_note")}</p>
             <button
@@ -71,16 +71,16 @@ function CartLine({ item, onNavigate, locale }: { item: StoreCartItem; onNavigat
   const { st } = useStoreT();
   const href = productUrl(locale, item.foodId);
   return (
-    <li className="flex gap-[15px] py-[20px] border-b border-[rgba(18,18,18,0.08)] last:border-0">
-      <Link href={href} onClick={onNavigate} className="h-[96px] w-[96px] shrink-0 bg-[#f3f3f3]">
+    <li className="flex gap-[15px] py-[20px] border-b border-[rgba(28,23,20,0.08)] last:border-0">
+      <Link href={href} onClick={onNavigate} className="h-[96px] w-[96px] shrink-0 bg-[#efe7dd]">
         {item.food?.image ? <img src={item.food.image} alt="" className="h-full w-full object-cover" /> : null}
       </Link>
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-[10px]">
-          <Link href={href} onClick={onNavigate} className="store-heading text-[15px] link-underline">
+          <Link href={href} onClick={onNavigate} className="font-medium text-ink text-[15px] link-underline">
             {item.food?.foodName}
           </Link>
-          <span className="shrink-0 text-[15px] tracking-normal text-[#121212]">
+          <span className="shrink-0 text-[15px] tracking-normal text-[#1c1714]">
             {money(Number(item.food?.price ?? 0) * item.quantity)}
           </span>
         </div>
@@ -95,7 +95,7 @@ function CartLine({ item, onNavigate, locale }: { item: StoreCartItem; onNavigat
           <button
             type="button"
             aria-label={st("remove")}
-            className="p-[8px] text-[#121212]"
+            className="p-[8px] text-[#1c1714]"
             onClick={() => setQuantity(item.foodId, item.selectedSize, 0)}
           >
             <Trash2 className="h-[16px] w-[16px]" strokeWidth={1.5} />

@@ -26,8 +26,10 @@ export function AnnouncementBar() {
   }, [messages.length]);
   if (!messages.length) return null;
   return (
-    <div className="border-b border-[rgba(18,18,18,0.08)] bg-white">
-      <p className="page-width py-[10px] text-center text-[13px] tracking-normal text-[#121212]">{messages[i]}</p>
+    <div className="bg-espresso text-paper">
+      <p key={i} className="page-width animate-in fade-in duration-700 py-[9px] text-center text-[12px] tracking-[0.04em] text-paper/90">
+        {messages[i]}
+      </p>
     </div>
   );
 }
@@ -74,47 +76,45 @@ export function StoreHeader({ onOpenAccount, onOpenCart }: { onOpenAccount: () =
     ];
   }, [tree, locale, st]);
 
-  const iconBtn = "flex h-[44px] w-[44px] items-center justify-center text-[#121212] transition-transform hover:scale-[1.07]";
+  const iconBtn = "flex h-[44px] w-[44px] items-center justify-center text-ink transition-opacity duration-300 hover:opacity-60";
 
   return (
     <>
-      <div className={`sticky top-0 z-[90] transition-transform duration-300 ${hidden ? "-translate-y-full" : "translate-y-0"}`}>
-        <header className="border-b border-[rgba(18,18,18,0.08)] bg-white">
-          <div className="page-width grid h-[64px] md:h-[76px] grid-cols-[1fr_auto_1fr] items-center md:gap-[30px]">
-            {/* mobile: menu + search */}
-            <div className="flex items-center md:hidden -ml-[10px]">
-              <button type="button" className={iconBtn} aria-label={st("menu")} onClick={() => setMenuOpen(true)}>
-                <Menu className="h-[22px] w-[22px]" strokeWidth={1.4} />
+      <div className={`sticky top-0 z-[90] transition-transform duration-700 ease-silk ${hidden ? "-translate-y-full" : "translate-y-0"}`}>
+        <header className="border-b border-ink/10 bg-paper/90 backdrop-blur-md">
+          {/* Luxury-beauty layout: menu left · serif wordmark centred · icons right */}
+          <div className="page-width grid h-[64px] grid-cols-[1fr_auto_1fr] items-center md:h-[84px]">
+            <div className="flex items-center -ml-[10px] md:ml-0">
+              <button type="button" className={`${iconBtn} md:hidden`} aria-label={st("menu")} onClick={() => setMenuOpen(true)}>
+                <Menu className="h-[22px] w-[22px]" strokeWidth={1.1} />
               </button>
-              <button type="button" className={iconBtn} aria-label={st("search")} onClick={() => setSearchOpen(true)}>
-                <Search className="h-[20px] w-[20px]" strokeWidth={1.4} />
+              <button type="button" className={`${iconBtn} md:hidden`} aria-label={st("search")} onClick={() => setSearchOpen(true)}>
+                <Search className="h-[19px] w-[19px]" strokeWidth={1.1} />
               </button>
+              <nav className="hidden md:block">
+                <ul className="flex flex-nowrap items-center gap-x-[28px] whitespace-nowrap">
+                  {nav.map((item: any) => (
+                    <NavItem key={item.href} item={item} active={pathname === item.href} />
+                  ))}
+                </ul>
+              </nav>
             </div>
 
-            <Link href={`/${locale}`} className="store-heading justify-self-center md:justify-self-start text-[20px] md:text-[22px] whitespace-nowrap">
+            <Link href={`/${locale}`} className="store-heading whitespace-nowrap px-[10px] text-[24px] tracking-[0.01em] md:text-[32px]">
               {STORE.name}
             </Link>
 
-            {/* desktop menu: one line, centered */}
-            <nav className="hidden md:block">
-              <ul className="flex flex-nowrap items-center gap-x-[4px] whitespace-nowrap">
-                {nav.map((item: any) => (
-                  <NavItem key={item.href} item={item} active={pathname === item.href} />
-                ))}
-              </ul>
-            </nav>
-
             <div className="flex items-center justify-self-end -mr-[10px]">
               <button type="button" className={`${iconBtn} hidden md:flex`} aria-label={st("search")} onClick={() => setSearchOpen(true)}>
-                <Search className="h-[20px] w-[20px]" strokeWidth={1.4} />
+                <Search className="h-[19px] w-[19px]" strokeWidth={1.1} />
               </button>
               <button type="button" className={iconBtn} aria-label={st("account")} onClick={onOpenAccount}>
-                <User className="h-[21px] w-[21px]" strokeWidth={1.4} />
+                <User className="h-[20px] w-[20px]" strokeWidth={1.1} />
               </button>
               <button type="button" className={`${iconBtn} relative`} aria-label={st("cart")} onClick={onOpenCart}>
-                <ShoppingBag className="h-[21px] w-[21px]" strokeWidth={1.4} />
+                <ShoppingBag className="h-[20px] w-[20px]" strokeWidth={1.1} />
                 {count > 0 && (
-                  <span className="absolute bottom-[6px] right-[5px] flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-[#121212] px-[4px] text-[9px] leading-none text-white">
+                  <span className="absolute right-[4px] top-[6px] flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-terracotta px-[4px] text-[9px] font-medium leading-none text-paper">
                     {count > 99 ? "99+" : count}
                   </span>
                 )}
@@ -132,14 +132,21 @@ export function StoreHeader({ onOpenAccount, onOpenCart }: { onOpenAccount: () =
 
 function NavItem({ item, active }: { item: any; active: boolean }) {
   const [open, setOpen] = useState(false);
-  const base = `inline-flex items-center gap-[4px] px-[14px] py-[12px] text-[15px] font-medium ${
-    active ? "text-[#121212] underline underline-offset-[6px]" : "text-[rgba(18,18,18,0.8)] hover:text-[#121212] hover:underline underline-offset-[6px]"
-  }`;
+  // Underline grows from the left on hover (transform only)
+  const base = `group/nav relative inline-flex items-center gap-[5px] py-[14px] text-[14px] ${active ? "text-ink" : "text-ink/75 hover:text-ink"}`;
+  const line = (
+    <span
+      className={`pointer-events-none absolute bottom-[8px] left-0 h-px w-full origin-left bg-ink transition-transform duration-500 ease-silk ${
+        active ? "scale-x-100" : "scale-x-0 group-hover/nav:scale-x-100"
+      }`}
+    />
+  );
   if (!item.children?.length) {
     return (
       <li>
         <Link href={item.href} className={base}>
           {item.label}
+          {line}
         </Link>
       </li>
     );
@@ -148,25 +155,36 @@ function NavItem({ item, active }: { item: any; active: boolean }) {
     <li className="relative" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
       <Link href={item.href} className={base}>
         {item.label}
-        <ChevronDown className={`h-[12px] w-[12px] transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={`h-[12px] w-[12px] transition-transform duration-500 ease-silk ${open ? "rotate-180" : ""}`} strokeWidth={1.4} />
+        {line}
       </Link>
-      {open && (
-        <ul className="absolute left-0 top-full z-20 min-w-[240px] max-h-[70vh] overflow-y-auto border border-[rgba(18,18,18,0.1)] bg-white py-[10px] shadow-[0_8px_24px_rgba(0,0,0,0.06)]">
-          {item.children.map((c: any) => (
+      <div
+        className={`absolute -left-[24px] top-full z-20 pt-[10px] transition-[opacity,transform] duration-500 ease-silk ${
+          open ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-[6px] opacity-0"
+        }`}
+      >
+        <ul className="max-h-[70vh] min-w-[280px] overflow-y-auto bg-paper px-[24px] py-[18px] shadow-[0_24px_60px_-20px_rgba(28,23,20,0.25)] ring-1 ring-ink/5">
+          {item.children.map((c: any, i: number) => (
             <li key={c.href + c.label}>
               <Link
                 href={c.href}
-                className={`block py-[7px] pr-[20px] text-[15px] text-[rgba(18,18,18,0.8)] hover:bg-[rgba(18,18,18,0.04)] hover:text-[#121212] ${c.sub ? "pl-[34px] text-[14px]" : "pl-[20px]"}`}
+                className={`block py-[6px] text-ink/75 transition-colors hover:text-ink ${
+                  i === 0 ? "store-heading mb-[6px] border-b border-ink/10 pb-[10px] text-[22px] !text-ink" : c.sub ? "pl-[14px] text-[13px]" : "text-[14px]"
+                }`}
               >
                 {c.label}
               </Link>
             </li>
           ))}
         </ul>
-      )}
+      </div>
     </li>
   );
 }
+
+// Menu links slide up one after another when the drawer opens
+const stagger = (open: boolean) =>
+  `transition-[opacity,transform] duration-700 ease-silk ${open ? "translate-y-0 opacity-100" : "translate-y-[18px] opacity-0"}`;
 
 function MenuDrawer({ open, onClose, nav, onOpenAccount }: { open: boolean; onClose: () => void; nav: any[]; onOpenAccount: () => void }) {
   const { st } = useStoreT();
@@ -176,17 +194,17 @@ function MenuDrawer({ open, onClose, nav, onOpenAccount }: { open: boolean; onCl
   }, [open]);
 
   return (
-    <Drawer open={open} onClose={onClose} side="left" widthClass="w-[360px]" title={<span className="sr-only">{st("menu")}</span>}>
-      <nav className="flex-1 overflow-y-auto">
+    <Drawer open={open} onClose={onClose} side="left" widthClass="w-[380px]" title={<span className="eyebrow">{st("menu")}</span>}>
+      <nav className="flex-1 overflow-y-auto px-[24px] md:px-[30px]">
         {sub ? (
-          <div>
-            <button type="button" onClick={() => setSub(null)} className="flex w-full items-center gap-[10px] bg-[rgba(18,18,18,0.04)] px-[30px] py-[14px] text-[18px] text-[#121212]">
-              <ChevronRight className="h-[16px] w-[16px] rotate-180" /> {sub.label}
+          <div key="sub">
+            <button type="button" onClick={() => setSub(null)} className="mb-[8px] flex items-center gap-[8px] py-[10px] text-[13px] text-taupe">
+              <ChevronRight className="h-[14px] w-[14px] rotate-180" strokeWidth={1.4} /> {sub.label}
             </button>
-            <ul className="py-[10px]">
-              {sub.children.map((c: any) => (
-                <li key={c.href + c.label}>
-                  <Link href={c.href} onClick={onClose} className={`block py-[11px] text-[#121212] ${c.sub ? "pl-[46px] pr-[30px] text-[16px]" : "px-[30px] text-[18px]"}`}>
+            <ul>
+              {sub.children.map((c: any, i: number) => (
+                <li key={c.href + c.label} className={stagger(open)} style={{ transitionDelay: `${60 + i * 40}ms` }}>
+                  <Link href={c.href} onClick={onClose} className={`block border-b border-ink/10 py-[12px] text-ink ${c.sub ? "pl-[16px] text-[16px]" : "store-heading text-[26px]"}`}>
                     {c.label}
                   </Link>
                 </li>
@@ -194,34 +212,32 @@ function MenuDrawer({ open, onClose, nav, onOpenAccount }: { open: boolean; onCl
             </ul>
           </div>
         ) : (
-          <ul className="py-[10px]">
-            {nav.map((item) =>
-              item.children?.length ? (
-                <li key={item.href}>
-                  <button type="button" onClick={() => setSub(item)} className="flex w-full items-center justify-between px-[30px] py-[11px] text-left text-[18px] text-[#121212]">
+          <ul key="root">
+            {nav.map((item, i) => (
+              <li key={item.href} className={stagger(open)} style={{ transitionDelay: `${80 + i * 60}ms` }}>
+                {item.children?.length ? (
+                  <button type="button" onClick={() => setSub(item)} className="store-heading flex w-full items-center justify-between border-b border-ink/10 py-[14px] text-left text-[34px]">
                     {item.label}
-                    <ChevronRight className="h-[16px] w-[16px]" />
+                    <ChevronRight className="h-[18px] w-[18px]" strokeWidth={1.1} />
                   </button>
-                </li>
-              ) : (
-                <li key={item.href}>
-                  <Link href={item.href} onClick={onClose} className="block px-[30px] py-[11px] text-[18px] text-[#121212]">
+                ) : (
+                  <Link href={item.href} onClick={onClose} className="store-heading block border-b border-ink/10 py-[14px] text-[34px]">
                     {item.label}
                   </Link>
-                </li>
-              ),
-            )}
+                )}
+              </li>
+            ))}
           </ul>
         )}
       </nav>
-      <div className="bg-[rgba(18,18,18,0.03)] px-[30px] py-[20px]">
+      <div className="border-t border-ink/10 px-[24px] py-[20px] md:px-[30px]">
         <button
           type="button"
           onClick={() => {
             onClose();
             onOpenAccount();
           }}
-          className="flex items-center gap-[10px] text-[15px] text-[#121212]"
+          className="flex items-center gap-[10px] text-[15px] text-[#1c1714]"
         >
           <User className="h-[18px] w-[18px]" strokeWidth={1.4} /> {st("account")}
         </button>
@@ -263,8 +279,8 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[1000]">
-      <div className="absolute inset-0 bg-[rgba(18,18,18,0.5)]" onClick={onClose} />
-      <div className="relative bg-white border-b border-[rgba(18,18,18,0.08)]">
+      <div className="absolute inset-0 bg-[rgba(28,23,20,0.5)]" onClick={onClose} />
+      <div className="relative bg-white border-b border-[rgba(28,23,20,0.08)]">
         <div className="page-width flex items-center gap-[10px] py-[16px] md:py-[22px]">
           <form
             className="field flex-1 max-w-[740px] mx-auto"
@@ -275,27 +291,27 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
           >
             <input ref={inputRef} id="store-search" placeholder=" " value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
             <label htmlFor="store-search">{st("search")}</label>
-            <button type="submit" aria-label={st("search")} className="absolute right-[10px] top-1/2 -translate-y-1/2 p-[6px] text-[#121212]">
+            <button type="submit" aria-label={st("search")} className="absolute right-[10px] top-1/2 -translate-y-1/2 p-[6px] text-[#1c1714]">
               <Search className="h-[18px] w-[18px]" strokeWidth={1.4} />
             </button>
           </form>
-          <button type="button" aria-label={st("close")} onClick={onClose} className="p-[10px] text-[#121212]">
+          <button type="button" aria-label={st("close")} onClick={onClose} className="p-[10px] text-[#1c1714]">
             <X className="h-[20px] w-[20px]" strokeWidth={1.4} />
           </button>
         </div>
         {term && (
           <div className="page-width pb-[10px]">
-            <div className="mx-auto max-w-[740px] border-t border-[rgba(18,18,18,0.08)]">
+            <div className="mx-auto max-w-[740px] border-t border-[rgba(28,23,20,0.08)]">
               {results.length ? (
                 <>
                   <p className="pt-[14px] pb-[6px] text-[11px] uppercase tracking-[0.06em]">{st("products")}</p>
                   <ul>
                     {results.map((p: any) => (
                       <li key={p.id}>
-                        <Link href={productUrl(locale, p.id)} onClick={onClose} className="flex items-center gap-[15px] py-[8px] hover:bg-[rgba(18,18,18,0.04)]">
-                          <img src={productImages(p)[0]} alt="" className="h-[50px] w-[50px] object-cover bg-[#f3f3f3]" />
+                        <Link href={productUrl(locale, p.id)} onClick={onClose} className="flex items-center gap-[15px] py-[8px] hover:bg-[rgba(28,23,20,0.04)]">
+                          <img src={productImages(p)[0]} alt="" className="h-[50px] w-[50px] object-cover bg-[#efe7dd]" />
                           <div>
-                            <p className="store-heading text-[15px]">{p.foodName}</p>
+                            <p className="font-medium text-ink text-[15px]">{p.foodName}</p>
                             <Price product={p} className="text-[13px]" />
                           </div>
                         </Link>
@@ -306,7 +322,7 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
               ) : (
                 <p className="py-[16px] text-[14px]">{st("search_none", { q: q.trim() })}</p>
               )}
-              <button type="button" onClick={submit} className="flex w-full items-center justify-between border-t border-[rgba(18,18,18,0.08)] py-[14px] text-[15px] text-[#121212] hover:underline">
+              <button type="button" onClick={submit} className="flex w-full items-center justify-between border-t border-[rgba(28,23,20,0.08)] py-[14px] text-[15px] text-[#1c1714] hover:underline">
                 {st("search_all", { q: q.trim() })}
                 <ChevronRight className="h-[14px] w-[14px]" />
               </button>

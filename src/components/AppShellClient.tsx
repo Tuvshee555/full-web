@@ -39,6 +39,7 @@ export default function AppShellClient({ children }: { children: ReactNode }) {
       )}
 
       <main className="min-h-[60vh]">{children}</main>
+      {!isCheckout && <div className="grain" aria-hidden />}
 
       {!isCheckout && <StoreFooter />}
 

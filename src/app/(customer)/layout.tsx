@@ -1,15 +1,22 @@
 import type { Metadata } from "next";
-import { Source_Sans_3 } from "next/font/google";
+import { Cormorant_Garamond, Onest } from "next/font/google";
 import "./globals.css";
 import RootClient from "./RootClient";
 import { STORE } from "@/config/store";
 
-// Dawn's default font (Assistant) is a Source Sans derivative without Cyrillic;
-// Source Sans 3 is the same design with Cyrillic (needed for Ө/Ү).
-const storeFont = Source_Sans_3({
+// Editorial beauty pairing, both with full Cyrillic (Ө/Ү live in cyrillic-ext):
+// high-contrast serif for headlines, a Cyrillic-native grotesk for everything else.
+const storeFont = Onest({
   variable: "--font-store",
   subsets: ["latin", "cyrillic", "cyrillic-ext"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["300", "400", "500", "600"],
+});
+
+const displayFont = Cormorant_Garamond({
+  variable: "--font-display",
+  subsets: ["latin", "cyrillic", "cyrillic-ext"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
@@ -24,7 +31,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="mn" suppressHydrationWarning>
-      <body className={`${storeFont.variable} store-body bg-white antialiased`}>
+      <body className={`${storeFont.variable} ${displayFont.variable} store-body antialiased`}>
         <RootClient>{children}</RootClient>
       </body>
     </html>

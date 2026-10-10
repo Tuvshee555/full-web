@@ -71,7 +71,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
 
   return (
     <>
-      <div className="page-width pt-[20px] md:pt-[36px]">
+      <div className="page-width pb-[72px] pt-[20px] md:pt-[48px]">
         <div className="grid gap-[20px] md:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] md:gap-[50px]">
           {/* Media */}
           <div className="-mx-[15px] md:mx-0">
@@ -82,7 +82,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
                   key={m.src + i}
                   type="button"
                   onClick={() => setZoom(i)}
-                  className={`relative block bg-[#f3f3f3] cursor-zoom-in ${i === 0 ? "col-span-2" : ""} aspect-square overflow-hidden`}
+                  className={`relative block bg-[#efe7dd] cursor-zoom-in ${i === 0 ? "col-span-2" : ""} aspect-[4/5] overflow-hidden`}
                 >
                   <MediaView m={m} alt={product.foodName} />
                 </button>
@@ -92,8 +92,8 @@ export function ProductPage({ product, related }: { product: any; related: any[]
 
           {/* Info */}
           <div className="md:sticky md:top-[30px] self-start">
-            <p className="text-[12px] uppercase tracking-[0.06em]">{STORE.name}</p>
-            <h1 className="store-heading mt-[8px] text-[30px] md:text-[40px]">{product.foodName}</h1>
+            <span className="eyebrow">{STORE.name}</span>
+            <h1 className="store-heading mt-[10px] text-[44px] md:text-[64px]">{product.foodName}</h1>
 
             {/* Grande / REFY: rating right under the title, jumps to reviews */}
             {stars.count > 0 && (
@@ -112,7 +112,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
             {content.benefits?.length ? (
               <ul className="mt-[16px] flex flex-wrap gap-[6px]">
                 {content.benefits.map((b) => (
-                  <li key={b} className="px-[10px] py-[5px] text-[13px] text-[#121212]" style={{ background: CREAM }}>
+                  <li key={b} className="px-[10px] py-[5px] text-[13px] text-[#1c1714]" style={{ background: CREAM }}>
                     {b}
                   </li>
                 ))}
@@ -138,7 +138,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
                         onClick={() => setSize(label)}
                         aria-pressed={active}
                         className={`relative min-w-[60px] rounded-[40px] px-[20px] py-[10px] text-[14px] tracking-normal transition-colors
-                          ${active ? "bg-[#121212] text-white" : "bg-white text-[#121212] shadow-[0_0_0_1px_rgba(18,18,18,0.55)] hover:shadow-[0_0_0_1px_#121212]"}
+                          ${active ? "bg-[#1c1714] text-white" : "bg-white text-[#1c1714] shadow-[0_0_0_1px_rgba(28,23,20,0.55)] hover:shadow-[0_0_0_1px_#1c1714]"}
                           ${out ? "line-through opacity-60" : ""}`}
                       >
                         {label}
@@ -173,7 +173,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
             </div>
 
             {/* Grande-style trust row: only facts that are true for every order */}
-            <ul className="mt-[18px] grid max-w-[440px] grid-cols-3 gap-[6px] text-center text-[12px] leading-tight text-[#121212]">
+            <ul className="mt-[18px] grid max-w-[440px] grid-cols-3 gap-[6px] text-center text-[12px] leading-tight text-[#1c1714]">
               {[
                 { icon: Truck, text: st("trust_delivery", { fee: money(DELIVERY_FEE) }) },
                 { icon: CreditCard, text: st("trust_payment") },
@@ -188,7 +188,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
 
             {product.ingredients && <div className="mt-[26px] whitespace-pre-line text-[15px] leading-relaxed">{product.ingredients}</div>}
 
-            <div className="mt-[30px] border-b border-[rgba(18,18,18,0.08)]">
+            <div className="mt-[30px] border-b border-[rgba(28,23,20,0.08)]">
               <Collapsible icon={Truck} title={st("shipping")}>
                 {st("shipping_text", { fee: money(DELIVERY_FEE) })}
               </Collapsible>
@@ -197,7 +197,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
               </Collapsible>
             </div>
 
-            <button type="button" onClick={share} className="mt-[20px] flex items-center gap-[8px] text-[14px] text-[#121212] hover:underline underline-offset-[3px]">
+            <button type="button" onClick={share} className="mt-[20px] flex items-center gap-[8px] text-[14px] text-[#1c1714] hover:underline underline-offset-[3px]">
               <Share2 className="h-[15px] w-[15px]" strokeWidth={1.4} /> {st("share")}
             </button>
           </div>
@@ -224,12 +224,12 @@ export function ProductPage({ product, related }: { product: any; related: any[]
       {/* Mobile: buy bar sticks to the bottom once the main buttons scroll away */}
       {!unavailable && (
         <div
-          className={`fixed inset-x-0 bottom-0 z-[80] flex items-center gap-[12px] border-t border-[rgba(18,18,18,0.1)] bg-white px-[15px] py-[10px] transition-transform duration-300 md:hidden ${
+          className={`fixed inset-x-0 bottom-0 z-[80] flex items-center gap-[12px] border-t border-[rgba(28,23,20,0.1)] bg-white px-[15px] py-[10px] transition-transform duration-300 md:hidden ${
             ctaVisible ? "translate-y-full" : "translate-y-0"
           }`}
         >
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[14px] font-medium text-[#121212]">{product.foodName}</p>
+            <p className="truncate text-[14px] font-medium text-[#1c1714]">{product.foodName}</p>
             <Price product={product} className="text-[14px]" />
           </div>
           <button type="button" className="btn !min-h-[44px] !px-[18px]" onClick={() => addToCart(product, qty, size)}>
@@ -255,8 +255,8 @@ function DetailTabs({ content }: { content: ProductContent }) {
         <ol className="grid gap-[16px] md:grid-cols-4">
           {content.howTo.map((step, i) => (
             <li key={i} className="p-[18px]" style={{ background: CREAM }}>
-              <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[rgba(18,18,18,0.6)]">{st("step", { n: i + 1 })}</p>
-              <p className="mt-[6px] text-[15px] text-[#121212]">{step}</p>
+              <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[rgba(28,23,20,0.6)]">{st("step", { n: i + 1 })}</p>
+              <p className="mt-[6px] text-[15px] text-[#1c1714]">{step}</p>
             </li>
           ))}
         </ol>
@@ -285,7 +285,7 @@ function DetailTabs({ content }: { content: ProductContent }) {
       id: "faq",
       label: st("product_faq"),
       body: (
-        <div className="max-w-[800px] border-b border-[rgba(18,18,18,0.08)]">
+        <div className="max-w-[800px] border-b border-[rgba(28,23,20,0.08)]">
           {content.faq.map((f) => (
             <Collapsible key={f.q} icon={HelpCircle} title={f.q}>
               {f.a}
@@ -311,7 +311,7 @@ function DetailTabs({ content }: { content: ProductContent }) {
 
   return (
     <section className="mt-[60px]">
-      <div role="tablist" className="flex gap-[24px] overflow-x-auto border-b border-[rgba(18,18,18,0.12)] [scrollbar-width:none]">
+      <div role="tablist" className="flex gap-[24px] overflow-x-auto border-b border-[rgba(28,23,20,0.12)] [scrollbar-width:none]">
         {tabs.map((tab, i) => (
           <button
             key={tab.id}
@@ -320,7 +320,7 @@ function DetailTabs({ content }: { content: ProductContent }) {
             aria-selected={active === i}
             onClick={() => setActive(i)}
             className={`-mb-px shrink-0 border-b-2 pb-[12px] text-[15px] ${
-              active === i ? "border-[#121212] font-semibold text-[#121212]" : "border-transparent text-[rgba(18,18,18,0.6)] hover:text-[#121212]"
+              active === i ? "border-[#1c1714] font-semibold text-[#1c1714]" : "border-transparent text-[rgba(28,23,20,0.6)] hover:text-[#1c1714]"
             }`}
           >
             {tab.label}
@@ -357,13 +357,13 @@ function MobileSlider({ media, onOpen }: { media: Media[]; onOpen: (i: number) =
         className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {media.map((m, idx) => (
-          <button key={m.src + idx} type="button" onClick={() => onOpen(idx)} className="relative aspect-square w-full shrink-0 snap-center bg-[#f3f3f3]">
+          <button key={m.src + idx} type="button" onClick={() => onOpen(idx)} className="relative aspect-[4/5] w-full shrink-0 snap-center bg-sand">
             <MediaView m={m} alt="" />
           </button>
         ))}
       </div>
       {media.length > 1 && (
-        <div className="flex items-center justify-center gap-[10px] py-[10px] text-[13px] text-[#121212]">
+        <div className="flex items-center justify-center gap-[10px] py-[10px] text-[13px] text-[#1c1714]">
           <button type="button" onClick={() => go(i - 1)} className="p-[8px] disabled:opacity-30" disabled={i === 0} aria-label="prev">
             <ChevronLeft className="h-[16px] w-[16px]" />
           </button>
@@ -394,7 +394,7 @@ function Lightbox({ media, start, alt, onClose }: { media: Media[]; start: numbe
   }, [start, onClose]);
   return (
     <div className="fixed inset-0 z-[1000] overflow-y-auto bg-white">
-      <button type="button" onClick={onClose} aria-label="close" className="fixed right-[16px] top-[16px] z-10 flex h-[44px] w-[44px] items-center justify-center rounded-full bg-white shadow-[0_0_0_1px_rgba(18,18,18,0.1)]">
+      <button type="button" onClick={onClose} aria-label="close" className="fixed right-[16px] top-[16px] z-10 flex h-[44px] w-[44px] items-center justify-center rounded-full bg-white shadow-[0_0_0_1px_rgba(28,23,20,0.1)]">
         <X className="h-[18px] w-[18px]" />
       </button>
       <div className="mx-auto max-w-[1000px] space-y-[10px] py-[60px]">
@@ -411,8 +411,8 @@ function Lightbox({ media, start, alt, onClose }: { media: Media[]; start: numbe
 function Collapsible({ icon: Icon, title, children }: { icon: any; title: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border-t border-[rgba(18,18,18,0.08)]">
-      <button type="button" onClick={() => setOpen((v) => !v)} className="flex w-full items-center gap-[12px] py-[16px] text-left text-[15px] text-[#121212]" aria-expanded={open}>
+    <div className="border-t border-[rgba(28,23,20,0.08)]">
+      <button type="button" onClick={() => setOpen((v) => !v)} className="flex w-full items-center gap-[12px] py-[16px] text-left text-[15px] text-[#1c1714]" aria-expanded={open}>
         <Icon className="h-[18px] w-[18px]" strokeWidth={1.3} />
         <span className="flex-1">{title}</span>
         <ChevronDown className={`h-[14px] w-[14px] transition-transform ${open ? "rotate-180" : ""}`} />

@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { CheckCircle2, Copy } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
 import { useI18n } from "@/components/i18n/ClientI18nProvider";
-import { STORE, SHOPIFY_BLUE } from "@/config/store";
+import { STORE, CHECKOUT_ACCENT } from "@/config/store";
 import { money } from "@/components/store/lib/product";
 
 type Order = {
@@ -65,7 +65,7 @@ export default function BankTransferPage() {
         {state === "missing" && (
           <div className="space-y-[16px]">
             <p>{t("order_not_found")}</p>
-            <Link href={`/${locale}`} className="underline" style={{ color: SHOPIFY_BLUE }}>
+            <Link href={`/${locale}`} className="underline" style={{ color: CHECKOUT_ACCENT }}>
               {t("back_home")}
             </Link>
           </div>
@@ -74,14 +74,14 @@ export default function BankTransferPage() {
         {state === "ready" && order && (
           <>
             <div className="flex items-center gap-[14px]">
-              <CheckCircle2 className="h-[44px] w-[44px] shrink-0" strokeWidth={1.2} style={{ color: SHOPIFY_BLUE }} />
+              <CheckCircle2 className="h-[44px] w-[44px] shrink-0" strokeWidth={1.2} style={{ color: CHECKOUT_ACCENT }} />
               <div>
                 <p className="text-[13px] text-[#707070]">#{order.orderNumber}</p>
                 <h1 className="text-[22px] font-semibold">{t("bank_transfer_title")}</h1>
               </div>
             </div>
 
-            <section className="mt-[24px] rounded-[5px] border border-[#dedede] p-[18px]">
+            <section className="mt-[24px] rounded-none border border-[#dedede] p-[18px]">
               <p className="mb-[14px] text-[#545454]">{t("bank_transfer_subtitle")}</p>
               <dl className="divide-y divide-[#dedede]">
                 <Row label={t("bank_name")} value={STORE.bank.name} />
@@ -92,18 +92,18 @@ export default function BankTransferPage() {
               </dl>
             </section>
 
-            <p className="mt-[16px] rounded-[5px] bg-[#f5f5f5] p-[14px] text-[13px] text-[#545454]">
+            <p className="mt-[16px] rounded-none bg-[#f5f5f5] p-[14px] text-[13px] text-[#545454]">
               {t("bank_transfer_notice")} <span className="font-semibold text-[#121212]">{order.orderNumber}</span>
             </p>
 
             <div className="mt-[24px] flex flex-col-reverse gap-[12px] sm:flex-row sm:items-center sm:justify-between">
-              <Link href={`/${locale}`} className="underline underline-offset-[3px]" style={{ color: SHOPIFY_BLUE }}>
+              <Link href={`/${locale}`} className="underline underline-offset-[3px]" style={{ color: CHECKOUT_ACCENT }}>
                 {t("back_home")}
               </Link>
               <Link
                 href={`/${locale}/profile/orders/${order.id}`}
-                className="flex h-[52px] items-center justify-center rounded-[5px] px-[24px] font-semibold text-white"
-                style={{ background: SHOPIFY_BLUE }}
+                className="flex h-[52px] items-center justify-center rounded-none px-[24px] font-semibold text-white"
+                style={{ background: CHECKOUT_ACCENT }}
               >
                 {t("view_order")}
               </Link>
@@ -122,7 +122,7 @@ function Row({ label, value, onCopy, strong }: { label: string; value: string; o
       <dd className="flex items-center gap-[8px] text-right">
         <span className={strong ? "font-semibold" : ""}>{value}</span>
         {onCopy && (
-          <button type="button" onClick={onCopy} aria-label="copy" className="p-[4px]" style={{ color: SHOPIFY_BLUE }}>
+          <button type="button" onClick={onCopy} aria-label="copy" className="p-[4px]" style={{ color: CHECKOUT_ACCENT }}>
             <Copy className="h-[14px] w-[14px]" />
           </button>
         )}

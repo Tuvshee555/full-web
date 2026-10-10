@@ -7,8 +7,8 @@ import { Minus, Plus, X } from "lucide-react";
 import { money, onSale } from "./lib/product";
 import { useStoreT } from "./lib/useStoreT";
 
-export const SALE_RED = "#c4302b";
-export const CREAM = "#f6f2ed";
+export const SALE_RED = "#a8452f";
+export const CREAM = "#efe7dd";
 
 /** ★★★★★ 4.8 (120): only rendered when there are real reviews. */
 export function Stars({
@@ -33,13 +33,13 @@ export function Stars({
     <span className={`inline-flex items-center gap-[6px] ${className}`} aria-label={`${avg.toFixed(1)} / 5 (${count})`}>
       <span className="relative inline-block leading-none" style={{ fontSize: size }}>
         <span className="text-[#d9d4cf]">{row}</span>
-        <span className="absolute inset-0 overflow-hidden whitespace-nowrap text-[#121212]" style={{ width: `${pct}%` }}>
+        <span className="absolute inset-0 overflow-hidden whitespace-nowrap text-[#1c1714]" style={{ width: `${pct}%` }}>
           {row}
         </span>
       </span>
       {!hideCount && (
-        <span className="text-[13px] text-[rgba(18,18,18,0.7)]">
-          {showAvg && <span className="mr-[4px] font-semibold text-[#121212]">{avg.toFixed(1)}</span>}({count})
+        <span className="text-[13px] text-[rgba(28,23,20,0.7)]">
+          {showAvg && <span className="mr-[4px] font-semibold text-[#1c1714]">{avg.toFixed(1)}</span>}({count})
         </span>
       )}
     </span>
@@ -63,13 +63,13 @@ export function Price({ product, className = "" }: { product: any; className?: s
   return (
     <div className={`flex flex-wrap items-baseline gap-x-[8px] ${className}`}>
       {sale && <span className="sr-only">{st("sale_price")}</span>}
-      <span className="font-semibold" style={{ color: sale ? SALE_RED : "#121212" }}>
+      <span className="font-semibold" style={{ color: sale ? SALE_RED : "#1c1714" }}>
         {money(product.price)}
       </span>
       {sale && (
         <>
           <span className="sr-only">{st("regular_price")}</span>
-          <s className="text-[0.88em] text-[rgba(18,18,18,0.5)]">{money(product.oldPrice)}</s>
+          <s className="text-[0.88em] text-[rgba(28,23,20,0.5)]">{money(product.oldPrice)}</s>
         </>
       )}
     </div>
@@ -88,8 +88,8 @@ export function Badge({ kind, children }: { kind: "sale" | "soldout" | "label"; 
     kind === "sale"
       ? { background: SALE_RED, color: "#fff" }
       : kind === "label"
-        ? { background: "#fff", color: "#121212" }
-        : { background: "#fff", color: "#121212", boxShadow: "inset 0 0 0 1px #121212" };
+        ? { background: "#fff", color: "#1c1714" }
+        : { background: "#fff", color: "#1c1714", boxShadow: "inset 0 0 0 1px #1c1714" };
   return (
     <span className="inline-block px-[8px] py-[4px] text-[12px] font-semibold leading-none" style={style}>
       {children}
@@ -109,17 +109,17 @@ export function QuantityInput({
   small?: boolean;
 }) {
   const { st } = useStoreT();
-  const h = small ? "h-[40px]" : "h-[45px]";
+  const h = small ? "h-[40px]" : "h-[52px]";
   return (
-    <div className={`inline-flex items-center ${h} w-[140px] shadow-[0_0_0_1px_rgba(18,18,18,0.55)]`}>
+    <div className={`inline-flex items-center ${h} w-[132px] shadow-[inset_0_0_0_1px_rgba(28,23,20,0.25)]`}>
       <button
         type="button"
         aria-label={st("decrease")}
-        className="flex h-full w-[45px] items-center justify-center text-[#121212] disabled:opacity-30"
+        className="flex h-full w-[45px] items-center justify-center text-[#1c1714] disabled:opacity-30"
         onClick={() => onChange(Math.max(min, value - 1))}
         disabled={value <= min}
       >
-        <Minus className="h-[12px] w-[12px]" strokeWidth={2} />
+        <Minus className="h-[12px] w-[12px]" strokeWidth={1.4} />
       </button>
       <input
         type="number"
@@ -130,16 +130,16 @@ export function QuantityInput({
           const n = parseInt(e.target.value, 10);
           if (!Number.isNaN(n)) onChange(Math.max(min, n));
         }}
-        className="h-full w-[50px] flex-1 bg-transparent text-center text-[15px] text-[#121212] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+        className="h-full w-[50px] flex-1 bg-transparent text-center text-[15px] text-[#1c1714] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
         aria-label={st("quantity")}
       />
       <button
         type="button"
         aria-label={st("increase")}
-        className="flex h-full w-[45px] items-center justify-center text-[#121212]"
+        className="flex h-full w-[45px] items-center justify-center text-[#1c1714]"
         onClick={() => onChange(value + 1)}
       >
-        <Plus className="h-[12px] w-[12px]" strokeWidth={2} />
+        <Plus className="h-[12px] w-[12px]" strokeWidth={1.4} />
       </button>
     </div>
   );
@@ -182,21 +182,26 @@ export function Drawer({
   return createPortal(
     <div className={`fixed inset-0 z-[1000] ${open ? "" : "pointer-events-none"}`} aria-hidden={!open}>
       <div
-        className={`absolute inset-0 bg-[rgba(18,18,18,0.5)] transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0"}`}
+        className={`absolute inset-0 bg-espresso/40 backdrop-blur-[2px] transition-opacity duration-700 ease-silk ${open ? "opacity-100" : "opacity-0"}`}
         onClick={onClose}
       />
       <div
         role="dialog"
         aria-modal="true"
         className={`absolute top-0 bottom-0 ${side === "right" ? "right-0" : "left-0"} ${widthClass} max-w-[calc(100vw-30px)]
-          bg-white flex flex-col transition-transform duration-300 ease-out
+          bg-paper flex flex-col transition-transform duration-700 ease-silk
           ${open ? "translate-x-0" : side === "right" ? "translate-x-full" : "-translate-x-full"}`}
       >
         {title !== undefined && (
-          <div className="flex items-center justify-between px-[20px] md:px-[30px] pt-[25px] pb-[15px]">
-            <h2 className="store-heading text-[21px]">{title}</h2>
-            <button type="button" aria-label={st("close")} onClick={onClose} className="-mr-[10px] p-[10px] text-[#121212]">
-              <X className="h-[20px] w-[20px]" strokeWidth={1.5} />
+          <div className="flex items-center justify-between px-[24px] md:px-[30px] pt-[24px] pb-[16px]">
+            <h2 className="store-heading text-[28px]">{title}</h2>
+            <button
+              type="button"
+              aria-label={st("close")}
+              onClick={onClose}
+              className="-mr-[10px] p-[10px] text-ink transition-transform duration-500 ease-silk hover:rotate-90"
+            >
+              <X className="h-[20px] w-[20px]" strokeWidth={1.1} />
             </button>
           </div>
         )}

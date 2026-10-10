@@ -39,13 +39,13 @@ export function ProductCard({ product, quickAdd = true }: { product: any; quickA
 
   return (
     <div className="group relative">
-      <div className="relative aspect-square overflow-hidden bg-[#f3f3f3]">
+      <div className="relative aspect-[4/5] overflow-hidden bg-sand">
         <Link href={href} className="absolute inset-0" aria-label={product.foodName}>
           <img
             src={images[0]}
             alt={product.foodName ?? ""}
-            className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-500
-              md:group-hover:scale-[1.03] ${images[1] ? "md:group-hover:opacity-0" : ""}`}
+            className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-[1200ms] ease-silk
+              md:group-hover:scale-[1.04] ${images[1] ? "md:group-hover:opacity-0" : ""}`}
             loading="lazy"
             draggable={false}
           />
@@ -54,15 +54,15 @@ export function ProductCard({ product, quickAdd = true }: { product: any; quickA
               src={images[1]}
               alt=""
               aria-hidden
-              className="absolute inset-0 hidden h-full w-full object-cover opacity-0 transition-[opacity,transform] duration-500
-                md:block md:group-hover:scale-[1.03] md:group-hover:opacity-100"
+              className="absolute inset-0 hidden h-full w-full object-cover opacity-0 transition-[opacity,transform] duration-[1200ms] ease-silk
+                md:block md:group-hover:scale-[1.04] md:group-hover:opacity-100"
               loading="lazy"
               draggable={false}
             />
           )}
         </Link>
 
-        <div className="pointer-events-none absolute left-[8px] top-[8px] z-10 flex flex-col items-start gap-[4px]">
+        <div className="pointer-events-none absolute left-[10px] top-[10px] z-10 flex flex-col items-start gap-[4px]">
           {soldOut ? (
             <Badge kind="soldout">{st("sold_out")}</Badge>
           ) : (
@@ -76,24 +76,26 @@ export function ProductCard({ product, quickAdd = true }: { product: any; quickA
             onClick={onQuickAdd}
             aria-label={st("add_to_cart")}
             title={st("add_to_cart")}
-            className="absolute bottom-[8px] right-[8px] z-10 flex h-[38px] w-[38px] items-center justify-center bg-white text-[#121212]
-              shadow-[0_2px_8px_rgba(0,0,0,0.12)] transition-all hover:bg-[#121212] hover:text-white
-              md:translate-y-[6px] md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100"
+            className="absolute bottom-[10px] right-[10px] z-10 flex h-[40px] w-[40px] items-center justify-center bg-paper text-ink
+              shadow-[0_10px_30px_-10px_rgba(28,23,20,0.35)] transition-[transform,opacity,background-color,color] duration-500 ease-silk
+              hover:bg-ink hover:text-paper active:scale-95
+              md:translate-y-[8px] md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100"
           >
-            <Plus className="h-[18px] w-[18px]" strokeWidth={1.8} />
+            <Plus className="h-[18px] w-[18px]" strokeWidth={1.2} />
           </button>
         )}
       </div>
 
-      <div className="pt-[10px]">
-        <Stars avg={stars.avg} count={stars.count} size={12} className="mb-[4px]" />
-        <h3 className="text-[15px] font-medium leading-snug text-[#121212] line-clamp-2">
-          <Link href={href} className="link-underline">
-            {product.foodName}
-          </Link>
-        </h3>
-        {subtitle && <p className="mt-[2px] text-[13px] text-[rgba(18,18,18,0.6)] line-clamp-1">{subtitle}</p>}
-        <Price product={product} className="mt-[4px] text-[15px]" />
+      <div className="pt-[14px]">
+        {/* Phones: price under the name. Desktop: price right-aligned beside it. */}
+        <div className="flex flex-col gap-[4px] md:flex-row md:items-start md:justify-between md:gap-[12px]">
+          <h3 className="store-heading text-[19px] leading-[1.15] md:text-[22px] line-clamp-2">
+            <Link href={href}>{product.foodName}</Link>
+          </h3>
+          <Price product={product} className="shrink-0 text-[14px] md:flex-col md:!items-end md:!gap-0 md:pt-[3px]" />
+        </div>
+        {subtitle && <p className="mt-[4px] text-[13px] text-taupe line-clamp-1">{subtitle}</p>}
+        <Stars avg={stars.avg} count={stars.count} size={11} className="mt-[6px]" />
       </div>
     </div>
   );
@@ -102,9 +104,9 @@ export function ProductCard({ product, quickAdd = true }: { product: any; quickA
 export function ProductCardSkeleton() {
   return (
     <div className="animate-pulse">
-      <div className="aspect-square bg-[#f3f3f3]" />
-      <div className="mt-[12px] h-[16px] w-3/4 bg-[#f3f3f3]" />
-      <div className="mt-[8px] h-[16px] w-1/3 bg-[#f3f3f3]" />
+      <div className="aspect-[4/5] bg-sand" />
+      <div className="mt-[12px] h-[16px] w-3/4 bg-[#efe7dd]" />
+      <div className="mt-[8px] h-[16px] w-1/3 bg-[#efe7dd]" />
     </div>
   );
 }

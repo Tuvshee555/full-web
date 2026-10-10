@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { ChevronDown, Loader2, ShoppingBag } from "lucide-react";
-import { STORE, SHOPIFY_BLUE } from "@/config/store";
+import { STORE, CHECKOUT_ACCENT } from "@/config/store";
 import { AIMAG_DISTRICTS, AIMAGS, ULAANBAATAR_DISTRICTS } from "@/data/mongoliaLocations";
 import { useAuth } from "../provider/AuthProvider";
 import { useStoreCart } from "@/components/store/lib/useCart";
@@ -49,7 +49,7 @@ function CheckoutHeader() {
             <Link href={`/${locale}`} className="text-[22px] text-[#121212]">
               {STORE.name}
             </Link>
-            <Link href={`/${locale}/cart`} aria-label={st("cart")} style={{ color: SHOPIFY_BLUE }}>
+            <Link href={`/${locale}/cart`} aria-label={st("cart")} style={{ color: CHECKOUT_ACCENT }}>
               <ShoppingBag className="h-[22px] w-[22px]" strokeWidth={1.5} />
             </Link>
           </div>
@@ -81,16 +81,16 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
       <button
         type="button"
         onClick={() => setSummaryOpen((v) => !v)}
-        className="flex w-full items-center justify-between border-b border-[#dedede] bg-[#f5f5f5] px-[20px] py-[16px] lg:hidden"
+        className="flex w-full items-center justify-between border-b border-[#dedede] bg-[#f6f1ea] px-[20px] py-[16px] lg:hidden"
       >
-        <span className="flex items-center gap-[6px]" style={{ color: SHOPIFY_BLUE }}>
+        <span className="flex items-center gap-[6px]" style={{ color: CHECKOUT_ACCENT }}>
           {summaryOpen ? st("hide_summary") : st("show_summary")}
           <ChevronDown className={`h-[14px] w-[14px] transition-transform ${summaryOpen ? "rotate-180" : ""}`} />
         </span>
         <span className="text-[17px] font-semibold">{money(c.total)}</span>
       </button>
       {summaryOpen && (
-        <div className="border-b border-[#dedede] bg-[#f5f5f5] px-[20px] py-[20px] lg:hidden">
+        <div className="border-b border-[#dedede] bg-[#f6f1ea] px-[20px] py-[20px] lg:hidden">
           <Summary items={items} c={c} />
         </div>
       )}
@@ -103,7 +103,7 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
               title={st("contact_section")}
               aside={
                 !token || isGuest ? (
-                  <button type="button" onClick={authDialog.open} className="text-[14px] underline underline-offset-[3px]" style={{ color: SHOPIFY_BLUE }}>
+                  <button type="button" onClick={authDialog.open} className="text-[14px] underline underline-offset-[3px]" style={{ color: CHECKOUT_ACCENT }}>
                     {st("log_in")}
                   </button>
                 ) : null
@@ -165,14 +165,14 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
             </Section>
 
             <Section title={st("shipping_method")}>
-              <div className="flex items-center justify-between rounded-[5px] border px-[16px] py-[16px]" style={{ borderColor: SHOPIFY_BLUE, background: "#f0f5fa" }}>
+              <div className="flex items-center justify-between rounded-none border px-[16px] py-[16px]" style={{ borderColor: CHECKOUT_ACCENT, background: "#f6f1ea" }}>
                 <span>{st("standard_delivery")}</span>
                 <span className="font-semibold">{money(c.deliveryFee)}</span>
               </div>
             </Section>
 
             <Section title={st("payment")} sub={st("payment_sub")}>
-              <div className="overflow-hidden rounded-[5px] border border-[#dedede]">
+              <div className="overflow-hidden rounded-none border border-[#dedede]">
                 {(
                   [
                     ["QPAY", st("qpay"), st("qpay_desc")],
@@ -184,7 +184,7 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
                     <div key={value} className={i > 0 ? "border-t border-[#dedede]" : ""}>
                       <label
                         className="flex cursor-pointer items-center gap-[12px] px-[16px] py-[16px]"
-                        style={active ? { background: "#f0f5fa", boxShadow: `inset 0 0 0 1px ${SHOPIFY_BLUE}` } : undefined}
+                        style={active ? { background: "#f6f1ea", boxShadow: `inset 0 0 0 1px ${CHECKOUT_ACCENT}` } : undefined}
                       >
                         <input
                           type="radio"
@@ -192,25 +192,25 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
                           checked={active}
                           onChange={() => c.setPaymentMethod(value)}
                           className="h-[18px] w-[18px]"
-                          style={{ accentColor: SHOPIFY_BLUE }}
+                          style={{ accentColor: CHECKOUT_ACCENT }}
                         />
                         <span className="flex-1">{label}</span>
                       </label>
-                      {active && <div className="border-t border-[#dedede] bg-[#f5f5f5] px-[16px] py-[18px] text-center text-[13px] text-[#545454]">{desc}</div>}
+                      {active && <div className="border-t border-[#dedede] bg-[#f6f1ea] px-[16px] py-[18px] text-center text-[13px] text-[#545454]">{desc}</div>}
                     </div>
                   );
                 })}
               </div>
             </Section>
 
-            {c.submitError && <p className="mb-[12px] rounded-[5px] border border-[#d72c0d] bg-[#fff4f4] px-[14px] py-[12px] text-[#d72c0d]">{c.submitError}</p>}
+            {c.submitError && <p className="mb-[12px] rounded-none border border-[#d72c0d] bg-[#fff4f4] px-[14px] py-[12px] text-[#d72c0d]">{c.submitError}</p>}
 
             <button
               type="button"
               onClick={c.placeOrder}
               disabled={c.submitting}
-              className="flex h-[56px] w-full items-center justify-center gap-[8px] rounded-[5px] text-[17px] font-semibold text-white transition-opacity disabled:opacity-70"
-              style={{ background: SHOPIFY_BLUE }}
+              className="flex h-[56px] w-full items-center justify-center gap-[8px] rounded-none text-[17px] font-semibold text-white transition-opacity disabled:opacity-70"
+              style={{ background: CHECKOUT_ACCENT }}
             >
               {c.submitting ? (
                 <>
@@ -222,7 +222,7 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
             </button>
             <p className="mt-[14px] text-[12px] text-[#707070]">
               {st("terms_note")}{" "}
-              <button type="button" onClick={() => setTermsOpen(true)} className="underline underline-offset-[2px]" style={{ color: SHOPIFY_BLUE }}>
+              <button type="button" onClick={() => setTermsOpen(true)} className="underline underline-offset-[2px]" style={{ color: CHECKOUT_ACCENT }}>
                 {st("terms")}
               </button>
             </p>
@@ -230,7 +230,7 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
         </div>
 
         {/* Summary column */}
-        <aside className="hidden bg-[#f5f5f5] lg:block lg:flex-1">
+        <aside className="hidden bg-[#f6f1ea] lg:block lg:flex-1">
           <div className="sticky top-0 max-w-[520px] px-[38px] py-[38px]">
             <Summary items={items} c={c} />
           </div>
@@ -249,8 +249,8 @@ function Summary({ items, c }: { items: StoreCartItem[]; c: ReturnType<typeof us
       <ul className="space-y-[14px]">
         {items.map((i) => (
           <li key={`${i.foodId}-${i.selectedSize ?? ""}`} className="flex items-center gap-[14px]">
-            <div className="relative h-[64px] w-[64px] shrink-0 rounded-[8px] border border-[#dedede] bg-white">
-              {i.food?.image ? <img src={i.food.image} alt="" className="h-full w-full rounded-[8px] object-cover" /> : null}
+            <div className="relative h-[64px] w-[64px] shrink-0 rounded-none border border-[#dedede] bg-white">
+              {i.food?.image ? <img src={i.food.image} alt="" className="h-full w-full rounded-none object-cover" /> : null}
               <span className="absolute -right-[8px] -top-[8px] flex h-[21px] min-w-[21px] items-center justify-center rounded-full bg-[#666] px-[6px] text-[12px] text-white">
                 {i.quantity}
               </span>
@@ -298,7 +298,7 @@ function Section({ title, sub, aside, children }: { title: string; sub?: string;
 }
 
 const inputBase =
-  "peer h-[52px] w-full rounded-[5px] border bg-white px-[12px] pt-[18px] pb-[4px] text-[14px] outline-none transition-[box-shadow,border-color] focus:shadow-[0_0_0_1px_#1773b0] focus:border-[#1773b0]";
+  "peer h-[52px] w-full rounded-none border bg-white px-[12px] pt-[18px] pb-[4px] text-[14px] outline-none transition-[box-shadow,border-color] focus:shadow-[0_0_0_1px_#1c1714] focus:border-[#1c1714]";
 
 function Field({
   name,

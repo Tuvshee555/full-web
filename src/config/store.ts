@@ -27,7 +27,8 @@ export const STORE = {
   },
 };
 
-export const SHOPIFY_BLUE = "#1773b0";
+/** Checkout buttons/links: brand ink (Shopify default would be #1773b0). */
+export const CHECKOUT_ACCENT = "#1c1714";
 
 /* ------------------------------------------------------------------------- *
  * BRAND + PRODUCT CONTENT (beauty-brand sections, REFY / GrandeBROW style)

@@ -8,6 +8,7 @@ import { API_BASE_URL } from "@/lib/api";
 import { sanitizeFoodList } from "@/utils/catalogSanitizer";
 import { ProductCard, ProductCardSkeleton } from "./ProductCard";
 import { isSoldOut, money, onSale } from "./lib/product";
+import { STORE } from "@/config/store";
 import { useStoreT } from "./lib/useStoreT";
 import { Drawer } from "./ui";
 
@@ -118,8 +119,9 @@ export function CollectionPage({ id }: { id: string }) {
   const countText = st("products_count", { n: visible.length });
 
   return (
-    <div className="page-width pb-[40px]">
-      <h1 className="store-heading pt-[30px] md:pt-[40px] text-[30px] md:text-[40px]">{q ? `“${q}”` : title || " "}</h1>
+    <div className="page-width pb-[72px]">
+      <span className="eyebrow mt-[40px] md:mt-[72px]">{STORE.name}</span>
+      <h1 className="store-heading mt-[10px] text-[48px] md:text-[80px]">{q ? `“${q}”` : title || " "}</h1>
 
       {/* Desktop facets */}
       <div className="mt-[24px] hidden md:flex items-start justify-between gap-[20px]">
@@ -139,7 +141,7 @@ export function CollectionPage({ id }: { id: string }) {
         <div className="flex items-center gap-[24px] text-[14px]">
           <label className="flex items-center gap-[8px]">
             {st("sort_by")}:
-            <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} className="bg-transparent pr-[4px] text-[#121212] outline-none cursor-pointer">
+            <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} className="bg-transparent pr-[4px] text-[#1c1714] outline-none cursor-pointer">
               {sortOptions.map(([v, l]) => (
                 <option key={v} value={v}>
                   {l}
@@ -153,7 +155,7 @@ export function CollectionPage({ id }: { id: string }) {
 
       {/* Mobile facets */}
       <div className="mt-[20px] flex items-center justify-between md:hidden text-[14px]">
-        <button type="button" onClick={() => setDrawer(true)} className="flex items-center gap-[8px] text-[#121212]">
+        <button type="button" onClick={() => setDrawer(true)} className="flex items-center gap-[8px] text-[#1c1714]">
           <SlidersHorizontal className="h-[16px] w-[16px]" strokeWidth={1.4} />
           {st("filter_and_sort")}
         </button>
@@ -167,20 +169,20 @@ export function CollectionPage({ id }: { id: string }) {
               key={p.label}
               type="button"
               onClick={() => setFilters((f) => ({ ...f, ...p.clear }))}
-              className="flex items-center gap-[6px] rounded-[40px] px-[12px] py-[5px] text-[#121212] shadow-[0_0_0_1px_rgba(18,18,18,0.3)] hover:shadow-[0_0_0_1px_#121212]"
+              className="flex items-center gap-[6px] rounded-[40px] px-[12px] py-[5px] text-[#1c1714] shadow-[0_0_0_1px_rgba(28,23,20,0.3)] hover:shadow-[0_0_0_1px_#1c1714]"
             >
               {p.label}
               <X className="h-[12px] w-[12px]" />
             </button>
           ))}
-          <button type="button" onClick={() => setFilters(NO_FILTERS)} className="underline underline-offset-[3px] text-[#121212]">
+          <button type="button" onClick={() => setFilters(NO_FILTERS)} className="underline underline-offset-[3px] text-[#1c1714]">
             {st("clear_all")}
           </button>
         </div>
       )}
 
       {/* Grid */}
-      <div className="mt-[24px] grid grid-cols-2 gap-x-[8px] gap-y-[24px] md:grid-cols-4 md:gap-x-[16px] md:gap-y-[36px]">
+      <div className="mt-[32px] grid grid-cols-2 gap-x-[12px] gap-y-[44px] md:grid-cols-4 md:gap-x-[24px] md:gap-y-[64px]">
         {loading ? Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />) : shown.map((p) => <ProductCard key={p.id} product={p} />)}
       </div>
       {!loading && visible.length === 0 && <p className="py-[60px] text-center">{st("no_products")}</p>}
@@ -195,7 +197,7 @@ export function CollectionPage({ id }: { id: string }) {
                 setPage(i + 1);
                 window.scrollTo({ top: 0 });
               }}
-              className={`h-[44px] min-w-[44px] px-[8px] ${page === i + 1 ? "text-[#121212] underline underline-offset-[6px]" : "hover:text-[#121212] hover:underline underline-offset-[6px]"}`}
+              className={`h-[44px] min-w-[44px] px-[8px] ${page === i + 1 ? "text-[#1c1714] underline underline-offset-[6px]" : "hover:text-[#1c1714] hover:underline underline-offset-[6px]"}`}
               aria-current={page === i + 1 ? "page" : undefined}
             >
               {i + 1}
@@ -218,7 +220,7 @@ export function CollectionPage({ id }: { id: string }) {
           <MobileGroup title={st("on_sale")}>
             <Check label={`${st("on_sale")} (${counts.sale})`} checked={filters.sale} onChange={(v) => setFilters((f) => ({ ...f, sale: v }))} />
           </MobileGroup>
-          <div className="border-t border-[rgba(18,18,18,0.08)] py-[16px]">
+          <div className="border-t border-[rgba(28,23,20,0.08)] py-[16px]">
             <label className="field">
               <select value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
                 {sortOptions.map(([v, l]) => (
@@ -227,11 +229,11 @@ export function CollectionPage({ id }: { id: string }) {
                   </option>
                 ))}
               </select>
-              <span className="pointer-events-none absolute left-[15px] top-[4px] text-[11px] text-[rgba(18,18,18,0.6)]">{st("sort_by")}</span>
+              <span className="pointer-events-none absolute left-[15px] top-[4px] text-[11px] text-[rgba(28,23,20,0.6)]">{st("sort_by")}</span>
             </label>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-[10px] border-t border-[rgba(18,18,18,0.08)] p-[20px]">
+        <div className="grid grid-cols-2 gap-[10px] border-t border-[rgba(28,23,20,0.08)] p-[20px]">
           <button type="button" className="btn-secondary" onClick={() => setFilters(NO_FILTERS)}>
             {st("reset")}
           </button>
@@ -256,15 +258,15 @@ function Facet({ label, selected, onReset, children }: { label: string; selected
   }, [open]);
   return (
     <div ref={ref} className="relative">
-      <button type="button" onClick={() => setOpen((v) => !v)} className="flex items-center gap-[6px] text-[#121212] hover:underline underline-offset-[3px]">
+      <button type="button" onClick={() => setOpen((v) => !v)} className="flex items-center gap-[6px] text-[#1c1714] hover:underline underline-offset-[3px]">
         {label}
         <ChevronDown className={`h-[12px] w-[12px] transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <div className="absolute left-0 top-[calc(100%+10px)] z-30 min-w-[280px] border border-[rgba(18,18,18,0.15)] bg-white">
-          <div className="flex items-center justify-between border-b border-[rgba(18,18,18,0.08)] px-[20px] py-[12px] text-[13px]">
+        <div className="absolute left-0 top-[calc(100%+10px)] z-30 min-w-[280px] border border-[rgba(28,23,20,0.15)] bg-white">
+          <div className="flex items-center justify-between border-b border-[rgba(28,23,20,0.08)] px-[20px] py-[12px] text-[13px]">
             <span>{selected ? `${selected} ✓` : " "}</span>
-            <button type="button" onClick={onReset} className="underline underline-offset-[3px] text-[#121212]">
+            <button type="button" onClick={onReset} className="underline underline-offset-[3px] text-[#1c1714]">
               {st("reset")}
             </button>
           </div>
@@ -277,8 +279,8 @@ function Facet({ label, selected, onReset, children }: { label: string; selected
 
 function MobileGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="border-t border-[rgba(18,18,18,0.08)] py-[14px]">
-      <p className="mb-[8px] text-[#121212]">{title}</p>
+    <div className="border-t border-[rgba(28,23,20,0.08)] py-[14px]">
+      <p className="mb-[8px] text-[#1c1714]">{title}</p>
       {children}
     </div>
   );
@@ -286,8 +288,8 @@ function MobileGroup({ title, children }: { title: string; children: React.React
 
 function Check({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <label className="flex cursor-pointer items-center gap-[10px] py-[6px] text-[14px] text-[#121212]">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-[16px] w-[16px] accent-[#121212]" />
+    <label className="flex cursor-pointer items-center gap-[10px] py-[6px] text-[14px] text-[#1c1714]">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-[16px] w-[16px] accent-[#1c1714]" />
       {label}
     </label>
   );
