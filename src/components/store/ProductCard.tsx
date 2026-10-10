@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { addToCart } from "./lib/cart";
 import { productContent } from "@/config/store";
-import { firstLine, isBestseller, isNew, isSoldOut, onSale, productImages, productUrl, rating, sizeLabel, sizeSoldOut } from "./lib/product";
+import { firstLine, isBestseller, isSoldOut, onSale, productImages, productUrl, rating, sizeLabel, sizeSoldOut } from "./lib/product";
 import { useStoreT } from "./lib/useStoreT";
 import { Badge, Price, salePercent, Stars } from "./ui";
 
@@ -23,11 +23,11 @@ export function ProductCard({ product, quickAdd = true }: { product: any; quickA
   const stars = rating(product);
   const subtitle = productContent(product.id).tagline || firstLine(product.ingredients);
 
-  // ABH-style badges, all from real data: sale %, new (30 days), best seller (sales)
+  // ABH-style badges, all from real data: sale % and best seller (real sales).
+  // No automatic "new" badge: in a young store every product is new, so it's noise.
   const badges = [
     onSale(product) && <Badge key="sale" kind="sale">-{salePercent(product)}%</Badge>,
     isBestseller(product) && <Badge key="best" kind="label">{st("badge_best")}</Badge>,
-    isNew(product) && <Badge key="new" kind="label">{st("badge_new")}</Badge>,
   ].filter(Boolean);
 
   // One size (or none): add straight to cart. Several sizes: pick on the product page.

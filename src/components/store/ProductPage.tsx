@@ -82,7 +82,10 @@ export function ProductPage({ product, related }: { product: any; related: any[]
                   key={m.src + i}
                   type="button"
                   onClick={() => setZoom(i)}
-                  className={`relative block bg-[#efe7dd] cursor-zoom-in ${i === 0 ? "col-span-2" : ""} aspect-[4/5] overflow-hidden`}
+                  className={`relative block bg-[#efe7dd] cursor-zoom-in ${
+                    // first photo full width; a leftover odd photo at the end too (no half-empty row)
+                    i === 0 || (i === media.length - 1 && (media.length - 1) % 2 === 1) ? "col-span-2" : ""
+                  } aspect-[4/5] overflow-hidden`}
                 >
                   <MediaView m={m} alt={product.foodName} />
                 </button>

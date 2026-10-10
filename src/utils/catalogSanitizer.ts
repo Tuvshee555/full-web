@@ -55,19 +55,8 @@ export function sanitizeFood<T extends Record<string, any>>(food: T): T {
     next.category = sanitizeCategory(next.category);
   }
 
-  const productName = normalize(next.foodName);
-  const isNomadEdgeJersey =
-    productName === "nomad edge pro jersey" ||
-    productName === "номад эдж про жерси" ||
-    (productName.includes("nomad edge") && productName.includes("jersey")) ||
-    (productName.includes("номад") && productName.includes("жерси"));
-  if (isNomadEdgeJersey) {
-    next.image = PRODUCT_IMAGE_PLACEHOLDER;
-  }
-
-  if (isNomadEdgeJersey) {
-    next.extraImages = [PRODUCT_IMAGE_PLACEHOLDER];
-  }
+  // Products without a photo get the placeholder (no per-product name hacks)
+  if (!next.image) next.image = PRODUCT_IMAGE_PLACEHOLDER;
 
   return next as T;
 }

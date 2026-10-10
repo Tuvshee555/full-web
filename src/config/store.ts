@@ -3,7 +3,7 @@
 import { DELIVERY_FEE } from "@/data/mongoliaLocations";
 
 export const STORE = {
-  name: "Nomad Edge",
+  name: "Lorentz",
   // Shown in the thin bar above the header (rotates if there is more than one)
   announcements: {
     mn: [
