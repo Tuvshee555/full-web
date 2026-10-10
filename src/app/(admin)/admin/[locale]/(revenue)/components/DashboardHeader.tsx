@@ -20,25 +20,19 @@ export function DashboardHeader({
 }: Props) {
   return (
     <div className="flex flex-wrap items-center gap-3 justify-between">
-      <h1 className="text-xl font-semibold">{t("dashboard")}</h1>
+      <h1 className="store-heading text-[44px]">{t("dashboard")}</h1>
 
       <div className="flex items-center gap-2">
         <button
           onClick={() => setRange("7d")}
-          className={`px-3 py-1 text-xs rounded-full border ${
-            range === "7d" ? "bg-foreground text-background" : "text-foreground"
-          }`}
+          className={`px-[14px] py-[8px] text-[12px] ${range === "7d" ? "bg-ink text-paper" : "text-ink/70 shadow-[inset_0_0_0_1px_rgba(28,23,20,0.2)] hover:text-ink"}`}
         >
           7D
         </button>
 
         <button
           onClick={() => setRange("30d")}
-          className={`px-3 py-1 text-xs rounded-full border ${
-            range === "30d"
-              ? "bg-foreground text-background"
-              : "text-foreground"
-          }`}
+          className={`px-[14px] py-[8px] text-[12px] ${range === "30d" ? "bg-ink text-paper" : "text-ink/70 shadow-[inset_0_0_0_1px_rgba(28,23,20,0.2)] hover:text-ink"}`}
         >
           30D
         </button>

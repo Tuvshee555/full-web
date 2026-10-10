@@ -31,7 +31,7 @@ export function OrderMetaInfo({ order, t, copy }: Props) {
   );
 
   return (
-    <div className="bg-card border border-border rounded-lg px-5 py-4">
+    <div className="bg-card border border-border rounded-none px-5 py-4">
       <div className="text-sm font-semibold mb-4 text-foreground">
         {t("order")}
       </div>
@@ -68,11 +68,11 @@ export function OrderMetaInfo({ order, t, copy }: Props) {
 
         <Item label={t("payment_status")}>
           {order?.status === "PAID" ? (
-            <span className="px-2 py-1 rounded-md text-xs font-semibold bg-green-500/15 text-green-600">
+            <span className="px-2 py-1 rounded-none text-xs font-semibold bg-green-500/15 text-green-600">
               PAID
             </span>
           ) : (
-            <span className="px-2 py-1 rounded-md text-xs font-semibold bg-orange-500/15 text-orange-600">
+            <span className="px-2 py-1 rounded-none text-xs font-semibold bg-orange-500/15 text-orange-600">
               {order?.status ?? "-"}
             </span>
           )}

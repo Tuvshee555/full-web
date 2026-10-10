@@ -21,7 +21,7 @@ export function DeleteDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-background rounded-lg w-full max-w-sm p-4">
+      <div className="bg-background rounded-none w-full max-w-sm p-4">
         <div className="text-sm font-semibold">{title}</div>
         <div className="text-sm mt-2">{description}</div>
 

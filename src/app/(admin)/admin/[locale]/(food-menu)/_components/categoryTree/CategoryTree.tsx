@@ -30,10 +30,8 @@ export const CategoryTree: React.FC<CategoryTreeProps> = ({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between mb-1">
-        <h2 className="text-sm font-semibold text-foreground">
-          {t("categories")}
-        </h2>
+      <div className="mb-[4px] space-y-[12px]">
+        <h2 className="eyebrow">{t("categories")}</h2>
 
         <AddCategoryButton
           parentId={null}

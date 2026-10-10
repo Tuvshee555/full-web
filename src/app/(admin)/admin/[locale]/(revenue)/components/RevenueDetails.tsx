@@ -13,13 +13,13 @@ import { PaymentLike } from "../RevenueDashboard";
 
 /* local copy of STATUS_BADGE to match your project colors */
 const STATUS_BADGE: Record<string, string> = {
-  PENDING: "bg-amber-50 text-amber-700 border-amber-200",
-  WAITING_PAYMENT: "bg-orange-50 text-orange-700 border-orange-200",
-  COD_PENDING: "bg-sky-50 text-sky-700 border-sky-200",
-  PAID: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  DELIVERING: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  DELIVERED: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  CANCELLED: "bg-rose-50 text-rose-700 border-rose-200",
+  PENDING: "bg-sand text-taupe border-transparent",
+  WAITING_PAYMENT: "bg-terracotta/10 text-terracotta border-transparent",
+  COD_PENDING: "bg-sand text-taupe border-transparent",
+  PAID: "bg-ink text-paper border-transparent",
+  DELIVERING: "bg-ink/10 text-ink border-transparent",
+  DELIVERED: "bg-[#5b6b4b]/15 text-[#44523a] border-transparent",
+  CANCELLED: "bg-ink/5 text-ink/45 border-transparent",
 };
 
 type Props = {

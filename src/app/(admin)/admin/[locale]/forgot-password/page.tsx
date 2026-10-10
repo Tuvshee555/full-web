@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
           w-full max-w-sm
           bg-card
           border border-border
-          rounded-xl
+          rounded-none
           p-6
           space-y-4
         "
@@ -51,7 +51,7 @@ export default function ForgotPasswordPage() {
           className="
             h-[44px]
             w-full
-            rounded-md
+            rounded-none
             border border-border
             bg-background
             px-3
@@ -67,7 +67,7 @@ export default function ForgotPasswordPage() {
           className="
             h-[44px]
             w-full
-            rounded-md
+            rounded-none
             bg-primary
             text-primary-foreground
             text-sm

@@ -62,7 +62,7 @@ export const CreatePassword = ({
       <div className="flex flex-col gap-6 w-full max-w-[416px]">
         <button
           onClick={stepBack}
-          className="h-[44px] w-[44px] flex items-center justify-center rounded-md hover:bg-muted"
+          className="h-[44px] w-[44px] flex items-center justify-center rounded-none hover:bg-muted"
         >
           <ChevronLeft />
         </button>
@@ -79,7 +79,7 @@ export const CreatePassword = ({
             placeholder={t("password_placeholder")}
             value={user.password}
             onChange={handlePasswordChange}
-            className="h-[44px] w-full rounded-md border border-border bg-background px-3 pr-10 text-sm"
+            className="h-[44px] w-full rounded-none border border-border bg-background px-3 pr-10 text-sm"
           />
           <button
             type="button"
@@ -97,7 +97,7 @@ export const CreatePassword = ({
             placeholder={t("confirm_password_placeholder")}
             value={user.repassword}
             onChange={handleConfirmPasswordChange}
-            className="h-[44px] w-full rounded-md border border-border bg-background px-3 pr-10 text-sm"
+            className="h-[44px] w-full rounded-none border border-border bg-background px-3 pr-10 text-sm"
           />
           <button
             type="button"
@@ -120,7 +120,7 @@ export const CreatePassword = ({
           className="
             h-[44px]
             w-full
-            rounded-md
+            rounded-none
             bg-primary
             text-primary-foreground
             text-sm

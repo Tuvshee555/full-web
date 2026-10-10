@@ -4,7 +4,7 @@
 "use client";
 
 import { ChangeEvent, useRef, useState } from "react";
-import { X, Plus, ImagePlus, Images, Video } from "lucide-react";
+import { X, Plus, ImagePlus, Images } from "lucide-react";
 import { Input } from "@admin/components/ui/input";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 
@@ -143,7 +143,7 @@ export const AddFoodForm = ({
           <textarea
             name="ingredients"
             placeholder={t("food.fields.description")}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm min-h-[72px] resize-none"
+            className="w-full rounded-none border border-border bg-background px-3 py-2 text-sm min-h-[72px] resize-none"
             value={foodData.ingredients}
             onChange={handleChange}
           />
@@ -169,9 +169,9 @@ export const AddFoodForm = ({
           </label>
           <div
             onClick={() => imageInputRef.current?.click()}
-            className="border-2 border-dashed border-border rounded-lg p-3 hover:border-primary/40 hover:bg-muted/30 transition-all cursor-pointer flex items-center gap-3"
+            className="border-2 border-dashed border-border rounded-none p-3 hover:border-primary/40 hover:bg-muted/30 transition-all cursor-pointer flex items-center gap-3"
           >
-            <div className="bg-muted rounded-md p-2 shrink-0">
+            <div className="bg-muted rounded-none p-2 shrink-0">
               <Images className="w-4 h-4 text-muted-foreground" />
             </div>
             <div>
@@ -196,7 +196,7 @@ export const AddFoodForm = ({
               {imagePreviews.map((src, i) => (
                 <div
                   key={i}
-                  className="relative w-12 h-12 rounded-md overflow-hidden border border-border"
+                  className="relative w-12 h-12 rounded-none overflow-hidden border border-border"
                 >
                   <img src={src} className="w-full h-full object-cover" alt="" />
                   <button
@@ -219,9 +219,9 @@ export const AddFoodForm = ({
           </label>
           <div
             onClick={() => thumbnailInputRef.current?.click()}
-            className="border-2 border-dashed border-border rounded-lg p-3 hover:border-primary/40 hover:bg-muted/30 transition-all cursor-pointer flex items-center gap-3"
+            className="border-2 border-dashed border-border rounded-none p-3 hover:border-primary/40 hover:bg-muted/30 transition-all cursor-pointer flex items-center gap-3"
           >
-            <div className="bg-muted rounded-md p-2 shrink-0">
+            <div className="bg-muted rounded-none p-2 shrink-0">
               <ImagePlus className="w-4 h-4 text-muted-foreground" />
             </div>
             <div className="min-w-0 flex-1">
@@ -259,7 +259,7 @@ export const AddFoodForm = ({
           <button
             type="button"
             onClick={addSize}
-            className="h-9 w-9 shrink-0 rounded-md bg-primary text-primary-foreground flex items-center justify-center"
+            className="h-9 w-9 shrink-0 rounded-none bg-primary text-primary-foreground flex items-center justify-center"
           >
             <Plus size={16} />
           </button>

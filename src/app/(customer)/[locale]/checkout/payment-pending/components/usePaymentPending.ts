@@ -79,12 +79,12 @@ export function usePaymentPending() {
       const data = res.data ?? null;
       setOrder(data);
 
-      // ✅ instant redirect if already paid
-      if (data?.status === "PAID" || data?.status === "DELIVERED") {
+      // Already paid: show the thank-you state here (Shopify-style order
+      // confirmation) instead of bouncing to another page.
+      if (data?.status === "PAID" || data?.status === "DELIVERING" || data?.status === "DELIVERED") {
         setPaid(true);
         setQrText(null);
         setStatus(t("payment_success"));
-        router.replace(`/${locale}/profile/orders/${id}`);
       }
     } catch {
       toast.error(t("order_not_found"));
@@ -165,6 +165,9 @@ export function usePaymentPending() {
       setStatus(t("payment_waiting"));
     }
 
+    // Paid / cancelled orders never need a new invoice
+    if (order.status !== "WAITING_PAYMENT") return;
+
     // ✅ if order needs invoice — create immediately
     if (
       order.status === "WAITING_PAYMENT" &&
@@ -203,12 +206,9 @@ export function usePaymentPending() {
       if (data?.paid && mountedRef.current) {
         setPaid(true);
         setStatus(t("payment_success"));
-
         if (pollRef.current) clearInterval(pollRef.current);
-
-        setTimeout(() => {
-          router.replace(`/${locale}/profile/orders/${orderId}`);
-        }, 1200);
+        // Stay on the thank-you state; refresh the order so it shows as paid
+        if (orderId) fetchOrder(orderId);
       }
     }, 4000);
 

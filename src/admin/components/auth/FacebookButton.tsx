@@ -94,7 +94,7 @@ export const FacebookButton = ({ role = "USER" }: { role?: string }) => {
       className="
         h-[44px]
         w-full
-        rounded-md
+        rounded-none
         text-white
         font-medium
         bg-[#1877F2]

@@ -23,7 +23,7 @@ export default function CategorySelectorButton({
           w-full
           text-left
           px-4 py-3
-          rounded-lg
+          rounded-none
           border border-border
           bg-card
           hover:bg-muted

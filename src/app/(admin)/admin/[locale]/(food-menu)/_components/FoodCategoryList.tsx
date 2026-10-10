@@ -22,15 +22,15 @@ export const FoodCategoryList: React.FC<FoodCategoryListPropsType> = ({
         bg-card
         text-foreground
         border border-border
-        rounded-xl
+        rounded-none
         p-5
         flex flex-col
         gap-4
       "
     >
-      <h2 className="font-semibold">
+      <h2 className="store-heading text-[32px]">
         {category.categoryName}
-        <span className="text-muted-foreground font-normal text-sm ml-1.5">
+        <span className="ml-[8px] font-store text-[13px] font-normal tracking-normal text-muted-foreground">
           ({foodsInCategory.length} {t("items_short")})
         </span>
       </h2>

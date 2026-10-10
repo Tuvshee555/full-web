@@ -198,9 +198,9 @@ export const OrderReviewSection = ({ order, token }: Props) => {
 
   if (!canReview) {
     return (
-      <div className="rounded-none border border-border bg-card p-6">
+      <div className="border-t border-ink/10 pt-[28px]">
         <div className="store-heading mb-[6px] text-[30px]">{t("write_review") ?? "Write a review"}</div>
-        <div className="text-xs text-muted-foreground leading-relaxed">
+        <div className="text-[14px] leading-relaxed text-ink/60">
           {t("review_available_after_paid")}
         </div>
       </div>
@@ -208,10 +208,10 @@ export const OrderReviewSection = ({ order, token }: Props) => {
   }
 
   return (
-    <div className="rounded-none border border-border bg-card p-6 space-y-5">
+    <div className="space-y-[20px] border-t border-ink/10 pt-[28px]">
       <div>
         <div className="store-heading mb-[6px] text-[30px]">{t("write_review") ?? "Write a review"}</div>
-        <div className="text-xs text-muted-foreground">{t("review_only_buyers")}</div>
+        <div className="text-[14px] text-ink/60">{t("review_only_buyers")}</div>
       </div>
 
       <div className="space-y-4">
@@ -221,11 +221,11 @@ export const OrderReviewSection = ({ order, token }: Props) => {
           if (!d) return null;
 
           return (
-            <div key={item.id} className="rounded-none border border-border bg-background p-5 space-y-4">
+            <div key={item.id} className="space-y-[16px] bg-sand/60 p-[20px] md:p-[24px]">
               {/* Item header */}
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-sm font-medium truncate">{item.food.foodName}</div>
+                  <div className="store-heading truncate text-[22px]">{item.food.foodName}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">
                     {t("quantity") ?? "Qty"}: {item.quantity}
                   </div>
@@ -241,10 +241,10 @@ export const OrderReviewSection = ({ order, token }: Props) => {
                       className="transition-transform hover:scale-110"
                     >
                       <Star
-                        className={`w-6 h-6 transition-colors ${
+                        strokeWidth={1.2} className={`h-[22px] w-[22px] transition-colors ${
                           star <= d.rating
-                            ? "fill-amber-400 text-amber-400"
-                            : "text-muted-foreground/30"
+                            ? "fill-ink text-ink"
+                            : "text-ink/20"
                         }`}
                       />
                     </button>
@@ -258,24 +258,22 @@ export const OrderReviewSection = ({ order, token }: Props) => {
                 onChange={(e) =>
                   setDrafts((prev) => ({ ...prev, [foodId]: { ...prev[foodId], comment: e.target.value } }))
                 }
-                className="min-h-[100px] w-full rounded-none border border-border bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-ring resize-none"
+                className="min-h-[110px] w-full resize-none bg-white p-[14px] text-[15px] text-ink outline-none shadow-[inset_0_0_0_1px_rgba(28,23,20,0.15)] focus:shadow-[inset_0_0_0_1px_#1c1714]"
                 placeholder={t("review_placeholder") ?? "Share your experience..."}
                 maxLength={800}
               />
 
               {/* Photo upload */}
               <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                <label className="eyebrow">
                   {t("add_photos") ?? "Add photos"}
                 </label>
 
                 <div
                   onClick={() => fileRefs.current[foodId]?.click()}
-                  className="border-2 border-dashed border-border rounded-none p-4
-                    hover:border-primary/40 hover:bg-muted/30 transition-all cursor-pointer
-                    flex flex-col items-center gap-2 text-center"
+                  className="flex cursor-pointer flex-col items-center gap-[8px] border border-dashed border-ink/25 bg-white/60 p-[18px] text-center transition-colors hover:border-ink/50"
                 >
-                  <ImagePlus className="w-6 h-6 text-muted-foreground" />
+                  <ImagePlus className="h-[22px] w-[22px] text-ink/50" strokeWidth={1.2} />
                   <div>
                     <p className="text-sm font-medium">{t("click_to_upload_photos")}</p>
                     <p className="text-xs text-muted-foreground">{t("max_photos_6")}</p>
@@ -326,8 +324,7 @@ export const OrderReviewSection = ({ order, token }: Props) => {
               <button
                 onClick={() => submit(foodId)}
                 disabled={d.posting || d.comment.trim().length < 2}
-                className="w-full h-[44px] rounded-none bg-primary text-primary-foreground text-sm font-medium
-                  disabled:opacity-50 hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+                className="btn w-full"
               >
                 {d.posting && <Loader2 className="w-4 h-4 animate-spin" />}
                 {d.posting ? (t("posting") ?? "Posting...") : (t("post_review") ?? "Post review")}

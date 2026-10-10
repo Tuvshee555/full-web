@@ -17,11 +17,11 @@ export default function AdminLayout({
     <div className="min-h-screen w-full overflow-x-hidden">
       {/* Desktop layout */}
       <div className="hidden md:flex min-h-screen">
-        <aside className="w-[240px] shrink-0">
+        <aside className="sticky top-0 h-screen w-[248px] shrink-0">
           <Sidebar setPage={setPage} />
         </aside>
 
-        <main className="flex-1 p-4">{children}</main>
+        <main className="min-w-0 flex-1 px-[32px] py-[28px]">{children}</main>
       </div>
 
       {/* Mobile layout */}

@@ -158,7 +158,7 @@ export const AddFoodModel: React.FC<FoodModelProps> = ({
       <div
         ref={containerRef}
         tabIndex={-1}
-        className="bg-card text-foreground p-6 rounded-2xl w-full max-w-md shadow-lg max-h-[90vh] overflow-y-auto"
+        className="bg-card text-foreground p-6 rounded-none w-full max-w-md shadow-lg max-h-[90vh] overflow-y-auto"
       >
         <header className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">
@@ -167,7 +167,7 @@ export const AddFoodModel: React.FC<FoodModelProps> = ({
           <button
             aria-label={t("common.close") || "Close"}
             onClick={closeModal}
-            className="ml-4 rounded-md px-3 py-1 hover:bg-muted/60"
+            className="ml-4 rounded-none px-3 py-1 hover:bg-muted/60"
           >
             ✕
           </button>

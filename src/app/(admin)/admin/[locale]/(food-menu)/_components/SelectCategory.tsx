@@ -83,7 +83,7 @@ export const SelectCategory: React.FC<SelectCategoryProps> = ({
                   setOpen(false);
                 }}
                 className={`
-                  p-4 rounded-lg text-left
+                  p-4 rounded-none text-left
                   border border-border
                   transition
                   ${isSelected ? "bg-muted" : "hover:bg-muted"}

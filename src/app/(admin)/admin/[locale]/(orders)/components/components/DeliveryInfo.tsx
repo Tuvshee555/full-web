@@ -31,7 +31,7 @@ export function DeliveryInfo({ delivery, t, copy }: Props) {
   );
 
   return (
-    <div className="bg-card border border-border rounded-lg px-5 py-4">
+    <div className="bg-card border border-border rounded-none px-5 py-4">
       <div className="text-sm font-semibold mb-4 text-foreground">
         {t("delivery")}
       </div>

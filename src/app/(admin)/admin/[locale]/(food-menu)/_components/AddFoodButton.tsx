@@ -25,10 +25,10 @@ export const AddFoodButton: React.FC<AddFoodButtonProps> = ({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="border-2 border-dashed border-border rounded-xl min-h-[240px] flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-muted/30 transition-all text-muted-foreground hover:text-primary w-full"
+        className="border-2 border-dashed border-border rounded-none min-h-[240px] flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-muted/30 transition-all text-muted-foreground hover:text-primary w-full"
       >
         <Plus className="w-8 h-8" />
-        <span className="text-sm font-medium">Хоол нэмэх</span>
+        <span className="text-sm font-medium">{t("food.add_modal.title")}</span>
       </button>
 
       {open && (

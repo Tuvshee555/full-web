@@ -34,7 +34,7 @@ export default function CategoryMobileSheet({
         aria-hidden
       />
       <div
-        className="relative w-full md:max-w-md bg-background rounded-t-xl md:rounded-xl shadow-lg overflow-hidden"
+        className="relative w-full md:max-w-md bg-background rounded-t-xl md:rounded-none shadow-lg overflow-hidden"
         style={{ maxHeight: "85vh" }}
       >
         <div className="p-3 border-b border-border flex items-center justify-between">

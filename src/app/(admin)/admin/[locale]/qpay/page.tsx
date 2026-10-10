@@ -81,7 +81,7 @@ export default function QPayPage() {
 
       <button
         onClick={() => createPayment(100)}
-        className="bg-blue-600 text-white px-6 py-3 rounded-lg disabled:opacity-50 transition-all hover:bg-blue-700"
+        className="bg-blue-600 text-white px-6 py-3 rounded-none disabled:opacity-50 transition-all hover:bg-blue-700"
         disabled={loading || !!invoiceId}
       >
         {loading ? "Processing..." : paid ? "Paid ✅" : "Pay 100₮"}
@@ -94,7 +94,7 @@ export default function QPayPage() {
             alt="QR Code"
             width={200}
             height={200}
-            className="rounded-md shadow-md"
+            className="rounded-none shadow-md"
           />
           <p className="text-lg font-medium">{status}</p>
 

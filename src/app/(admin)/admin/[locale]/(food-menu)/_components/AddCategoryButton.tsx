@@ -77,7 +77,7 @@ export const AddCategoryButton: React.FC<Props> = ({
         ) : (
           <button
             type="button"
-            className="inline-flex items-center justify-center h-[28px] w-[28px] rounded-md border border-border hover:bg-muted"
+            className="inline-flex items-center justify-center h-[28px] w-[28px] rounded-none border border-border hover:bg-muted"
             title={tooltip}
           >
             <Plus className="w-3.5 h-3.5" />
@@ -94,7 +94,7 @@ export const AddCategoryButton: React.FC<Props> = ({
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium">{t("category.name")}</label>
             <input
-              className="h-[44px] rounded-md border border-border bg-background px-3 text-sm"
+              className="h-[44px] rounded-none border border-border bg-background px-3 text-sm"
               value={categoryName}
               onChange={(e) => setCategoryName(e.target.value)}
               placeholder={t("category.placeholder")}

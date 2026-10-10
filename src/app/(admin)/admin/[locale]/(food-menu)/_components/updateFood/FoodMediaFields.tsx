@@ -121,9 +121,9 @@ export default function FoodMediaFields({
         </label>
         <div
           onClick={() => mainImageRef.current?.click()}
-          className="border-2 border-dashed border-border rounded-lg p-3 hover:border-primary/40 hover:bg-muted/30 transition-all cursor-pointer flex items-center gap-3"
+          className="border-2 border-dashed border-border rounded-none p-3 hover:border-primary/40 hover:bg-muted/30 transition-all cursor-pointer flex items-center gap-3"
         >
-          <div className="bg-muted rounded-md p-2 shrink-0">
+          <div className="bg-muted rounded-none p-2 shrink-0">
             <ImagePlus className="w-4 h-4 text-muted-foreground" />
           </div>
           <div className="min-w-0 flex-1">
@@ -143,7 +143,7 @@ export default function FoodMediaFields({
           />
         </div>
         {mainPreview && (
-          <div className="relative w-16 h-16 rounded-md overflow-hidden border border-border">
+          <div className="relative w-16 h-16 rounded-none overflow-hidden border border-border">
             <img
               src={mainPreview}
               alt="preview"
@@ -167,9 +167,9 @@ export default function FoodMediaFields({
         </label>
         <div
           onClick={() => extraImagesRef.current?.click()}
-          className="border-2 border-dashed border-border rounded-lg p-3 hover:border-primary/40 hover:bg-muted/30 transition-all cursor-pointer flex items-center gap-3"
+          className="border-2 border-dashed border-border rounded-none p-3 hover:border-primary/40 hover:bg-muted/30 transition-all cursor-pointer flex items-center gap-3"
         >
-          <div className="bg-muted rounded-md p-2 shrink-0">
+          <div className="bg-muted rounded-none p-2 shrink-0">
             <Images className="w-4 h-4 text-muted-foreground" />
           </div>
           <div>
@@ -196,7 +196,7 @@ export default function FoodMediaFields({
             {extraPreviews.map((src, i) => (
               <div
                 key={i}
-                className="relative w-12 h-12 rounded-md overflow-hidden border border-border"
+                className="relative w-12 h-12 rounded-none overflow-hidden border border-border"
               >
                 <img src={src} alt="" className="w-full h-full object-cover" />
                 <button
@@ -219,9 +219,9 @@ export default function FoodMediaFields({
         </label>
         <div
           onClick={() => videoRef.current?.click()}
-          className="border-2 border-dashed border-border rounded-lg p-3 hover:border-primary/40 hover:bg-muted/30 transition-all cursor-pointer flex items-center gap-3"
+          className="border-2 border-dashed border-border rounded-none p-3 hover:border-primary/40 hover:bg-muted/30 transition-all cursor-pointer flex items-center gap-3"
         >
-          <div className="bg-muted rounded-md p-2 shrink-0">
+          <div className="bg-muted rounded-none p-2 shrink-0">
             <Video className="w-4 h-4 text-muted-foreground" />
           </div>
           <div>
@@ -243,7 +243,7 @@ export default function FoodMediaFields({
         {videoPreview && (
           <video
             src={videoPreview}
-            className="w-full max-h-[120px] object-cover rounded-md border border-border"
+            className="w-full max-h-[120px] object-cover rounded-none border border-border"
             controls
           />
         )}

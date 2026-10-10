@@ -1,24 +1,13 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import {
-  UtensilsCrossed,
-  ClipboardList,
-  BarChart3,
-  LogOut,
-  ChevronRight,
-} from "lucide-react";
-import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@admin/components/ui/sheet";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { BarChart3, ClipboardList, LogOut, Package } from "lucide-react";
+import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@admin/components/ui/sheet";
+import { adminLogout } from "@admin/utils/logout";
+import { STORE } from "@/config/store";
 
 type Props = {
   setPage: (value: string) => void;
@@ -27,111 +16,62 @@ type Props = {
   onClose?: () => void;
 };
 
-type NavItem = {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-};
-
+/** Espresso sidebar with the serif wordmark: same identity as the storefront. */
 export const Sidebar = ({ setPage, isMobile, open, onClose }: Props) => {
   const { t } = useI18n();
   const router = useRouter();
-  const [activePage, setActivePage] = useState("Food-menu");
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [active, setActive] = useState("Food-menu");
+  const [email, setEmail] = useState<string | null>(null);
 
-  useEffect(() => {
-    setUserEmail(localStorage.getItem("adminEmail"));
-  }, []);
+  useEffect(() => setEmail(localStorage.getItem("adminEmail")), []);
 
-  const navItems: NavItem[] = [
-    {
-      id: "Food-menu",
-      label: t("sidebar.home"),
-      icon: <UtensilsCrossed className="w-5 h-5" />,
-    },
-    {
-      id: "Orders",
-      label: t("sidebar.orders"),
-      icon: <ClipboardList className="w-5 h-5" />,
-    },
-    {
-      id: "Revenue-dashboard",
-      label: t("sidebar.revenue"),
-      icon: <BarChart3 className="w-5 h-5" />,
-    },
+  const nav = [
+    { id: "Food-menu", label: t("sidebar.food_menu"), icon: Package },
+    { id: "Orders", label: t("sidebar.orders"), icon: ClipboardList },
+    { id: "Revenue-dashboard", label: t("sidebar.revenue"), icon: BarChart3 },
   ];
 
-  const handleClick = (id: string) => {
-    setActivePage(id);
+  const go = (id: string) => {
+    setActive(id);
     setPage(id);
     onClose?.();
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("adminToken");
-    localStorage.removeItem("adminEmail");
-    document.cookie = "adminToken=; path=/; max-age=0; SameSite=Strict";
-    toast.success(t("sidebar.logout"));
-    router.push("/admin/log-in");
-  };
-
   const content = (
-    <aside className="w-[240px] h-full flex flex-col bg-card border-r border-border">
-      {/* Brand */}
-      <Link
-        href="/admin"
-        className="flex items-center gap-3 px-5 py-5 border-b border-border hover:bg-muted/40 transition-colors"
-      >
-        <img src="/order.png" className="w-8 h-8 rounded-sm" alt="NomNom logo" />
-        <div>
-          <div className="font-semibold text-sm leading-tight">NomNom</div>
-          <div className="text-xs text-muted-foreground leading-tight">
-            {t("sidebar.tagline")}
-          </div>
-        </div>
+    <aside className="flex h-full w-[248px] flex-col bg-espresso text-paper">
+      <Link href="/admin" className="px-[26px] pb-[26px] pt-[30px]">
+        <span className="store-heading block text-[30px] !text-paper">{STORE.name}</span>
+        <span className="eyebrow mt-[4px] !text-paper/45">Admin</span>
       </Link>
 
-      {/* Navigation */}
-      <nav className="flex flex-col gap-1 px-3 py-4 flex-1">
-        {navItems.map((item) => {
-          const isActive = activePage === item.id;
+      <nav className="flex flex-1 flex-col gap-[2px] px-[14px]">
+        {nav.map(({ id, label, icon: Icon }) => {
+          const isActive = active === id;
           return (
             <button
-              key={item.id}
+              key={id}
               type="button"
-              onClick={() => handleClick(item.id)}
-              className={`
-                w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors
-                ${
-                  isActive
-                    ? "bg-primary/10 text-primary font-medium border-l-2 border-primary pl-[10px]"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground border-l-2 border-transparent pl-[10px]"
-                }
-              `}
+              onClick={() => go(id)}
+              className={`group relative flex w-full items-center gap-[12px] px-[12px] py-[11px] text-left text-[14px] transition-colors duration-300 ${
+                isActive ? "bg-paper/10 text-paper" : "text-paper/60 hover:bg-paper/5 hover:text-paper"
+              }`}
             >
-              <span className="flex items-center gap-3">
-                {item.icon}
-                {item.label}
-              </span>
-              {isActive && <ChevronRight className="w-3.5 h-3.5 shrink-0" />}
+              <span className={`absolute left-0 top-[8px] bottom-[8px] w-[2px] bg-paper transition-opacity ${isActive ? "opacity-100" : "opacity-0"}`} />
+              <Icon className="h-[17px] w-[17px]" strokeWidth={1.3} />
+              {label}
             </button>
           );
         })}
       </nav>
 
-      {/* Footer — user + logout */}
-      <div className="border-t border-border px-3 py-3 space-y-1">
-        {userEmail && (
-          <div className="px-3 py-2">
-            <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
-          </div>
-        )}
+      <div className="border-t border-paper/10 px-[26px] py-[20px]">
+        {email && <p className="truncate text-[12px] text-paper/45">{email}</p>}
         <button
           type="button"
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+          onClick={() => adminLogout(router.push)}
+          className="mt-[10px] flex items-center gap-[10px] text-[13px] text-paper/70 transition-colors hover:text-paper"
         >
-          <LogOut className="w-5 h-5" />
+          <LogOut className="h-[15px] w-[15px]" strokeWidth={1.3} />
           {t("sidebar.logout")}
         </button>
       </div>
@@ -142,7 +82,7 @@ export const Sidebar = ({ setPage, isMobile, open, onClose }: Props) => {
 
   return (
     <Sheet open={!!open} onOpenChange={(v) => (!v ? onClose?.() : null)}>
-      <SheetContent side="left" className="p-0 w-[260px]">
+      <SheetContent side="left" className="w-[248px] border-0 p-0">
         <SheetHeader className="sr-only">
           <SheetTitle>{t("sidebar.title")}</SheetTitle>
         </SheetHeader>

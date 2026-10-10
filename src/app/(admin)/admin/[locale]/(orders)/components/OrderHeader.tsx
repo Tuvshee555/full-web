@@ -57,8 +57,8 @@ export function OrderHeader({
 
       {/* META */}
       <div className="mt-2 text-sm text-foreground break-all">
-        {order.user?.email ?? t("no_email")}
-        {order.user?.id && ` · user:${order.user.id}`}
+        {[order.lastName, order.firstName].filter(Boolean).join(" ") || (order.user?.email ?? t("no_email"))}
+        {order.phone && ` · ${order.phone}`}
       </div>
 
       <div className="text-sm text-foreground">

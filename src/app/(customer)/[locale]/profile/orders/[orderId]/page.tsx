@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
 import { useAuth } from "@/app/(customer)/[locale]/provider/AuthProvider";
 import { useI18n } from "@/components/i18n/ClientI18nProvider";
@@ -85,9 +85,13 @@ export default function OrderDetailPage() {
 
       <div className="mt-[24px] grid gap-[40px] lg:grid-cols-12 lg:gap-[48px]">
         <div className="lg:col-span-7">
-          <span className="eyebrow">{st("placed_on", { date: placed })}</span>
-          <h1 className="store-heading mt-[10px] text-[48px] md:text-[64px]">#{order.orderNumber}</h1>
-          <div className="mt-[12px] flex flex-wrap items-center gap-x-[18px] gap-y-[6px] text-[14px] text-ink/60">
+          {/* Shopify order-status style: the status IS the headline */}
+          <span className="eyebrow">
+            #{order.orderNumber} · {st("placed_on", { date: placed })}
+          </span>
+          <h1 className="store-heading mt-[10px] text-[48px] md:text-[64px]">{st(`os_${order.status}_t`)}</h1>
+          <p className="mt-[8px] text-[16px] text-ink/70">{st(`os_${order.status}_s`)}</p>
+          <div className="mt-[14px] flex flex-wrap items-center gap-x-[18px] gap-y-[6px] text-[14px] text-ink/60">
             <OrderStatusBadge status={order.status} />
             <span>{t(`payment_method_${String(order.paymentMethod).toLowerCase()}`)}</span>
           </div>
@@ -111,7 +115,12 @@ export default function OrderDetailPage() {
               })}
             </ol>
           ) : (
-            <p className="mt-[28px] bg-sand px-[16px] py-[14px] text-[14px] text-ink/70">{st("cancelled_note")}</p>
+            <Link href={`/${locale}/collections/all`} className="btn group mt-[28px]">
+              {st("shop_again")}
+              <span className="btn-arrow">
+                <ArrowRight className="h-[16px] w-[16px]" strokeWidth={1.3} />
+              </span>
+            </Link>
           )}
 
           <div className="mt-[40px] space-y-[40px]">

@@ -129,7 +129,7 @@ export const CreateEmail = ({ nextStep, user, setUser }: UserType) => {
       <div className="flex flex-col gap-6 w-full max-w-[416px]">
         <button
           onClick={() => router.back()}
-          className="h-[44px] w-[44px] flex items-center justify-center rounded-md hover:bg-muted"
+          className="h-[44px] w-[44px] flex items-center justify-center rounded-none hover:bg-muted"
         >
           <ChevronLeft />
         </button>
@@ -147,12 +147,12 @@ export const CreateEmail = ({ nextStep, user, setUser }: UserType) => {
             setUser((prev: any) => ({ ...prev, email: e.target.value }))
           }
           placeholder={t("email_placeholder")}
-          className="h-[44px] rounded-md border border-border bg-background px-3 text-sm"
+          className="h-[44px] rounded-none border border-border bg-background px-3 text-sm"
         />
 
         <button
           onClick={nextStep}
-          className="h-[44px] w-full rounded-md bg-primary text-primary-foreground text-sm font-medium"
+          className="h-[44px] w-full rounded-none bg-primary text-primary-foreground text-sm font-medium"
         >
           {t("lets_go")}
         </button>
@@ -171,7 +171,7 @@ export const CreateEmail = ({ nextStep, user, setUser }: UserType) => {
         {/* Facebook – brand color preserved */}
         <button
           onClick={handleFacebookSignUp}
-          className="h-[44px] w-full rounded-md bg-[#1877F2] text-white font-medium"
+          className="h-[44px] w-full rounded-none bg-[#1877F2] text-white font-medium"
         >
           {t("facebook_continue")}
         </button>

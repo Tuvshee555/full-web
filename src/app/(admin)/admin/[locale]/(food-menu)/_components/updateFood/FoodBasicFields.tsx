@@ -69,7 +69,7 @@ export default function FoodBasicFields({ updatedFood, setUpdatedFood }: Props) 
             setUpdatedFood((p) => ({ ...p, ingredients: e.target.value }))
           }
           placeholder="Тайлбар / орц"
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm min-h-[72px] resize-none"
+          className="w-full rounded-none border border-border bg-background px-3 py-2 text-sm min-h-[72px] resize-none"
         />
       </div>
 

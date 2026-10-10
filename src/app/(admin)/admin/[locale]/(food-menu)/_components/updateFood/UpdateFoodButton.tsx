@@ -140,7 +140,7 @@ export default function UpdateFoodButton({ food, refreshFood }: FoodCardPropsTyp
       <DialogTrigger asChild>
         <button
           type="button"
-          className="bg-background/90 backdrop-blur-sm border border-border rounded-md p-1.5 hover:bg-primary hover:text-primary-foreground transition-colors"
+          className="bg-background/90 backdrop-blur-sm border border-border rounded-none p-1.5 hover:bg-primary hover:text-primary-foreground transition-colors"
           aria-label={t("edit_food")}
         >
           <Pencil className="w-3.5 h-3.5" />
@@ -155,7 +155,7 @@ export default function UpdateFoodButton({ food, refreshFood }: FoodCardPropsTyp
 
         {confirmDelete ? (
           /* Delete confirmation inline panel */
-          <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 space-y-3">
+          <div className="rounded-none border border-destructive/40 bg-destructive/5 p-4 space-y-3">
             <p className="text-sm font-medium text-destructive">
               {t("delete_food_title")}
             </p>

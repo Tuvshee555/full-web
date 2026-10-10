@@ -19,7 +19,7 @@ export function OrderItems({ items = [], orderId, t }: Props) {
   }
 
   return (
-    <div className="bg-background border border-border rounded-lg">
+    <div className="bg-background border border-border rounded-none">
       {/* Items */}
       <div className="divide-y divide-border">
         {items.map((it, i) => {
@@ -40,7 +40,7 @@ export function OrderItems({ items = [], orderId, t }: Props) {
                 onError={(e) => {
                   e.currentTarget.src = PLACEHOLDER;
                 }}
-                className="w-12 h-12 rounded-md object-cover flex-shrink-0"
+                className="w-12 h-12 rounded-none object-cover flex-shrink-0"
               />
 
               {/* Name + meta */}

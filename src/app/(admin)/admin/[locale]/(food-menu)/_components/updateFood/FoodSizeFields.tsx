@@ -45,7 +45,7 @@ export default function FoodSizeFields({ updatedFood, setUpdatedFood }: Props) {
         <button
           type="button"
           onClick={addSize}
-          className="h-9 w-9 shrink-0 rounded-md bg-primary text-primary-foreground flex items-center justify-center"
+          className="h-9 w-9 shrink-0 rounded-none bg-primary text-primary-foreground flex items-center justify-center"
         >
           <Plus size={16} />
         </button>

@@ -24,17 +24,17 @@ type StatCardProps = {
 
 function StatCard({ label, value, icon, iconBg, trend, showTrend }: StatCardProps) {
   return (
-    <Card className="border border-border hover:shadow-md transition-shadow">
+    <Card className="border border-border bg-card shadow-none">
       <CardContent className="p-5">
         <div className="flex items-start justify-between">
-          <div className={`rounded-lg p-2 ${iconBg}`}>{icon}</div>
+          <div className={`rounded-none p-2 ${iconBg}`}>{icon}</div>
           {showTrend && trend && (
             <span
-              className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+              className={`text-xs font-medium px-2 py-0.5 ${
                 trend.direction === "up"
-                  ? "bg-emerald-50 text-emerald-700"
+                  ? "bg-[#5b6b4b]/15 text-[#44523a]"
                   : trend.direction === "down"
-                  ? "bg-rose-50 text-rose-700"
+                  ? "bg-terracotta/10 text-terracotta"
                   : "bg-muted text-muted-foreground"
               }`}
             >
@@ -45,7 +45,7 @@ function StatCard({ label, value, icon, iconBg, trend, showTrend }: StatCardProp
         </div>
         <div className="mt-3">
           <p className="text-sm text-muted-foreground">{label}</p>
-          <p className="mt-1 text-3xl font-bold tracking-tight">{value}</p>
+          <p className="store-heading mt-[6px] text-[40px]">{value}</p>
         </div>
       </CardContent>
     </Card>
@@ -64,32 +64,32 @@ export function RevenueStatsCards({ t, stats, loading, trend }: Props) {
       <StatCard
         label={t("total_revenue")}
         value={total}
-        icon={<DollarSign className="w-5 h-5 text-primary" />}
-        iconBg="bg-primary/10"
+        icon={<DollarSign className="w-5 h-5 text-ink" strokeWidth={1.3} />}
+        iconBg="bg-sand"
         trend={trend}
         showTrend={true}
       />
       <StatCard
         label={t("this_month")}
         value={month}
-        icon={<Calendar className="w-5 h-5 text-violet-600" />}
-        iconBg="bg-violet-50"
+        icon={<Calendar className="w-5 h-5 text-ink" strokeWidth={1.3} />}
+        iconBg="bg-sand"
       />
       <StatCard
         label={t("this_week")}
         value={week}
-        icon={<TrendingUp className="w-5 h-5 text-emerald-600" />}
-        iconBg="bg-emerald-50"
+        icon={<TrendingUp className="w-5 h-5 text-ink" strokeWidth={1.3} />}
+        iconBg="bg-sand"
       />
 
       {trend && (
         <div className="md:col-span-3 flex items-center justify-end text-xs text-muted-foreground">
           {trend.direction === "up" ? (
-            <span className="text-emerald-600 font-medium">
+            <span className="font-medium text-[#44523a]">
               ▲ {trend.value}% {t("vs_last_period")}
             </span>
           ) : trend.direction === "down" ? (
-            <span className="text-rose-600 font-medium">
+            <span className="font-medium text-terracotta">
               ▼ {trend.value}% {t("vs_last_period")}
             </span>
           ) : (

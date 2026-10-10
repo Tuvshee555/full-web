@@ -76,7 +76,7 @@ export const FoodMenu = () => {
   const foodLoadingGrid = (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {[...Array(8)].map((_, i) => (
-        <Skeleton key={i} className="h-[240px] w-full rounded-xl" />
+        <Skeleton key={i} className="h-[240px] w-full rounded-none" />
       ))}
     </div>
   );
@@ -85,7 +85,7 @@ export const FoodMenu = () => {
     if (loadingFoods) return foodLoadingGrid;
     if (!selectedCategory) {
       return (
-        <div className="bg-card border border-border rounded-lg p-8">
+        <div className="bg-card border border-border rounded-none p-8">
           <p className="text-sm text-muted-foreground">
             {t("select_category_hint")}
           </p>
@@ -102,11 +102,12 @@ export const FoodMenu = () => {
   };
 
   return (
-    <div className="w-full min-h-screen bg-background text-foreground">
-      <div className="p-6">
+    <div className="w-full min-h-screen text-foreground">
+      <h1 className="store-heading mb-[24px] text-[44px]">{t("sidebar.food_menu")}</h1>
+      <div>
         {/* Desktop: left category tree */}
-        <div className="hidden lg:grid lg:grid-cols-[260px_1fr] lg:gap-6">
-          <aside className="w-[260px] bg-card border border-border rounded-lg p-4">
+        <div className="hidden lg:grid lg:grid-cols-[300px_1fr] lg:gap-[24px]">
+          <aside className="w-[300px] bg-card border border-border rounded-none p-4">
             <CategoryTree
               tree={tree}
               loading={loadingCats}

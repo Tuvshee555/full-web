@@ -2,7 +2,6 @@
 "use client";
 
 import { FoodCardPropsType } from "@admin/type/type";
-import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 import UpdateFoodButton from "./updateFood/UpdateFoodButton";
 import { useEffect, useMemo } from "react";
 
@@ -11,7 +10,6 @@ export const FoodCard: React.FC<FoodCardPropsType> = ({
   refreshFood,
   category,
 }) => {
-  const { t } = useI18n();
 
   const imgSrc = useMemo(() => {
     if (!food.image) return null;
@@ -37,7 +35,7 @@ export const FoodCard: React.FC<FoodCardPropsType> = ({
         bg-card
         text-foreground
         ring-1 ring-border
-        rounded-2xl
+        rounded-none
         overflow-hidden
         flex flex-col
         w-full

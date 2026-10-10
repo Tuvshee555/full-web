@@ -38,7 +38,7 @@ export default function TranslateButton() {
     flex items-center gap-2
     h-[44px] md:h-[33px]
  px-3
-    rounded-md
+    rounded-none
     border border-border md:border-0
     bg-card md:bg-transparent
     text-foreground
@@ -65,7 +65,7 @@ export default function TranslateButton() {
           <div
             className="
               w-[90%] max-w-[360px]
-              rounded-xl
+              rounded-none
               bg-card text-foreground
               border border-border
               p-5
@@ -86,7 +86,7 @@ export default function TranslateButton() {
                   className="
                     flex items-center justify-center gap-3
                     w-full h-[44px]
-                    rounded-md
+                    rounded-none
                     border border-border
                     bg-background
                     text-sm font-medium
@@ -105,7 +105,7 @@ export default function TranslateButton() {
               onClick={() => setOpen(false)}
               className="
                 mt-5 w-full h-[44px]
-                rounded-md
+                rounded-none
                 border border-border
                 text-sm
                 transition

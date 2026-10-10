@@ -72,6 +72,7 @@ export default function OrdersAdmin() {
       },
       {
         id: "number",
+        meta: { cls: "hidden md:table-cell" },
         size: 48,
         header: "#",
         cell: ({ row }) => (
@@ -105,13 +106,17 @@ export default function OrdersAdmin() {
         id: "customer",
         header: t("name"),
         cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground truncate max-w-[140px] block">
-            {row.original.user?.email ?? t("no_email")}
-          </span>
+          <div className="max-w-[200px] leading-tight">
+            <span className="block truncate text-sm font-medium text-foreground">
+              {[row.original.lastName, row.original.firstName].filter(Boolean).join(" ") || (row.original.user?.email ?? t("no_email"))}
+            </span>
+            {row.original.phone && <span className="block truncate text-xs text-muted-foreground">{row.original.phone}</span>}
+          </div>
         ),
       },
       {
         id: "items",
+        meta: { cls: "hidden md:table-cell" },
         header: t("items_short"),
         cell: ({ row }) => {
           const items = row.original.foodOrderItems ?? row.original.items ?? [];
@@ -152,6 +157,7 @@ export default function OrdersAdmin() {
       },
       {
         accessorKey: "createdAt",
+        meta: { cls: "hidden md:table-cell" },
         header: ({ column }) => (
           <button
             type="button"
@@ -172,6 +178,7 @@ export default function OrdersAdmin() {
       },
       {
         id: "actions",
+        meta: { cls: "hidden md:table-cell" },
         header: t("change_status"),
         cell: ({ row }) => {
           const status = row.original.status ?? "PENDING";
@@ -185,7 +192,7 @@ export default function OrdersAdmin() {
               onChange={(e) =>
                 changeStatus(row.original.id, e.target.value as OrderStatus)
               }
-              className="px-2 py-1 text-xs rounded-md border border-border bg-background text-foreground"
+              className="px-2 py-1 text-xs rounded-none border border-border bg-background text-foreground"
             >
               <option value={status}>{t(`order_status.${status}`)}</option>
               {nextStatuses.map((s) => (
@@ -217,7 +224,7 @@ export default function OrdersAdmin() {
     <div className="w-full max-w-full overflow-x-hidden bg-background text-foreground px-4 py-4 md:p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">{t("orders")}</h1>
+        <h1 className="store-heading text-[44px]">{t("orders")}</h1>
         <div className="text-sm text-muted-foreground">
           {t("page_of", { page, total: totalPages })}
         </div>
@@ -242,7 +249,7 @@ export default function OrdersAdmin() {
               setSearch("");
               setPage(1);
             }}
-            className="h-11 px-4 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors"
+            className="h-11 px-4 rounded-none border border-border text-sm font-medium hover:bg-muted transition-colors"
           >
             {t("clear")}
           </button>
@@ -259,14 +266,14 @@ export default function OrdersAdmin() {
       {loading && (
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-14 w-full rounded-lg" />
+            <Skeleton key={i} className="h-14 w-full rounded-none" />
           ))}
         </div>
       )}
 
       {/* Error */}
       {fetchError && (
-        <div className="bg-destructive/10 text-destructive p-3 rounded-lg mb-4">
+        <div className="bg-destructive/10 text-destructive p-3 rounded-none mb-4">
           {fetchError}
         </div>
       )}
@@ -283,7 +290,7 @@ export default function OrdersAdmin() {
 
       {/* Data table */}
       {!loading && orders.length > 0 && (
-        <div className="border border-border rounded-xl overflow-hidden">
+        <div className="border border-border rounded-none overflow-hidden">
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -292,7 +299,7 @@ export default function OrdersAdmin() {
                   className="bg-muted/40 hover:bg-muted/40"
                 >
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className={(header.column.columnDef.meta as { cls?: string } | undefined)?.cls}>
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -310,7 +317,7 @@ export default function OrdersAdmin() {
                 <React.Fragment key={row.id}>
                   <TableRow className="group">
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
+                      <TableCell key={cell.id} className={(cell.column.columnDef.meta as { cls?: string } | undefined)?.cls}>
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()

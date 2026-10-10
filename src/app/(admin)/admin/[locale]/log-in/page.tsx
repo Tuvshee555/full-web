@@ -51,6 +51,8 @@ export default function LogIn() {
 
       if (res.data.success) {
         const { token, user: userData } = res.data;
+        // Same ADMIN check as Google/Facebook (password login skipped it)
+        if (!requireAdminAccess(userData?.role)) return;
         localStorage.setItem("adminToken", token);
         localStorage.setItem("adminEmail", userData.email);
         localStorage.setItem("adminUserId", userData.userId || userData.id);
@@ -143,19 +145,11 @@ export default function LogIn() {
   };
 
   return (
-    <div
-      className="
-    min-h-screen
-    w-full
-    bg-background
-    text-foreground
-    flex
-    items-center
-    justify-center
-    gap-12
-    px-4
-  "
-    >
+    <div className="grid min-h-[100dvh] w-full bg-paper text-ink lg:grid-cols-2">
+      <div className="hidden lg:block">
+        <LoginImage />
+      </div>
+      <div className="flex items-center justify-center px-[20px] py-[48px]">
       <LoginForm
         user={user}
         setUser={setUser}
@@ -167,10 +161,6 @@ export default function LogIn() {
         onGoogle={handleGoogleLogin}
         onFacebook={handleFacebookLogin}
       />
-
-      {/* Desktop only image */}
-      <div className="hidden lg:block">
-        <LoginImage />
       </div>
     </div>
   );

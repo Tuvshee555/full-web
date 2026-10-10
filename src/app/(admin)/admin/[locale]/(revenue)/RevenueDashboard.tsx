@@ -78,7 +78,7 @@ export default function RevenueDashboard() {
       setStats(nextStats);
       setPayments(nextPayments);
       setChartData(nextChartData);
-    } catch (err) {
+    } catch {
       setStats(null);
       setPayments([]);
       setChartData([]);

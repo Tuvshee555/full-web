@@ -1,89 +1,29 @@
 "use client";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@admin/components/ui/dialog";
-import { User } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button } from "../ui/button";
-import { toast } from "sonner";
-import ThemeToggle from "./theme/ThemeToggle";
+import { usePathname, useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
 import TranslateButton from "./translate/TranslateButton";
+import { adminLogout } from "@admin/utils/logout";
 
+/** Slim admin top bar: language + signed-in email + logout. Hidden on auth pages. */
 export default function Header() {
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
   const router = useRouter();
+  const pathname = usePathname() ?? "";
 
-  useEffect(() => {
-    setUserEmail(localStorage.getItem("adminEmail"));
-  }, []);
+  useEffect(() => setEmail(localStorage.getItem("adminEmail")), [pathname]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("adminToken");
-    router.push("log-in");
-    toast.success("Logged out successfully");
-  };
+  if (/\/(log-in|sign-up|forgot-password|reset-password)/.test(pathname)) return null;
 
   return (
-    <header
-      className="
-        sticky top-0 z-40
-        h-[50px]
-        bg-background
-        border-b border-border
-      "
-    >
-      <div
-        className="
-          max-w-7xl mx-auto
-          h-full
-          px-4
-          flex items-center justify-end
-          gap-3
-        "
-      >
-        {/* Theme toggle */}
-        <ThemeToggle />
-
-        {/* Language switcher */}
+    <header className="sticky top-0 z-40 hidden h-[56px] border-b border-ink/10 bg-paper/90 backdrop-blur-md md:block">
+      <div className="flex h-full items-center justify-end gap-[18px] px-[28px] text-[13px]">
         <TranslateButton />
-
-        {/* User menu */}
-        <Dialog>
-          <DialogTrigger asChild>
-            <button
-              className="
-                w-8 h-8
-                flex items-center justify-center
-                rounded-full
-                border border-border
-                text-foreground
-                hover:bg-muted
-                transition
-              "
-              aria-label="User menu"
-            >
-              <User size={16} />
-            </button>
-          </DialogTrigger>
-
-          <DialogContent className="bg-card border border-border rounded-xl">
-            <DialogHeader className="space-y-3">
-              <DialogTitle className="text-sm font-medium">
-                {userEmail}
-              </DialogTitle>
-
-              <Button variant="destructive" onClick={handleLogout}>
-                Log out
-              </Button>
-            </DialogHeader>
-          </DialogContent>
-        </Dialog>
+        {email && <span className="text-ink/55">{email}</span>}
+        <button type="button" onClick={() => adminLogout(router.push)} className="flex items-center gap-[6px] text-ink/70 transition-colors hover:text-ink">
+          <LogOut className="h-[14px] w-[14px]" strokeWidth={1.3} />
+        </button>
       </div>
     </header>
   );

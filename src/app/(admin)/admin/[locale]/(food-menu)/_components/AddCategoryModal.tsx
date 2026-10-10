@@ -47,7 +47,7 @@ export const AddCategoryModal = () => {
                 className="
                   col-span-3
                   h-[44px]
-                  rounded-md
+                  rounded-none
                   border border-border
                   bg-background
                   px-3

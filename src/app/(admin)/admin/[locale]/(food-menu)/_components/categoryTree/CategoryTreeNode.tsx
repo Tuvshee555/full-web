@@ -101,7 +101,7 @@ export const CategoryTreeNode: React.FC<Props> = ({
       <div
         className={`
           group flex items-center justify-between
-          rounded-md px-2 py-1.5 text-sm
+          rounded-none px-2 py-1.5 text-sm
           cursor-pointer transition-colors
           ${
             isSelected
@@ -135,7 +135,7 @@ export const CategoryTreeNode: React.FC<Props> = ({
             <span className="w-6" />
           )}
 
-          <span className="truncate text-sm font-medium">{node.categoryName}</span>
+          <span className="min-w-0 break-words text-sm font-medium leading-snug">{node.categoryName}</span>
         </div>
 
         {/* RIGHT ACTIONS */}
