@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { sendEmail } from "../../utils/send-email.js";
 import { prisma } from "../../prismaClient.js";
+import { siteUrl } from "../../utils/siteUrl.js";
 
 const RESET_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
@@ -50,8 +51,8 @@ export const forgotPassword = async (req, res) => {
     });
 
     // The reset page belongs to the admin app, served under /admin.
-    const siteUrl = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_FRONTEND_URL;
-    const resetBaseUrl = process.env.ADMIN_URL || (siteUrl && `${siteUrl}/admin`);
+    const site = siteUrl();
+    const resetBaseUrl = process.env.ADMIN_URL || `${site}/admin`;
 
     if (!resetBaseUrl) {
       return res.status(500).json({ message: "Reset password URL is not configured" });

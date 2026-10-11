@@ -3,8 +3,9 @@
 
 import { API_BASE_URL } from "@/lib/api";
 import { toast } from "sonner";
-import { GooglePayload } from "../types";
 import { saveAuth } from "@/utils/auth";
+
+type GooglePayload = { credential?: string };
 
 export const handleGoogleLogin = async (
   payload: GooglePayload,

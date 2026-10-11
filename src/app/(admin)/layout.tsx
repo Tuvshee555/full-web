@@ -28,7 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="mn" suppressHydrationWarning>
       <body className={`${storeFont.variable} ${displayFont.variable} admin-body antialiased`}>
-        <GoogleOAuthProvider clientId="424549876529-sln60g4usp2b71ijfihqs96o01qhogko.apps.googleusercontent.com">
+        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
           <Providers>{children}</Providers>
         </GoogleOAuthProvider>
       </body>

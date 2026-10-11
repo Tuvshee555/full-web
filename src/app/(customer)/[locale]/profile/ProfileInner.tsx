@@ -19,7 +19,7 @@ export default function ProfileInner() {
 
   useEffect(() => {
     setEmail(localStorage.getItem("email") ?? "");
-    const q = searchParams.get("tab");
+    const q = searchParams?.get("tab");
     setTab(q === "profile" ? "profile" : "orders");
   }, [searchParams]);
 

@@ -17,10 +17,10 @@ export default function TranslateButton() {
   const [open, setOpen] = useState(false);
 
   // Admin routes live under /admin/<locale>/...
-  const currentLocale = pathname.split("/")[2] || "mn";
+  const currentLocale = (pathname ?? "").split("/")[2] || "mn";
 
   const changeLang = (code: string) => {
-    const withoutLocale = pathname.replace(/^\/admin(\/(mn|en|ko))?/, "");
+    const withoutLocale = (pathname ?? "").replace(/^\/admin(\/(mn|en|ko))?/, "");
     router.push(`/admin/${code}${withoutLocale}`);
     setOpen(false);
   };

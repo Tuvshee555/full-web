@@ -3,7 +3,7 @@
 import { InfoPage } from "@/components/store/InfoPage";
 import { useStoreT } from "@/components/store/lib/useStoreT";
 
-// Required by Facebook Login (data deletion instructions URL).
+// Tells customers how to have their data deleted.
 const DELETION_EMAIL = "ganturtuvshinsaihan@gmail.com";
 
 export default function DataDeletion() {

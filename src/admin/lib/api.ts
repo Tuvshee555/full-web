@@ -14,7 +14,8 @@ import axios from "axios";
  *
  * The admin bearer token (if present) is attached automatically.
  */
-export const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
+// Same-site by default: works on localhost, Vercel previews and custom domains.
+export const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "/api";
 
 export const api = axios.create({
   baseURL: API_BASE_URL,

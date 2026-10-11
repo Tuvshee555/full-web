@@ -34,6 +34,8 @@ try {
 }
 
 const app = express();
+// Behind Vercel (or any proxy): use the real client IP for rate limiting.
+app.set("trust proxy", 1);
 
 if (helmet) {
   // JSON API consumed cross-origin by the storefront/admin: keep the safe

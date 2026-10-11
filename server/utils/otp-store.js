@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { prisma } from "../prismaClient.js";
 
 // Persistent, brute-force-resistant email OTP store.

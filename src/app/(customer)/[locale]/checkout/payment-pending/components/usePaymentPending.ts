@@ -43,7 +43,7 @@ export function usePaymentPending() {
 
   /** 🔗 ORDER ID FROM URL / STORAGE */
   useEffect(() => {
-    const fromUrl = searchParams.get("orderId");
+    const fromUrl = searchParams?.get("orderId");
     if (fromUrl) {
       setOrderId(fromUrl);
       try {

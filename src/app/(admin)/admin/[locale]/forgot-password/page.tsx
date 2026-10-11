@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
+import { API_BASE_URL } from "@admin/lib/api";
 
 export default function ForgotPasswordPage() {
   const { t } = useI18n();
@@ -14,7 +15,7 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
 
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/user/forgot-password`,
+      `${API_BASE_URL}/user/forgot-password`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

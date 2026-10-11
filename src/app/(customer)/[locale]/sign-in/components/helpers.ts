@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { API_BASE_URL } from "@/lib/api";
 import { toast } from "sonner";
-import { FacebookAuthResponse, GoogleLoginPayload } from "./type";
+import { GoogleLoginPayload } from "./type";
 
 export const storeAuth = (token: string, email: string, userId: string) => {
   localStorage.setItem("token", token);
@@ -44,39 +44,6 @@ export const googleLogin = async (
     setTimeout(() => push(redirectUrl), 150);
   } catch {
     toast.error("Google login error");
-  }
-};
-
-/* FACEBOOK LOGIN */
-export const facebookLogin = async (
-  response: FacebookAuthResponse,
-  redirectUrl: string,
-  push: (url: string) => void
-) => {
-  if (!response.authResponse) return toast.error("Facebook login cancelled");
-
-  const token = response.authResponse.accessToken;
-
-  try {
-    const res = await fetch(
-      `${API_BASE_URL}/user/auth/facebook`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
-      }
-    );
-    const data = await res.json();
-
-    if (!res.ok || !data.token) return toast.error("Facebook login failed");
-
-    storeAuth(data.token, data.user.email, data.user.id);
-    notifyAuth();
-
-    toast.success("Facebook-р нэвтэрлээ!");
-    setTimeout(() => push(redirectUrl), 150);
-  } catch {
-    toast.error("Facebook login error");
   }
 };
 

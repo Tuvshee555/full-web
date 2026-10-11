@@ -18,7 +18,7 @@ import { OrderStatusShell } from "@/components/store/order/OrderStatusShell";
 export default function BankTransferPage() {
   const { t } = useI18n();
   const { st, locale } = useStoreT();
-  const orderId = useSearchParams().get("orderId");
+  const orderId = useSearchParams()?.get("orderId");
   const [order, setOrder] = useState<any>(null);
   const [state, setState] = useState<"loading" | "ready" | "missing">("loading");
 

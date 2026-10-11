@@ -33,7 +33,7 @@ export default function OrderDetailPage() {
   const { st, locale } = useStoreT();
   const router = useRouter();
   const params = useParams();
-  const orderId = typeof params.orderId === "string" ? params.orderId : null;
+  const orderId = typeof params?.orderId === "string" ? params.orderId : null;
 
   const [order, setOrder] = useState<OrderDetails | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "missing">("loading");

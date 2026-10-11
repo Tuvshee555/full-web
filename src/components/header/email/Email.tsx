@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { Drawer } from "@/components/store/ui";
 import { useStoreT } from "@/components/store/lib/useStoreT";
 import { useAuth } from "@/app/(customer)/[locale]/provider/AuthProvider";
-import { useFacebookSDK } from "./hooks/useFacebookSDK";
 import { EmailLoggedOut } from "./EmailLoggedOut";
 import { EmailLoggedIn } from "./EmailLoggedIn";
 
@@ -14,7 +13,7 @@ export const Email = ({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
   const { token, email } = useAuth();
   const close = () => onOpenChange(false);
 
-  // Mount the login buttons (Google/Facebook scripts) only once the drawer has
+  // Mount the login buttons (Google script) only once the drawer has
   // been opened; otherwise every page view would load them for nothing.
   const [everOpened, setEverOpened] = useState(false);
   useEffect(() => {
@@ -29,7 +28,6 @@ export const Email = ({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
 };
 
 function AccountBody({ token, email, close }: { token: string | null; email: string | null; close: () => void }) {
-  useFacebookSDK();
   return token ? <EmailLoggedIn email={email ?? ""} closeSheet={close} /> : <EmailLoggedOut closeSheet={close} />;
 }
 

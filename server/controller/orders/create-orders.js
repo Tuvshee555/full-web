@@ -6,6 +6,7 @@ import { sendTelegramMessage, formatOrderMessage } from "../../utils/telegram.js
 import { sendEmail } from "../../utils/sendEmail.js";
 import { orderCreatedEmail } from "../../utils/emailTemplates.js";
 import { applyStockDecrements } from "../../utils/stock.js";
+import { background } from "../../utils/background.js";
 
 // Delivery fee is the server-side source of truth (must match the customer UI).
 const DELIVERY_FEE = Number(process.env.DELIVERY_FEE) || 9000;
@@ -225,7 +226,7 @@ export const createFoodOrder = async (req, res) => {
 
     res.status(201).json(toOrderResponse(order));
 
-    setImmediate(async () => {
+    background((async () => {
       try {
         const fullOrder = await prisma.foodOrder.findUnique({
           where: { id: order.id },
@@ -239,20 +240,21 @@ export const createFoodOrder = async (req, res) => {
 
         if (!fullOrder) return;
 
-        sendTelegramMessage(formatOrderMessage(fullOrder)).catch(() => {});
+        const alerts = [sendTelegramMessage(formatOrderMessage(fullOrder)).catch(() => {})];
 
         const customerEmail = fullOrder.user?.email;
         if (customerEmail) {
-          sendEmail({
+          alerts.push(sendEmail({
             to: customerEmail,
             subject: `âœ… Ð—Ð°Ñ…Ð¸Ð°Ð»Ð³Ð° Ñ…Ò¯Ð»ÑÑÐ½ Ð°Ð²Ð»Ð°Ð° #${fullOrder.orderNumber}`,
             html: orderCreatedEmail(fullOrder),
-          }).catch(() => {});
+          }).catch(() => {}));
         }
+        await Promise.all(alerts);
       } catch (bgErr) {
         console.error("âŒ Background notify failed:", bgErr);
       }
-    });
+    })());
   } catch (err) {
     console.error("CREATE ORDER ERROR:", err);
     return res.status(500).json({ message: "Order creation failed" });

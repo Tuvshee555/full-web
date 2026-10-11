@@ -1,3 +1,5 @@
+import { siteUrl } from "./siteUrl.js";
+
 const wrap = (html) => `
   <div style="margin:0;padding:0;background:#f6f7fb;font-family:Inter,Arial,sans-serif;">
     <div style="max-width:620px;margin:0 auto;padding:24px;">
@@ -38,7 +40,7 @@ const money = (n) => `${Number(n || 0).toLocaleString()}₮`;
 
 // ✅ Order link helper (needs CUSTOMER_URL in backend env)
 const orderLink = (orderId) => {
-  const base = process.env.CUSTOMER_URL || "https://delivery-customer.shop";
+  const base = siteUrl();
   return `${base.replace(/\/$/, "")}/profile/orders/${orderId}`;
 };
 

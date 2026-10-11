@@ -4,19 +4,20 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
+import { API_BASE_URL } from "@admin/lib/api";
 
 export default function ResetPasswordPage() {
   const { t } = useI18n();
   const [password, setPassword] = useState("");
   const searchParams = useSearchParams();
   const router = useRouter();
-  const token = searchParams.get("token");
+  const token = searchParams?.get("token");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/user/reset-password`,
+      `${API_BASE_URL}/user/reset-password`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

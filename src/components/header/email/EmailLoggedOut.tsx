@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useI18n } from "@/components/i18n/ClientI18nProvider";
 import { useStoreT } from "@/components/store/lib/useStoreT";
-import { handleFacebookLogin } from "./handlers/handleFacebookLogin";
 import { handleGuestLogin } from "./handlers/handleGuestLogin";
 import { handleGoogleLogin } from "./handlers/handleGoogleLogin";
 import { useAuthDialog } from "./components/AuthDialogProvider";
@@ -52,17 +51,6 @@ export const EmailLoggedOut = ({ closeSheet }: { closeSheet: () => void }) => {
             onError={() => toast.error(t("google_login_error"))}
           />
         </div>
-
-        <button
-          type="button"
-          className="btn-secondary w-full"
-          onClick={() => {
-            closeSheet();
-            handleFacebookLogin(redirect, router, locale);
-          }}
-        >
-          {t("login_with_facebook")}
-        </button>
 
         <button
           type="button"

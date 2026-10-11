@@ -7,7 +7,7 @@ import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 import AuthDrawer from "@/components/AuthDrawer";
 import { STORE } from "@/config/store";
 import { useI18n } from "@/components/i18n/ClientI18nProvider";
-import { googleLogin, facebookLogin, guestLogin } from "./helpers";
+import { googleLogin, guestLogin } from "./helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,7 @@ export default function SignInPageInner() {
   const { t, locale } = useI18n();
   const router = useRouter();
   const params = useSearchParams();
-  const redirectUrl = params.get("redirect") || `/${locale}`;
+  const redirectUrl = params?.get("redirect") || `/${locale}`;
   const [openEmail, setOpenEmail] = useState(false);
 
   return (
@@ -44,14 +44,6 @@ export default function SignInPageInner() {
               onSuccess={(cred: CredentialResponse) => googleLogin(cred, redirectUrl, router.push)}
             />
           </div>
-
-          <button
-            type="button"
-            className="btn-secondary w-full"
-            onClick={() => window.FB?.login((res: any) => facebookLogin(res, redirectUrl, router.push), { scope: "email,public_profile" })}
-          >
-            {t("auth.sign_in_facebook")}
-          </button>
 
           <button type="button" onClick={() => guestLogin(redirectUrl, router.push)} className="link-underline mt-[12px] self-center text-[14px] text-ink/70">
             {t("auth.sign_in_guest")}

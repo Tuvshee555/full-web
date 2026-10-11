@@ -16,13 +16,12 @@ type Props = {
   loading: boolean;
   onLogin: (e: React.FormEvent) => void;
   onGoogle: (res: any) => void;
-  onFacebook: () => void;
 };
 
 const input =
   "h-[50px] w-full bg-white px-[14px] text-[15px] text-ink outline-none shadow-[inset_0_0_0_1px_rgba(28,23,20,0.18)] transition-shadow focus:shadow-[inset_0_0_0_1px_#1c1714] placeholder:text-ink/40";
 
-export const LoginForm = ({ user, setUser, showPassword, setShowPassword, error, loading, onLogin, onGoogle, onFacebook }: Props) => {
+export const LoginForm = ({ user, setUser, showPassword, setShowPassword, error, loading, onLogin, onGoogle }: Props) => {
   const { t } = useI18n();
   const router = useRouter();
 
@@ -75,17 +74,7 @@ export const LoginForm = ({ user, setUser, showPassword, setShowPassword, error,
         <div className="[&>div]:w-full">
           <GoogleLogin width="400" shape="rectangular" onSuccess={onGoogle} onError={() => toast.error(t("google_error"))} />
         </div>
-        <button type="button" onClick={onFacebook} className="btn-secondary w-full !min-h-[50px]">
-          {t("facebook_continue")}
-        </button>
       </form>
-
-      <p className="mt-[28px] text-[13px] text-ink/60">
-        {t("no_account")}{" "}
-        <button type="button" onClick={() => router.push("/admin/sign-up")} className="text-ink underline underline-offset-[3px]">
-          {t("sign_up")}
-        </button>
-      </p>
     </div>
   );
 };

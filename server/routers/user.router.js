@@ -7,7 +7,6 @@ import { loginUser } from "../controller/users/login-user.js";
 import { forgotPassword } from "../controller/users/forgot-password.js";
 import { resetPassword } from "../controller/users/reset-password.js";
 import { googleAuth } from "../controller/users/google-auth.js";
-import { facebookAuth } from "../controller/users/facebook-auth.js";
 import { validateUserId } from "../middleware/validate-user-id.js";
 import { getUserById } from "../controller/users/get-user-by-id.js";
 import { createGuestUser } from "../controller/users/create-guest.js";
@@ -34,8 +33,5 @@ userRouter.post("/reset-password", resetPassword);
 
 // Google OAuth
 userRouter.post("/auth/google", googleAuth);
-
-// Facebook OAuth
-userRouter.post("/auth/facebook", facebookAuth);
 
 

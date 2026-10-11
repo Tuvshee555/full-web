@@ -9,6 +9,7 @@ import crypto from "crypto";
 import { sendEmail } from "../../utils/sendEmail.js";
 import { paymentConfirmedEmail } from "../../utils/emailTemplates.js";
 import { incrementSalesForOrder } from "../../utils/orderPaid.js";
+import { apiUrl } from "../../utils/siteUrl.js";
 
 const QPAY_BASE_URL = process.env.QPAY_BASE_URL;
 const AMOUNT_EPSILON = 0.01;
@@ -127,7 +128,7 @@ export const createInvoice = async (req, res) => {
         sender_invoice_no: uniqueInvoiceNo,
         invoice_description: `Payment for order ${order.orderNumber || order.id}`,
         amount,
-        callback_url: `${process.env.BACKEND_URL}/qpay/webhook`,
+        callback_url: `${apiUrl()}/qpay/webhook`,
         sender_staff_code: "system",
         invoice_receiver_code: process.env.QPAY_USERNAME,
       },
