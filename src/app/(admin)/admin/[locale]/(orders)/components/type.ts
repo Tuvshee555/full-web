@@ -25,6 +25,7 @@ export type RawOrder = {
   id: string;
   orderNumber?: string;
   totalPrice?: number;
+  deliveryFee?: number;
   createdAt?: string;
   updatedAt?: string;
   status?: OrderStatus;
@@ -62,8 +63,9 @@ export type RawOrder = {
   items?: FoodItem[];
 };
 
+// Must match ALLOWED_TRANSITIONS in server/controller/orders/update-orders.js
 export const STATUS_FLOW: Record<OrderStatus, OrderStatus[]> = {
-  PENDING: ["WAITING_PAYMENT", "PAID", "CANCELLED"],
+  PENDING: ["WAITING_PAYMENT", "COD_PENDING", "CANCELLED"],
   WAITING_PAYMENT: ["PAID", "CANCELLED"],
   COD_PENDING: ["DELIVERING", "CANCELLED"],
   PAID: ["DELIVERING"],
@@ -71,6 +73,36 @@ export const STATUS_FLOW: Record<OrderStatus, OrderStatus[]> = {
   DELIVERED: [],
   CANCELLED: [],
 };
+
+/** Orders that still need the admin (confirm a payment, ship, …): drives the sidebar badge. */
+export const OPEN_STATUSES: OrderStatus[] = ["PENDING", "WAITING_PAYMENT", "COD_PENDING", "PAID"];
+
+/** Filter tabs, grouped by what the admin has to do next. */
+export const ORDER_TABS: { id: string; statuses: OrderStatus[] }[] = [
+  { id: "all", statuses: [] },
+  { id: "awaiting_payment", statuses: ["PENDING", "WAITING_PAYMENT"] },
+  { id: "to_ship", statuses: ["PAID", "COD_PENDING"] },
+  { id: "delivering", statuses: ["DELIVERING"] },
+  { id: "delivered", statuses: ["DELIVERED"] },
+  { id: "cancelled", statuses: ["CANCELLED"] },
+];
+
+/** The one obvious next step for an order (cancel is offered separately). */
+export function primaryNext(status: OrderStatus, paymentMethod?: string): OrderStatus | null {
+  switch (status) {
+    case "PENDING":
+      return paymentMethod === "COD" ? "COD_PENDING" : "WAITING_PAYMENT";
+    case "WAITING_PAYMENT":
+      return "PAID";
+    case "COD_PENDING":
+    case "PAID":
+      return "DELIVERING";
+    case "DELIVERING":
+      return "DELIVERED";
+    default:
+      return null;
+  }
+}
 
 export const PLACEHOLDER =
   "data:image/svg+xml;utf8," +

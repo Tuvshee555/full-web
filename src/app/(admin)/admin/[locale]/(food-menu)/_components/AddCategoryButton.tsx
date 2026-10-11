@@ -20,7 +20,7 @@ import { useAuth } from "@admin/provider/AuthProvider";
 type Props = {
   parentId?: string | null;
   onCreated: () => void;
-  variant?: "primary" | "icon";
+  variant?: "primary" | "icon" | "link";
   label?: string;
   tooltip?: string;
 };
@@ -74,13 +74,23 @@ export const AddCategoryButton: React.FC<Props> = ({
             <Plus className="w-4 h-4" />
             <span>{label ?? t("category.add")}</span>
           </Button>
+        ) : variant === "link" ? (
+          <button
+            type="button"
+            className="inline-flex h-[30px] items-center gap-[4px] px-[6px] text-[12px] font-medium text-ink hover:bg-sand"
+            title={tooltip}
+          >
+            <Plus className="h-[13px] w-[13px]" />
+            {label ?? t("category.add")}
+          </button>
         ) : (
           <button
             type="button"
-            className="inline-flex items-center justify-center h-[28px] w-[28px] rounded-none border border-border hover:bg-muted"
+            className="flex h-[30px] w-[30px] items-center justify-center text-ink/60 hover:bg-paper hover:text-ink"
             title={tooltip}
+            aria-label={tooltip}
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="h-[14px] w-[14px]" />
           </button>
         )}
       </DialogTrigger>

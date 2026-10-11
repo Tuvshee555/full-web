@@ -1,359 +1,236 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React, { useMemo, useState } from "react";
-import {
-  useReactTable,
-  getCoreRowModel,
-  getExpandedRowModel,
-  getSortedRowModel,
-  flexRender,
-  ColumnDef,
-  SortingState,
-  ExpandedState,
-} from "@tanstack/react-table";
-import { ArrowUpDown, Copy, PackageX } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { ChevronDown, PackageX, Search, X } from "lucide-react";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
-import { Input } from "@admin/components/ui/input";
 import { Skeleton } from "@admin/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@admin/components/ui/table";
-import { PaginationControls } from "./components/PaginationControls";
-import { OrderExpandedDetails } from "./components/OrderExpandedDetails";
-import { useOrdersAdmin } from "./components/hooks/useOrdersAdmin";
 import { normalizeOrderId } from "@admin/utils/normalizeOrderId";
-import { OrderStatus, RawOrder, STATUS_BADGE, STATUS_FLOW } from "./components/type";
+import { formatDateTime, formatMNT } from "@admin/utils/format";
+import { PaginationControls } from "./components/PaginationControls";
+import { useOrdersAdmin } from "./components/hooks/useOrdersAdmin";
+import { NextStepButton, OrderDetails, StatusBadge } from "./components/OrderDetails";
+import { ORDER_TABS, OrderStatus, PLACEHOLDER, RawOrder } from "./components/type";
 
-export default function OrdersAdmin() {
-  const { t } = useI18n();
-  const [search, setSearch] = useState("");
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [expanded, setExpanded] = useState<ExpandedState>({});
+const customerName = (o: RawOrder, fallback: string) =>
+  [o.lastName, o.firstName].filter(Boolean).join(" ") || o.user?.email || fallback;
 
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
-
-  const {
-    orders,
-    page,
-    limit,
-    loading,
-    fetchError,
-    totalPages,
-    totalOrders,
-    setPage,
-    copy,
-    changeStatus,
-  } = useOrdersAdmin(token, t, normalizeOrderId(search));
-
-  const columns = useMemo<ColumnDef<RawOrder>[]>(
-    () => [
-      {
-        id: "expand",
-        size: 40,
-        header: "",
-        cell: ({ row }) => (
-          <button
-            type="button"
-            onClick={() => row.toggleExpanded()}
-            className="flex items-center justify-center w-8 h-8 rounded hover:bg-muted transition-colors"
-            aria-label={row.getIsExpanded() ? "Collapse" : "Expand"}
-          >
-            <span className="text-xs text-muted-foreground">
-              {row.getIsExpanded() ? "▲" : "▼"}
-            </span>
-          </button>
-        ),
-      },
-      {
-        id: "number",
-        meta: { cls: "hidden md:table-cell" },
-        size: 48,
-        header: "#",
-        cell: ({ row }) => (
-          <span className="text-xs text-muted-foreground tabular-nums">
-            {row.index + 1 + (page - 1) * limit}
-          </span>
-        ),
-      },
-      {
-        id: "orderId",
-        header: t("order_id"),
-        cell: ({ row }) => (
-          <div className="flex items-center gap-1.5 group">
-            <span className="font-mono text-xs font-medium">
-              {row.original.orderNumber
-                ? `#${row.original.orderNumber}`
-                : row.original.id.slice(0, 8)}
-            </span>
-            <button
-              type="button"
-              onClick={() => copy(row.original.id)}
-              className="opacity-0 group-hover:opacity-100 transition-opacity"
-              title={t("copy")}
-            >
-              <Copy className="w-3 h-3 text-muted-foreground" />
-            </button>
-          </div>
-        ),
-      },
-      {
-        id: "customer",
-        header: t("name"),
-        cell: ({ row }) => (
-          <div className="max-w-[200px] leading-tight">
-            <span className="block truncate text-sm font-medium text-foreground">
-              {[row.original.lastName, row.original.firstName].filter(Boolean).join(" ") || (row.original.user?.email ?? t("no_email"))}
-            </span>
-            {row.original.phone && <span className="block truncate text-xs text-muted-foreground">{row.original.phone}</span>}
-          </div>
-        ),
-      },
-      {
-        id: "items",
-        meta: { cls: "hidden md:table-cell" },
-        header: t("items_short"),
-        cell: ({ row }) => {
-          const items = row.original.foodOrderItems ?? row.original.items ?? [];
-          return <span className="text-sm tabular-nums">{items.length}</span>;
-        },
-      },
-      {
-        accessorKey: "totalPrice",
-        header: ({ column }) => (
-          <button
-            type="button"
-            className="flex items-center gap-1 font-medium hover:text-foreground transition-colors"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            {t("amount")}
-            <ArrowUpDown className="w-3 h-3" />
-          </button>
-        ),
-        cell: ({ row }) => (
-          <span className="font-semibold text-sm tabular-nums">
-            ₮{(row.original.totalPrice ?? 0).toLocaleString()}
-          </span>
-        ),
-      },
-      {
-        accessorKey: "status",
-        header: t("status"),
-        cell: ({ row }) => {
-          const status = row.original.status ?? "PENDING";
-          return (
-            <span
-              className={`text-xs px-2 py-1 rounded-full border font-medium ${STATUS_BADGE[status]}`}
-            >
-              {t(`order_status.${status}`)}
-            </span>
-          );
-        },
-      },
-      {
-        accessorKey: "createdAt",
-        meta: { cls: "hidden md:table-cell" },
-        header: ({ column }) => (
-          <button
-            type="button"
-            className="flex items-center gap-1 font-medium hover:text-foreground transition-colors"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            {t("date")}
-            <ArrowUpDown className="w-3 h-3" />
-          </button>
-        ),
-        cell: ({ row }) => (
-          <span className="text-xs text-muted-foreground tabular-nums">
-            {row.original.createdAt
-              ? new Date(row.original.createdAt).toLocaleDateString()
-              : ""}
-          </span>
-        ),
-      },
-      {
-        id: "actions",
-        meta: { cls: "hidden md:table-cell" },
-        header: t("change_status"),
-        cell: ({ row }) => {
-          const status = row.original.status ?? "PENDING";
-          const nextStatuses = STATUS_FLOW[status];
-          if (!nextStatuses.length) {
-            return <span className="text-xs text-muted-foreground">—</span>;
-          }
-          return (
-            <select
-              value={status}
-              onChange={(e) =>
-                changeStatus(row.original.id, e.target.value as OrderStatus)
-              }
-              className="px-2 py-1 text-xs rounded-none border border-border bg-background text-foreground"
-            >
-              <option value={status}>{t(`order_status.${status}`)}</option>
-              {nextStatuses.map((s) => (
-                <option key={s} value={s}>
-                  {t(`order_status.${s}`)}
-                </option>
-              ))}
-            </select>
-          );
-        },
-      },
-    ],
-    [t, copy, changeStatus, page, limit]
+function ItemThumbs({ order }: { order: RawOrder }) {
+  const items = order.foodOrderItems ?? order.items ?? [];
+  const qty = items.reduce((s, it) => s + it.quantity, 0);
+  return (
+    <div className="flex items-center gap-[8px]">
+      <div className="flex -space-x-[10px]">
+        {items.slice(0, 3).map((it, i) => (
+          <img
+            key={i}
+            src={it.food?.image || PLACEHOLDER}
+            alt=""
+            onError={(e) => (e.currentTarget.src = PLACEHOLDER)}
+            className="h-[32px] w-[32px] border-2 border-white object-cover"
+          />
+        ))}
+      </div>
+      <span className="text-[12px] tabular-nums text-taupe">×{qty}</span>
+    </div>
   );
+}
 
-  const table = useReactTable({
-    data: orders,
-    columns,
-    state: { sorting, expanded },
-    onSortingChange: setSorting,
-    onExpandedChange: setExpanded,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getExpandedRowModel: getExpandedRowModel(),
-    getRowId: (row) => row.id,
-  });
+export default function OrdersAdmin({ onChanged }: { onChanged?: () => void }) {
+  const { t } = useI18n();
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [tab, setTab] = useState("all");
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  const token = typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
+  const statuses = useMemo(() => ORDER_TABS.find((x) => x.id === tab)?.statuses ?? [], [tab]);
+
+  const { orders, counts, page, loading, fetchError, totalPages, totalOrders, busyId, setPage, copy, changeStatus } =
+    useOrdersAdmin(token, t, search, statuses, onChanged);
+
+  // Debounce the search box so we don't hit the API on every keystroke
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setSearch(normalizeOrderId(searchInput));
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(id);
+  }, [searchInput, setPage]);
+
+  const tabCount = (statusesOfTab: OrderStatus[]) =>
+    (statusesOfTab.length ? statusesOfTab : (Object.keys(counts) as OrderStatus[])).reduce(
+      (s, st) => s + (counts[st] ?? 0),
+      0
+    );
+
+  const selectTab = (id: string) => {
+    setTab(id);
+    setPage(1);
+    setOpenId(null);
+  };
+
+  const toggle = (id: string) => setOpenId((cur) => (cur === id ? null : id));
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden bg-background text-foreground px-4 py-4 md:p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="store-heading text-[44px]">{t("orders")}</h1>
-        <div className="text-sm text-muted-foreground">
-          {t("page_of", { page, total: totalPages })}
+    <div className="w-full">
+      <div className="mb-[24px]">
+        <h1 className="store-heading text-[36px] md:text-[44px]">{t("orders")}</h1>
+        <p className="mt-[6px] text-[13px] text-taupe">{t("orders_ui.page_hint")}</p>
+      </div>
+
+      {/* Tabs */}
+      <div className="-mx-[16px] mb-[16px] overflow-x-auto px-[16px] md:mx-0 md:px-0">
+        <div className="flex min-w-max gap-[4px] border-b border-ink/10">
+          {ORDER_TABS.map((x) => {
+            const active = tab === x.id;
+            const n = tabCount(x.statuses);
+            return (
+              <button
+                key={x.id}
+                type="button"
+                onClick={() => selectTab(x.id)}
+                className={`relative flex h-[44px] items-center gap-[8px] px-[14px] text-[14px] transition-colors ${
+                  active ? "font-medium text-ink" : "text-taupe hover:text-ink"
+                }`}
+              >
+                {t(`orders_ui.tab_${x.id}`)}
+                <span
+                  className={`min-w-[22px] rounded-full px-[7px] py-[1px] text-center text-[11px] tabular-nums ${
+                    active ? "bg-ink text-paper" : x.id === "to_ship" && n > 0 ? "bg-terracotta text-paper" : "bg-sand text-taupe"
+                  }`}
+                >
+                  {n}
+                </span>
+                {active && <span className="absolute inset-x-0 -bottom-px h-[2px] bg-ink" />}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Search */}
-      <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-center">
-        <Input
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-          placeholder={t("search_order_placeholder")}
-          className="h-11 w-full md:max-w-md"
+      <div className="relative mb-[16px] md:max-w-[440px]">
+        <Search className="pointer-events-none absolute left-[12px] top-1/2 h-[16px] w-[16px] -translate-y-1/2 text-taupe" strokeWidth={1.5} />
+        <input
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder={t("orders_ui.search_placeholder")}
+          className="h-[44px] w-full border border-ink/20 bg-white pl-[38px] pr-[38px] text-[14px] text-ink outline-none placeholder:text-ink/40 focus:border-ink"
         />
-
-        <div className="flex items-center gap-2">
+        {searchInput && (
           <button
             type="button"
-            onClick={() => {
-              setSearch("");
-              setPage(1);
-            }}
-            className="h-11 px-4 rounded-none border border-border text-sm font-medium hover:bg-muted transition-colors"
+            onClick={() => setSearchInput("")}
+            aria-label={t("clear")}
+            className="absolute right-[6px] top-1/2 flex h-[32px] w-[32px] -translate-y-1/2 items-center justify-center text-taupe hover:text-ink"
           >
-            {t("clear")}
+            <X className="h-[15px] w-[15px]" />
           </button>
-
-          <div className="text-sm text-muted-foreground">
-            {search
-              ? t("found_count", { count: totalOrders })
-              : t("total_count", { count: totalOrders })}
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Loading skeletons */}
-      {loading && (
-        <div className="space-y-3">
-          {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-14 w-full rounded-none" />
+      {fetchError && <div className="mb-[16px] border border-terracotta/30 bg-terracotta/5 p-[12px] text-[13px] text-terracotta">{fetchError}</div>}
+
+      {loading ? (
+        <div className="space-y-[1px] border border-ink/10 bg-white">
+          {[...Array(6)].map((_, i) => (
+            <Skeleton key={i} className="h-[64px] w-full rounded-none" />
           ))}
         </div>
-      )}
+      ) : orders.length === 0 ? (
+        !fetchError && (
+          <div className="flex flex-col items-center justify-center gap-[10px] border border-ink/10 bg-white py-[64px] text-center">
+            <PackageX className="h-[28px] w-[28px] text-taupe" strokeWidth={1.2} />
+            <p className="text-[14px] text-taupe">{search ? t("no_orders_found") : t("orders_empty")}</p>
+          </div>
+        )
+      ) : (
+        <div className="border border-ink/10 bg-white">
+          {/* Desktop header */}
+          <div className="hidden grid-cols-[150px_minmax(0,1fr)_130px_120px_150px_minmax(170px,auto)_28px] items-center gap-[16px] border-b border-ink/10 px-[16px] py-[10px] text-[11px] font-medium uppercase tracking-[0.12em] text-taupe lg:grid">
+            <span>{t("orders_ui.order")}</span>
+            <span>{t("orders_ui.customer")}</span>
+            <span>{t("orders_ui.items")}</span>
+            <span className="text-right">{t("amount")}</span>
+            <span>{t("status")}</span>
+            <span />
+            <span />
+          </div>
 
-      {/* Error */}
-      {fetchError && (
-        <div className="bg-destructive/10 text-destructive p-3 rounded-none mb-4">
-          {fetchError}
-        </div>
-      )}
+          <ul className="divide-y divide-ink/10">
+            {orders.map((o) => {
+              const status = (o.status ?? "PENDING") as OrderStatus;
+              const isOpen = openId === o.id;
+              const busy = busyId === o.id;
+              const name = customerName(o, t("no_email"));
+              return (
+                <li key={o.id} className={isOpen ? "bg-paper" : ""}>
+                  {/* Desktop row */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isOpen}
+                    onClick={() => toggle(o.id)}
+                    onKeyDown={(e) => (e.key === "Enter" ? toggle(o.id) : null)}
+                    className="hidden cursor-pointer grid-cols-[150px_minmax(0,1fr)_130px_120px_150px_minmax(170px,auto)_28px] items-center gap-[16px] px-[16px] py-[12px] transition-colors hover:bg-paper focus-visible:outline-none lg:grid"
+                  >
+                    <div>
+                      <p className="font-mono text-[13px] font-medium text-ink">#{o.orderNumber ?? o.id.slice(0, 8)}</p>
+                      <p className="text-[12px] tabular-nums text-taupe">{formatDateTime(o.createdAt)}</p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-[14px] text-ink">{name}</p>
+                      {o.phone && <p className="text-[12px] tabular-nums text-taupe">{o.phone}</p>}
+                    </div>
+                    <ItemThumbs order={o} />
+                    <p className="text-right text-[14px] font-medium tabular-nums text-ink">{formatMNT(o.totalPrice)}</p>
+                    <div>
+                      <StatusBadge status={status} t={t} />
+                    </div>
+                    <div className="flex justify-end">
+                      <NextStepButton order={o} t={t} busy={busy} onChange={(s) => changeStatus(o.id, s)} />
+                    </div>
+                    <ChevronDown className={`h-[16px] w-[16px] text-taupe transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                  </div>
 
-      {/* Empty state */}
-      {!loading && !fetchError && orders.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
-          <PackageX className="w-10 h-10 opacity-40" />
-          <p className="text-sm">
-            {search ? t("no_orders_found") : t("orders_empty")}
-          </p>
-        </div>
-      )}
+                  {/* Mobile card */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isOpen}
+                    onClick={() => toggle(o.id)}
+                    className="cursor-pointer px-[14px] py-[14px] lg:hidden"
+                  >
+                    <div className="flex items-start justify-between gap-[12px]">
+                      <div className="min-w-0">
+                        <p className="font-mono text-[13px] font-medium text-ink">#{o.orderNumber ?? o.id.slice(0, 8)}</p>
+                        <p className="mt-[2px] truncate text-[14px] text-ink">{name}</p>
+                        <p className="text-[12px] tabular-nums text-taupe">{formatDateTime(o.createdAt)}</p>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-[6px]">
+                        <span className="text-[15px] font-medium tabular-nums text-ink">{formatMNT(o.totalPrice)}</span>
+                        <StatusBadge status={status} t={t} />
+                      </div>
+                    </div>
+                    <div className="mt-[12px] flex items-center justify-between gap-[12px]">
+                      <ItemThumbs order={o} />
+                      <NextStepButton order={o} t={t} busy={busy} onChange={(s) => changeStatus(o.id, s)} />
+                    </div>
+                  </div>
 
-      {/* Data table */}
-      {!loading && orders.length > 0 && (
-        <div className="border border-border rounded-none overflow-hidden">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow
-                  key={headerGroup.id}
-                  className="bg-muted/40 hover:bg-muted/40"
-                >
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className={(header.column.columnDef.meta as { cls?: string } | undefined)?.cls}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-
-            <TableBody>
-              {table.getRowModel().rows.map((row) => (
-                <React.Fragment key={row.id}>
-                  <TableRow className="group">
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className={(cell.column.columnDef.meta as { cls?: string } | undefined)?.cls}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-
-                  {row.getIsExpanded() && (
-                    <TableRow>
-                      <TableCell
-                        colSpan={columns.length}
-                        className="p-0 bg-muted/20"
-                      >
-                        <OrderExpandedDetails
-                          order={row.original}
-                          expanded={true}
-                          items={
-                            row.original.foodOrderItems ??
-                            row.original.items ??
-                            []
-                          }
-                          t={t}
-                          copy={copy}
-                        />
-                      </TableCell>
-                    </TableRow>
+                  {isOpen && (
+                    <div className="border-t border-ink/10">
+                      <OrderDetails order={o} t={t} busy={busy} copy={copy} onChange={(s) => changeStatus(o.id, s)} />
+                    </div>
                   )}
-                </React.Fragment>
-              ))}
-            </TableBody>
-          </Table>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
 
-      {/* Pagination */}
       <PaginationControls
         loading={loading}
         hasData={totalOrders > 0}

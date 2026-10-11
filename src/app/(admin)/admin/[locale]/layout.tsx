@@ -5,7 +5,6 @@ import ClientI18nProvider from "@admin/components/i18n/ClientI18nProvider";
 import QueryProvider from "./QueryProvider";
 import { AuthProvider } from "@admin/provider/AuthProvider";
 import Providers from "@admin/provider/Providers";
-import Header from "@admin/components/header/Header";
 
 type Props = {
   children: ReactNode;
@@ -33,7 +32,6 @@ export default async function LocaleLayout({ children, params }: Props) {
       <ClientI18nProvider locale={locale} messages={messages}>
         <AuthProvider>
           <Providers>
-            <Header />
             {children}
           </Providers>
         </AuthProvider>

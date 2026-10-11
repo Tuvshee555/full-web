@@ -25,12 +25,17 @@ export default function ClientI18nProvider({
   children: React.ReactNode;
 }) {
   const t = (key: string, params?: Params, fallback?: string) => {
-    const value = key
-      .split(".")
-      .reduce<any>(
-        (acc, k) => (acc && typeof acc === "object" ? acc[k] : undefined),
-        messages
-      );
+    // Flat keys like "payment_method.QPAY" first, then nested objects
+    const flat = (messages as Record<string, unknown>)[key];
+    const value =
+      typeof flat === "string"
+        ? flat
+        : key
+            .split(".")
+            .reduce<any>(
+              (acc, k) => (acc && typeof acc === "object" ? acc[k] : undefined),
+              messages
+            );
 
     let text = value ?? fallback ?? key;
 

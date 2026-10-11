@@ -15,7 +15,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         <AuthProvider>
           <Suspense>
             {children}
-            <Toaster />
+            <Toaster position="top-center" />
           </Suspense>
         </AuthProvider>
       </QueryClientProvider>

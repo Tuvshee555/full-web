@@ -1,6 +1,15 @@
 import { prisma } from "../../prismaClient.js";
 
 const REVENUE_STATUSES = ["PAID", "DELIVERING", "DELIVERED"];
+const ORDER_STATUSES = new Set([
+  "PENDING",
+  "WAITING_PAYMENT",
+  "COD_PENDING",
+  "PAID",
+  "DELIVERING",
+  "DELIVERED",
+  "CANCELLED",
+]);
 
 const parsePositiveInt = (value, fallback, max = 100) => {
   const parsed = Number.parseInt(value ?? "", 10);
@@ -122,16 +131,22 @@ export const getAllOrder = async (req, res) => {
 
       const chartMap = new Map();
       for (const order of recentRevenueOrders) {
-        const dateKey = new Date(order.createdAt).toISOString().slice(0, 10);
-        chartMap.set(
-          dateKey,
-          (chartMap.get(dateKey) ?? 0) + Number(order.totalPrice ?? 0)
-        );
+        // Bucket by Ulaanbaatar day (UTC+8), not UTC, so early-morning orders land on the right date
+        const dateKey = new Date(
+          new Date(order.createdAt).getTime() + 8 * 3600 * 1000
+        )
+          .toISOString()
+          .slice(0, 10);
+        const day = chartMap.get(dateKey) ?? { revenue: 0, orders: 0 };
+        day.revenue += Number(order.totalPrice ?? 0);
+        day.orders += 1;
+        chartMap.set(dateKey, day);
       }
 
-      const chartData = Array.from(chartMap.entries()).map(([date, revenue]) => ({
+      const chartData = Array.from(chartMap.entries()).map(([date, day]) => ({
         date,
-        revenue,
+        revenue: day.revenue,
+        orders: day.orders,
       }));
 
       return res.status(200).json({
@@ -154,18 +169,35 @@ export const getAllOrder = async (req, res) => {
     const page = parsePositiveInt(req.query.page, 1, 100000);
     const limit = parsePositiveInt(req.query.limit, 10, 100);
     const search = String(req.query.search ?? "").trim();
+    // ?status=PAID or ?status=PENDING,WAITING_PAYMENT (unknown values ignored)
+    const statuses = String(req.query.status ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => ORDER_STATUSES.has(s));
 
-    const where = search
+    const searchWhere = search
       ? {
           OR: [
             { orderNumber: { contains: search, mode: "insensitive" } },
             { id: { contains: search, mode: "insensitive" } },
+            { phone: { contains: search } },
+            { firstName: { contains: search, mode: "insensitive" } },
+            { lastName: { contains: search, mode: "insensitive" } },
           ],
         }
       : {};
+    const where = statuses.length
+      ? { ...searchWhere, status: { in: statuses } }
+      : searchWhere;
 
-    const [total, orders] = await Promise.all([
+    const [total, statusGroups, orders] = await Promise.all([
       prisma.foodOrder.count({ where }),
+      // Per-status counts for the admin's filter tabs (search applied, status not)
+      prisma.foodOrder.groupBy({
+        by: ["status"],
+        where: searchWhere,
+        _count: { _all: true },
+      }),
       prisma.foodOrder.findMany({
         where,
         orderBy: { createdAt: "desc" },
@@ -198,6 +230,9 @@ export const getAllOrder = async (req, res) => {
 
     return res.status(200).json({
       orders: orders.map(toOrderDto),
+      counts: Object.fromEntries(
+        statusGroups.map((g) => [g.status, g._count._all])
+      ),
       pagination: {
         page,
         limit,

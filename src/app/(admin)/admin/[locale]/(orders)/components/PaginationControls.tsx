@@ -20,7 +20,7 @@ export function PaginationControls({
   setPage,
   t,
 }: Props) {
-  if (loading || !hasData) return null;
+  if (loading || !hasData || totalPages <= 1) return null;
 
   return (
     <div className="flex items-center justify-between mt-6">
