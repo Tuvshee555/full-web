@@ -22,6 +22,10 @@ export function parseMetaEvents(input: unknown): IncomingMetaEvent[] {
     const pageId = event.recipient?.id || entry.id || "";
     const mid = event.message?.mid || event.postback?.mid || "";
     if (!/^\d{1,40}$/.test(senderId) || !/^\d{1,40}$/.test(pageId)) continue;
+    // The Meta app may also be subscribed to other pages (it served Sello before). Only the Lorentz
+    // page's messages enter this bot; Facebook pages are keyed by entry id, Instagram by the IG account.
+    const allowedPages = [process.env.META_PAGE_ID, process.env.META_INSTAGRAM_ID].filter(Boolean);
+    if (allowedPages.length && !allowedPages.includes(pageId) && !allowedPages.includes(entry.id || "")) continue;
     if (!mid || typeof mid !== "string" || mid.length > 160) throw chatError("INVALID_META_MESSAGE", 400);
     const text = event.message?.text || event.postback?.payload || "Мессежийн хавсралтыг ажилтнаар шалгуулъя.";
     if (typeof text !== "string" || text.length > MAX_INCOMING_TEXT_CHARS) throw chatError("INVALID_META_MESSAGE", 400);
