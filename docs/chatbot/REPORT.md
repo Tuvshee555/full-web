@@ -4,7 +4,7 @@ Delivered 2026-10-12 (Asia/Ulaanbaatar). Website and admin are implemented. Opti
 
 ## Implementation and port boundaries
 
-The source-to-destination map is in [PLAN.md](PLAN.md), with judgments in [DECISIONS.md](DECISIONS.md). Uudam was read-only throughout. No Uudam database, Vercel deployment, app, page token, shared memory or Obsidian notes were accessed or modified. Travel-specific code, Redis, flows, trip/departure content, media/document sync, posters and Uudam QPay were not ported.
+The source-to-destination map is in [PLAN.md](PLAN.md), with judgments in [DECISIONS.md](DECISIONS.md). Uudam was read-only throughout. Its source and model configuration were inspected; no database/service connection was made and no Uudam files, deployment, app or tokens were modified. Shared memory and Obsidian notes were not accessed. Travel-specific code, Redis, flows, trip/departure content, media/document sync, posters and Uudam QPay were not ported.
 
 | Area | Files / behavior |
 | --- | --- |
@@ -87,6 +87,6 @@ Only `.env.example` is tracked, containing placeholders. Shared facts now belong
 | 3 — website / API | `da3b8019f6611eb143d72372dd7cd2b45db77f97` |
 | 4 — admin | `7a07322823d6d03fee85c2fccc79f153528690c9` |
 | 5 — Meta / verification fixes | `f8eea7a055c0f16e4d2fe22e39125d2f18f31682` |
-| 6 — final QA / report / runtime polish | Recorded below after committing this phase |
+| 6 — final QA / report / runtime polish | `ca68edfa509b45041a852c935fefc2ea7fb90b76` |
 
 Each phase was pushed to `main` after its checks; production health and deployment status were verified. The pre-existing untracked `docs/codex/` material was left untouched and unstaged.
