@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, ClipboardList, LogOut, Package } from "lucide-react";
+import { BarChart3, ClipboardList, LogOut, Package, MessageCircle } from "lucide-react";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@admin/components/ui/sheet";
 import { adminLogout } from "@admin/utils/logout";
 import { STORE } from "@/config/store";
 
-export type AdminView = "products" | "orders" | "revenue";
+export type AdminView = "products" | "orders" | "revenue" | "chatbot";
 
 type Props = {
   active: AdminView;
@@ -46,6 +46,7 @@ export const Sidebar = ({ active, onNavigate, openOrders = 0, isMobile, open, on
     { id: "products", label: t("sidebar.food_menu"), icon: Package },
     { id: "orders", label: t("sidebar.orders"), icon: ClipboardList, badge: openOrders },
     { id: "revenue", label: t("sidebar.revenue"), icon: BarChart3 },
+    { id: "chatbot", label: t("chatbot.title"), icon: MessageCircle },
   ];
 
   const go = (id: AdminView) => {

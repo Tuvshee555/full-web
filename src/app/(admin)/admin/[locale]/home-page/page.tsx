@@ -9,8 +9,9 @@ import RevenueDashboard from "@/app/(admin)/admin/[locale]/(revenue)/RevenueDash
 import { FoodMenu } from "../(food-menu)/FoodMenu";
 import OrdersAdmin from "../(orders)/OrdersAdmin";
 import { OPEN_STATUSES } from "../(orders)/components/type";
+import { ChatbotDashboard } from "@admin/components/chatbot/ChatbotDashboard";
 
-const VIEWS: AdminView[] = ["products", "orders", "revenue"];
+const VIEWS: AdminView[] = ["products", "orders", "revenue", "chatbot"];
 
 function AdminHome() {
   const router = useRouter();
@@ -53,6 +54,7 @@ function AdminHome() {
       {view === "products" && <FoodMenu />}
       {view === "orders" && <OrdersAdmin onChanged={refreshOpenOrders} />}
       {view === "revenue" && <RevenueDashboard />}
+      {view === "chatbot" && <ChatbotDashboard />}
     </AdminLayout>
   );
 }

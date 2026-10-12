@@ -18,6 +18,7 @@ import { cleanupGuestUsers } from "./jobs/cleanupGuests.js";
 import { reviewRouter } from "./routers/review.router.js";
 import { connectPrismaWithRetry } from "./utils/prisma.js";
 import { publicChatRouter } from "./chatbot/routes.js";
+import { adminChatRouter } from "./chatbot/admin.js";
 
 // Optional hardening/perf middleware, loaded defensively so the server still
 // boots if the deps aren't installed yet (run `npm install` to enable them).
@@ -101,6 +102,7 @@ app.use("/email", emailRouter);
 app.use("/upload", uploadRouter);
 app.use("/review", reviewRouter);
 app.use("/chat", publicChatRouter);
+app.use("/admin/chat", adminChatRouter);
 
 app.use((err, req, res, next) => {
   console.error("GLOBAL ERROR:", err);
