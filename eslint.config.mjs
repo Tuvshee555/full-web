@@ -10,6 +10,7 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+  { ignores: ["src/chatbot/**", "src/pages/api/chatbot/**", "src/admin/components/chatbot/uudam/**", "tests/chatbot/**"] },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
 ];
 

@@ -13,3 +13,10 @@
 - Source descriptions, ingredients, usage and FAQ answers are quoted verbatim. Catalogue names and variant labels are never translated or invented. The surrounding reply and stock wording use the customer's language.
 - Replies longer than the shared channel budget fall back to staff, preserving complete facts and links rather than truncating them. An interrupted inbound-only turn can safely resume on retry.
 - Inventory inspection found that missing/unknown sizes bypassed reservations. Order creation now rejects those variants before reserving stock. Existing products and tables were not renamed.
+
+## Port round 2
+
+- The replacement task supersedes round 1. Import original code byte for byte in a separate commit, then adapt in reviewable diffs. Imported routes/modules are temporarily excluded only during the import commit.
+- The later task expressly requests the single Uudam reply logic map. That file alone was read as task input; no linked notes or other external/shared memory was accessed.
+- Uudam source HEAD and clean status are recorded in UUDAM_IMPORT.json. Source files are copied without executing source services or connecting to its database.
+- Only administrative takeover sets paused. A request for help flags needsHuman and creates one lead/alert while subsequent bot turns continue.

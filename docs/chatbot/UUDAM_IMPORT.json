@@ -1,0 +1,1541 @@
+{
+  "sourceHead": "fd01cf92ac58bbccd0c09a7bd17e0b37a0ccdafe",
+  "sourceStatus": "",
+  "files": [
+    {
+      "source": "src/lib/adminAccess.ts",
+      "destination": "src/chatbot/adminAccess.ts",
+      "sha256": "d65a2ee2d5bfcf2d59ae806fcab1d572f06df366c0de1069d1991e0e67c0cb46"
+    },
+    {
+      "source": "src/lib/adminAuth.ts",
+      "destination": "src/chatbot/adminAuth.ts",
+      "sha256": "cfd60d765b1c475e7b65352993153c2920b2f4ca8a74826a9ed6ea15a4a0ac04"
+    },
+    {
+      "source": "src/lib/adminDatePricing.ts",
+      "destination": "src/chatbot/adminDatePricing.ts",
+      "sha256": "c337626866eed4e6d74d44f83ec6a98fa8392f1b0afad4cf6e4c70123f84475f"
+    },
+    {
+      "source": "src/lib/adminMediaUpload.ts",
+      "destination": "src/chatbot/adminMediaUpload.ts",
+      "sha256": "45a03a01fb03e9060d5674169f05a44fcea2510ebd7102acd48e6ccac894283e"
+    },
+    {
+      "source": "src/lib/adminPageUtils.ts",
+      "destination": "src/chatbot/adminPageUtils.ts",
+      "sha256": "1d94b678779d4122085b687c971f15ffe2106a728a51bd2837fdb6410f630361"
+    },
+    {
+      "source": "src/lib/adminProposalUtils.ts",
+      "destination": "src/chatbot/adminProposalUtils.ts",
+      "sha256": "9448bebbd6684cb7c38d4380a663101792d1ec5acf56531903166a6b64d66779"
+    },
+    {
+      "source": "src/lib/adminTypes.ts",
+      "destination": "src/chatbot/adminTypes.ts",
+      "sha256": "aafee650fc00e80e6b0de75c34e9abb3e0e5836cf9865add7b32b9d5c28216ee"
+    },
+    {
+      "source": "src/lib/adminUtils.ts",
+      "destination": "src/chatbot/adminUtils.ts",
+      "sha256": "13840a0371d72a61a7729018aa0d44cf754b22ebf96d3712427eddd70b5875e0"
+    },
+    {
+      "source": "src/lib/ageRules.ts",
+      "destination": "src/chatbot/ageRules.ts",
+      "sha256": "63fdcf9c3d3999bc28e752889a07e96058b342917285c76a0c38f354e2221d72"
+    },
+    {
+      "source": "src/lib/aiHealth.ts",
+      "destination": "src/chatbot/aiHealth.ts",
+      "sha256": "ba1b9612f221ea51fe6d246f3ae0722c959ec5f2d49419a1e72f3f29b21093dc"
+    },
+    {
+      "source": "src/lib/aiTripContext.ts",
+      "destination": "src/chatbot/aiTripContext.ts",
+      "sha256": "8885674ea613a1d1e2a70529db28c6f6e5ae54a273a70e45f15434d1c135a023"
+    },
+    {
+      "source": "src/lib/analyticsMinimization.ts",
+      "destination": "src/chatbot/analyticsMinimization.ts",
+      "sha256": "735fa24b547f3026fe4091be06de768e52238e80627697f2bb7bf166b2153e0d"
+    },
+    {
+      "source": "src/lib/assistantLog.ts",
+      "destination": "src/chatbot/assistantLog.ts",
+      "sha256": "2f1d554081d349d3f533701301aedef5d34b05c590d68d07fef61aafdad04603"
+    },
+    {
+      "source": "src/lib/assistantQuickActions.ts",
+      "destination": "src/chatbot/assistantQuickActions.ts",
+      "sha256": "dcc90d4183f20a24d8f452b8d34a17673a3dd46cd02df89d88588081001d8c08"
+    },
+    {
+      "source": "src/lib/birthYearAgeBands.ts",
+      "destination": "src/chatbot/birthYearAgeBands.ts",
+      "sha256": "2e3297998634fd1cc7a160cbefdc540c3c222fe939ce11718b9aa6dbd1ba361a"
+    },
+    {
+      "source": "src/lib/bookingCollect.ts",
+      "destination": "src/chatbot/bookingCollect.ts",
+      "sha256": "0af2a8db1a466d66ca15787af21c9687e49baf2b204e18515f8fac7c24654d01"
+    },
+    {
+      "source": "src/lib/bookingCollectFlow.ts",
+      "destination": "src/chatbot/bookingCollectFlow.ts",
+      "sha256": "aff28a0a2a294a7d5e7b503f72073564fbb5c2dda4c11aa09257f63cee1cb7e1"
+    },
+    {
+      "source": "src/lib/bookingWebsite.ts",
+      "destination": "src/chatbot/bookingWebsite.ts",
+      "sha256": "d51be44c6976108d2de86f95791c0de09fafa11d3c99266c91ff16e65608f1ea"
+    },
+    {
+      "source": "src/lib/businessData.ts",
+      "destination": "src/chatbot/businessData.ts",
+      "sha256": "1572415060f3680f4487d0b0bb81346705449718be12a79a52ab53779407f386"
+    },
+    {
+      "source": "src/lib/catalogListing.ts",
+      "destination": "src/chatbot/catalogListing.ts",
+      "sha256": "e1e800a49283400c1f975513212070063067cf20c7088ea4b9792e6e9be303b5"
+    },
+    {
+      "source": "src/lib/chatbotAccuracy.ts",
+      "destination": "src/chatbot/chatbotAccuracy.ts",
+      "sha256": "87ead60f043df212c35526fbdbd70a6fb0daf2ecfdc3aba1fc4323f86f73d249"
+    },
+    {
+      "source": "src/lib/chatbotQuality.ts",
+      "destination": "src/chatbot/chatbotQuality.ts",
+      "sha256": "58087526462a60cfda49b8d78aabb293a1e279db9cf70697219a228bdbd75f85"
+    },
+    {
+      "source": "src/lib/chatbotReplyPolicy.ts",
+      "destination": "src/chatbot/chatbotReplyPolicy.ts",
+      "sha256": "25244f4014a13a2b2c70ebb6cb263d4588a4bb74bb9a1447ed9f192d8fc0d809"
+    },
+    {
+      "source": "src/lib/chatbotReplyTelemetry.ts",
+      "destination": "src/chatbot/chatbotReplyTelemetry.ts",
+      "sha256": "3b9b4b581d54a8de5930e537a10dcc19afc89e11fc2986dab1bbcbc142f56184"
+    },
+    {
+      "source": "src/lib/clarificationState.ts",
+      "destination": "src/chatbot/clarificationState.ts",
+      "sha256": "bb64412dbb6908d86d4dcf9bbcc7a7736539f1dd4f05de6d7d0ddfa995951c04"
+    },
+    {
+      "source": "src/lib/connectedTripMapping.ts",
+      "destination": "src/chatbot/connectedTripMapping.ts",
+      "sha256": "7f53e13c0e2ebb50699327868968fdcbcf92a894b993c5e1997b214ccc4bf011"
+    },
+    {
+      "source": "src/lib/connectedTripStore.ts",
+      "destination": "src/chatbot/connectedTripStore.ts",
+      "sha256": "72355214bd38411eea911f12a1dcde005eceee755be006a6bc3a129f9579237b"
+    },
+    {
+      "source": "src/lib/contactLabels.ts",
+      "destination": "src/chatbot/contactLabels.ts",
+      "sha256": "030b31dbfcf1c1f87de9e3464de8be8d3825de69dae90e0cd6b1d0f15086ed73"
+    },
+    {
+      "source": "src/lib/contactReplies.ts",
+      "destination": "src/chatbot/contactReplies.ts",
+      "sha256": "7a153d3eeef355bde45ddbd024d4cdfc96aaf93408a259444404429c3a43ffd3"
+    },
+    {
+      "source": "src/lib/contextualText.ts",
+      "destination": "src/chatbot/contextualText.ts",
+      "sha256": "2432bf240e6d84b337fe2a2a993be76234c9e7a2a66e0b678663afa04d300290"
+    },
+    {
+      "source": "src/lib/conversation.ts",
+      "destination": "src/chatbot/conversation.ts",
+      "sha256": "63729f5528e99c2a6cf828d6e532f70a827de9c513f4fc222d194bc4a09ca652"
+    },
+    {
+      "source": "src/lib/conversationMemory.ts",
+      "destination": "src/chatbot/conversationMemory.ts",
+      "sha256": "ac3276f13fa48da3a8d7a12e934f84522e272a4b7322675aa0b63aa258d32770"
+    },
+    {
+      "source": "src/lib/customerDocuments.ts",
+      "destination": "src/chatbot/customerDocuments.ts",
+      "sha256": "0928521c596d3786b061039b3c0b7497c0813a3341b9038fe8954347e1871b82"
+    },
+    {
+      "source": "src/lib/customerTextClassification.ts",
+      "destination": "src/chatbot/customerTextClassification.ts",
+      "sha256": "72e30fac08905fb75252b40eb09696a5c46c0e980e4c7b79c096f5a4731e1a2c"
+    },
+    {
+      "source": "src/lib/customerTurn.ts",
+      "destination": "src/chatbot/customerTurn.ts",
+      "sha256": "bc9d3464f3c7b49bc048e38146115e3b769eb6b90887dc5d39b98779c322b1d6"
+    },
+    {
+      "source": "src/lib/dailyHealthCheck.ts",
+      "destination": "src/chatbot/dailyHealthCheck.ts",
+      "sha256": "5b9803ce5d1a5a9634d95570e67d3609638b30591fe1162d6f3c3c2d4050e5c5"
+    },
+    {
+      "source": "src/lib/departureAvailability.ts",
+      "destination": "src/chatbot/departureAvailability.ts",
+      "sha256": "182bc7a0fbcea1586c97e26788b705db394edb5900c0da2df15541d5d2e4973d"
+    },
+    {
+      "source": "src/lib/departureSeats.ts",
+      "destination": "src/chatbot/departureSeats.ts",
+      "sha256": "e350fad796a3f561642a16e7f342a6ffcab305930c3e1b23341d72fc08480b87"
+    },
+    {
+      "source": "src/lib/docxText.ts",
+      "destination": "src/chatbot/docxText.ts",
+      "sha256": "7f14b4478ef93377ab5b696eb70f4c9de3c558023e9265934909a123081e8e4b"
+    },
+    {
+      "source": "src/lib/encoding.ts",
+      "destination": "src/chatbot/encoding.ts",
+      "sha256": "5a96c397f7cb8e38920f8578f8c0bc8c72641c85e93970e49770309564f9977e"
+    },
+    {
+      "source": "src/lib/env.ts",
+      "destination": "src/chatbot/env.ts",
+      "sha256": "48d61db03adc601857f9afb716ca549c141c567c70aaacb06aff9179e75e5d41"
+    },
+    {
+      "source": "src/lib/errorLogStore.ts",
+      "destination": "src/chatbot/errorLogStore.ts",
+      "sha256": "59378c44cc9331fadc7244cbcc262056170356d876d56c25c5a9ff7799cb4f64"
+    },
+    {
+      "source": "src/lib/fastPathRouting.ts",
+      "destination": "src/chatbot/fastPathRouting.ts",
+      "sha256": "19be3a0f63f6841db5a8dbec6c08bce001f2ee1b7ea8a9b728659f218a4cdb4b"
+    },
+    {
+      "source": "src/lib/fbAttachmentUpload.ts",
+      "destination": "src/chatbot/fbAttachmentUpload.ts",
+      "sha256": "a982e146b5e97818e1b1075be9db0aaa818ccdf0ba28fe848928fbb98547febf"
+    },
+    {
+      "source": "src/lib/fileParse.ts",
+      "destination": "src/chatbot/fileParse.ts",
+      "sha256": "5651c3c7e0741a6b1be92757afde4e37223443d3bf6174a456d87a0de291aefa"
+    },
+    {
+      "source": "src/lib/flowEngine.ts",
+      "destination": "src/chatbot/flowEngine.ts",
+      "sha256": "a5907bc162d47b5295be18fa9e5c77d027ed67553f9d6131e75c8503439fb1ad"
+    },
+    {
+      "source": "src/lib/googleDriveLinks.ts",
+      "destination": "src/chatbot/googleDriveLinks.ts",
+      "sha256": "1844544008151f28f24d3f45a95eeca8e40105867d0ce832bc9ba2d03c7484e7"
+    },
+    {
+      "source": "src/lib/googleDriveSync.ts",
+      "destination": "src/chatbot/googleDriveSync.ts",
+      "sha256": "f9d07ab789bccd6f454a00680dd6511c54d4bfcbabf2a4397da4b2667b2bb3d9"
+    },
+    {
+      "source": "src/lib/greetingPhrases.ts",
+      "destination": "src/chatbot/greetingPhrases.ts",
+      "sha256": "407a4509a4a525df643f3aebe646f83b5b4d665cdbe53c579c7fbd72667168cb"
+    },
+    {
+      "source": "src/lib/handoffDetection.ts",
+      "destination": "src/chatbot/handoffDetection.ts",
+      "sha256": "f6041ab3396f56b7acf9cea87e78a35b03238127d709992e0ec09917dacbb403"
+    },
+    {
+      "source": "src/lib/instagram.ts",
+      "destination": "src/chatbot/instagram.ts",
+      "sha256": "a2b547a7788bc8ffdda9336eb873c40d66cab84057797865d9125e0dbd79fe39"
+    },
+    {
+      "source": "src/lib/jsonEditorPrompt.ts",
+      "destination": "src/chatbot/jsonEditorPrompt.ts",
+      "sha256": "f1330166d66d01dd30fc68e605946086f275a8192ae7cbd49aec468b65e806b0"
+    },
+    {
+      "source": "src/lib/messenger.ts",
+      "destination": "src/chatbot/messenger.ts",
+      "sha256": "cbb591a6a9b62ff41158377612fd31aab7269bf828572d54c2d2b42a8b9636fe"
+    },
+    {
+      "source": "src/lib/metaOutboundKillSwitch.ts",
+      "destination": "src/chatbot/metaOutboundKillSwitch.ts",
+      "sha256": "677502f6f83d4236d79c2fecf2b6e6b37e0577f465918eeba1a36ce7f17b3f0b"
+    },
+    {
+      "source": "src/lib/neonDb.ts",
+      "destination": "src/chatbot/neonDb.ts",
+      "sha256": "545771ada70c619479c61717c36a98a03913dd5bbc575b80f870d53ffddcbc15"
+    },
+    {
+      "source": "src/lib/observability.ts",
+      "destination": "src/chatbot/observability.ts",
+      "sha256": "a7be84eb80a5dec01ba95d694075acdf4716c1164539354658968113083c6d28"
+    },
+    {
+      "source": "src/lib/openaiFallback.ts",
+      "destination": "src/chatbot/openaiFallback.ts",
+      "sha256": "003b7143c8fcab664e5fb794ac3732399a966f1bc897495501d27878300b1a31"
+    },
+    {
+      "source": "src/lib/openaiProvider.ts",
+      "destination": "src/chatbot/openaiProvider.ts",
+      "sha256": "7d19158bdf75fd06649999a60ec8b86d7c434005078015b71fad31bda3d50afc"
+    },
+    {
+      "source": "src/lib/pages.ts",
+      "destination": "src/chatbot/pages.ts",
+      "sha256": "e0dcefdd487e015a25074f1ae88f0f977367cb73333ab3a2f3e2ad8f4cc401f4"
+    },
+    {
+      "source": "src/lib/passengerTotalReply.ts",
+      "destination": "src/chatbot/passengerTotalReply.ts",
+      "sha256": "a94f6f71bada4c699849bf4439de1ac1156b904d5b8899ee9131458c51e490ad"
+    },
+    {
+      "source": "src/lib/pause.ts",
+      "destination": "src/chatbot/pause.ts",
+      "sha256": "51f8bcdcd227ac0e1fd7a529c6b9df6e401fe650e2ec3d2a68406f5d887d4525"
+    },
+    {
+      "source": "src/lib/photoOnlyState.ts",
+      "destination": "src/chatbot/photoOnlyState.ts",
+      "sha256": "b8c6144ed44b109f86d901b3110708b2708b722e7132507de60102b659a22bce"
+    },
+    {
+      "source": "src/lib/poster/bulkPlan.ts",
+      "destination": "src/chatbot/poster/bulkPlan.ts",
+      "sha256": "e4356c6302e911956fdbe1815827cb5064de9afeb76514e839e1cdb649f8ece6"
+    },
+    {
+      "source": "src/lib/poster/db.ts",
+      "destination": "src/chatbot/poster/db.ts",
+      "sha256": "ca891d9eac3007c44266ea91b0886cda318a5cc0f2c3aac1585de7c2de8b19e5"
+    },
+    {
+      "source": "src/lib/poster/defaultTrip.js",
+      "destination": "src/chatbot/poster/defaultTrip.js",
+      "sha256": "d505c879347fd90357899d065b9c4545c1f6b4c875df252cb3b1f681258563fe"
+    },
+    {
+      "source": "src/lib/poster/extractCore.ts",
+      "destination": "src/chatbot/poster/extractCore.ts",
+      "sha256": "7b7366e51aec180de27355decb55847dd967bfc31782c6c6690688a1b57c9a54"
+    },
+    {
+      "source": "src/lib/poster/openai.js",
+      "destination": "src/chatbot/poster/openai.js",
+      "sha256": "8c480ff8b549296bfb9beaa32776009b0aaf89866aa06f453b6e5680df0b3b00"
+    },
+    {
+      "source": "src/lib/poster/parse.js",
+      "destination": "src/chatbot/poster/parse.js",
+      "sha256": "253c21d680a18d176be46e39cae3c82908e782f0c17990854e30717272cc60ec"
+    },
+    {
+      "source": "src/lib/poster/pdf.ts",
+      "destination": "src/chatbot/poster/pdf.ts",
+      "sha256": "c10726037b9e93c43ea7c7cd0e5a1b2f364ea40e653e5a81ef2ac62f0cadf369"
+    },
+    {
+      "source": "src/lib/poster/pdfImagePolicy.ts",
+      "destination": "src/chatbot/poster/pdfImagePolicy.ts",
+      "sha256": "9ef28abe4a2d7ea1b5bfab3d2c6ba1fc1e3acf4a866eaf37adb4e49464a372ee"
+    },
+    {
+      "source": "src/lib/poster/pdfImages.js",
+      "destination": "src/chatbot/poster/pdfImages.js",
+      "sha256": "99468793099354b5ca091f9ce1d716d99b10e38eb780009353174f50b3571cd0"
+    },
+    {
+      "source": "src/lib/poster/pdfLayout.ts",
+      "destination": "src/chatbot/poster/pdfLayout.ts",
+      "sha256": "e639e4411124e37ee96b8f68af5663a35ea3771d4f6bb30846d63a2c2f0996a4"
+    },
+    {
+      "source": "src/lib/poster/pdfMeals.js",
+      "destination": "src/chatbot/poster/pdfMeals.js",
+      "sha256": "1a4338fba20b014322da263fabbe9ad5a6002e917ab4a8d9d232131ff84aec5d"
+    },
+    {
+      "source": "src/lib/poster/pdfUrl.ts",
+      "destination": "src/chatbot/poster/pdfUrl.ts",
+      "sha256": "59a9a2eb27e76a473cdd660f80572ebbc23090ed028b26dc602d2f9da06a4390"
+    },
+    {
+      "source": "src/lib/poster/photoCount.ts",
+      "destination": "src/chatbot/poster/photoCount.ts",
+      "sha256": "0d223fde56c344496222489d8b1893a2e1ac97ea3a34cfec7ae678415ad9d260"
+    },
+    {
+      "source": "src/lib/poster/poster-libs.d.ts",
+      "destination": "src/chatbot/poster/poster-libs.d.ts",
+      "sha256": "56f8b9e53bb10ba6afe54b8b434abf66b3704ca76b2d5895786220170fa3f174"
+    },
+    {
+      "source": "src/lib/poster/renderPdf.ts",
+      "destination": "src/chatbot/poster/renderPdf.ts",
+      "sha256": "103ef3a88904284351d63616c0ee145f6e63c1cb198588ace47e207a14786d59"
+    },
+    {
+      "source": "src/lib/poster/tripMapper.ts",
+      "destination": "src/chatbot/poster/tripMapper.ts",
+      "sha256": "304a6d1354e293fafa09cb22eced35c08424e62708a7e5b87a80d566e02bb63a"
+    },
+    {
+      "source": "src/lib/priceGroups.ts",
+      "destination": "src/chatbot/priceGroups.ts",
+      "sha256": "042379d06d836c51d4117ef6fd49d0969f5e00e8e208fbfa88342d6f66d6828a"
+    },
+    {
+      "source": "src/lib/priceRange.ts",
+      "destination": "src/chatbot/priceRange.ts",
+      "sha256": "5c980b920596ba5595403fe0666de7169fbe1ddbc2b75371376d9e0a0fb08e77"
+    },
+    {
+      "source": "src/lib/processState.ts",
+      "destination": "src/chatbot/processState.ts",
+      "sha256": "4fe3adc6c5ee8faf581d5a1f07d3cbb2a07573ea8c4becd41e168cc42d9079b0"
+    },
+    {
+      "source": "src/lib/qpay.ts",
+      "destination": "src/chatbot/qpay.ts",
+      "sha256": "5d8be03cb85ecb12adc99f6fc94aa38051856b62e374517beb0eee15322c3ee3"
+    },
+    {
+      "source": "src/lib/quickReplyTitle.ts",
+      "destination": "src/chatbot/quickReplyTitle.ts",
+      "sha256": "788b7084ba6989f8b51e1b49e5c944e14393a198ac4443823efa1d7e8567169c"
+    },
+    {
+      "source": "src/lib/rateLimit.ts",
+      "destination": "src/chatbot/rateLimit.ts",
+      "sha256": "197a0db45a6ab6f7b6f3d8ff72f65c9676ac87e5df0b3eed580769c1ff2fe529"
+    },
+    {
+      "source": "src/lib/readiness.ts",
+      "destination": "src/chatbot/readiness.ts",
+      "sha256": "a1790c6ff6c19a18cb70c119b93974f6deee5180d0b783c6595a3e76f10f9a18"
+    },
+    {
+      "source": "src/lib/redisState.ts",
+      "destination": "src/chatbot/redisState.ts",
+      "sha256": "bb35948e11ab988807305952205751e6862587dece7c5e05b608bb54cd170fd4"
+    },
+    {
+      "source": "src/lib/reply.ts",
+      "destination": "src/chatbot/reply.ts",
+      "sha256": "d766f1562a33240df95d3e334dc12fbbb6c32c506b19a3a9c0d314cb1a8fe1bd"
+    },
+    {
+      "source": "src/lib/replyMediaPolicy.ts",
+      "destination": "src/chatbot/replyMediaPolicy.ts",
+      "sha256": "56004ac508d635ad445c2ee224263c0b069a9007cc0c9e9fa4e05956b96cec06"
+    },
+    {
+      "source": "src/lib/replyReasoning.ts",
+      "destination": "src/chatbot/replyReasoning.ts",
+      "sha256": "dfc63343d4d72fe9a79fc0cbc8d2e0f891f162f0229980946ebef73a890a008b"
+    },
+    {
+      "source": "src/lib/resilience.ts",
+      "destination": "src/chatbot/resilience.ts",
+      "sha256": "67a7dfbf5b24a575bee7edef80b2af861602457252ac2a56dab26eb3865bae63"
+    },
+    {
+      "source": "src/lib/selfConsistency.ts",
+      "destination": "src/chatbot/selfConsistency.ts",
+      "sha256": "07d94facaadecdd2c2666980478d8275ead85d991165677512d2faa8fd55d595"
+    },
+    {
+      "source": "src/lib/smartButtonLabels.ts",
+      "destination": "src/chatbot/smartButtonLabels.ts",
+      "sha256": "9b42ed173a09bf7fbcef2f8afba245c3aeaf543dfbf427155f32d82c304a0498"
+    },
+    {
+      "source": "src/lib/staffAlerts.ts",
+      "destination": "src/chatbot/staffAlerts.ts",
+      "sha256": "63c9946cc1851a0180cd827564ff92b550651f784a60ce9dd41598ebe577938a"
+    },
+    {
+      "source": "src/lib/staffTakeover.ts",
+      "destination": "src/chatbot/staffTakeover.ts",
+      "sha256": "1f9418513505938f2fd56166b432e48ba463b6d64af97f4fe08c08dbea8aba2b"
+    },
+    {
+      "source": "src/lib/strings.ts",
+      "destination": "src/chatbot/strings.ts",
+      "sha256": "fd57273480ec955918b4c8aba45a1ceae8d9c0a5a0971d79afa5b088647a9ee9"
+    },
+    {
+      "source": "src/lib/travelAI.ts",
+      "destination": "src/chatbot/travelAI.ts",
+      "sha256": "c968a92acc078c7c0b12c6f173509a6731b9e0499fa262c7a108a9c47988b92a"
+    },
+    {
+      "source": "src/lib/travelAIGuides.ts",
+      "destination": "src/chatbot/travelAIGuides.ts",
+      "sha256": "ca37f661169c36db92aad93a1eb2452332efae99e55b3f18e40b23c7983f0c17"
+    },
+    {
+      "source": "src/lib/travelAIValidation.ts",
+      "destination": "src/chatbot/travelAIValidation.ts",
+      "sha256": "a8d85b58f53977e39b4f3a8e66913ff8c0fd4c33ea85507cda14692967e67e17"
+    },
+    {
+      "source": "src/lib/travelDates.ts",
+      "destination": "src/chatbot/travelDates.ts",
+      "sha256": "dc34d39930a616f5e7d8ec3a8af2bac9e94f21a35c4a23dd53bc95ca0fcffde5"
+    },
+    {
+      "source": "src/lib/travelDb.ts",
+      "destination": "src/chatbot/travelDb.ts",
+      "sha256": "2570f5289198c1596a8b24cdd9a1fdcb200832669b8a65f29972c9f68f067f8a"
+    },
+    {
+      "source": "src/lib/travelFastPaths.ts",
+      "destination": "src/chatbot/travelFastPaths.ts",
+      "sha256": "49e3cc55e4845bfb73b0ee4ad107626cb585bc93c4de8dbc686524c3d0e4d0c8"
+    },
+    {
+      "source": "src/lib/travelFastPathsPricing.ts",
+      "destination": "src/chatbot/travelFastPathsPricing.ts",
+      "sha256": "63b476c3bd571e79a460b5382ea88f8370bf3584c197ec60bc8e0d13be7824a8"
+    },
+    {
+      "source": "src/lib/travelFastPathsProgram.ts",
+      "destination": "src/chatbot/travelFastPathsProgram.ts",
+      "sha256": "75e0c97b38761d7ef3719e3945c3db40427ed61177d05326a74c9fe32e90cf59"
+    },
+    {
+      "source": "src/lib/travelFastPathsSearch.ts",
+      "destination": "src/chatbot/travelFastPathsSearch.ts",
+      "sha256": "fab7627c8d1ee4ef52ab8482df39179c639f41804325a5bf6d3a50ecf7a46a33"
+    },
+    {
+      "source": "src/lib/travelLeadsDb.ts",
+      "destination": "src/chatbot/travelLeadsDb.ts",
+      "sha256": "85eebf839be44cf80a682502fcc68f1fe2cb4b294982860c70478614424b302f"
+    },
+    {
+      "source": "src/lib/travelMessages.ts",
+      "destination": "src/chatbot/travelMessages.ts",
+      "sha256": "de9dfab4ede343ec909a5438fe30d1be8bee99c17d000982e1bdcc5f53b2878c"
+    },
+    {
+      "source": "src/lib/travelOps.ts",
+      "destination": "src/chatbot/travelOps.ts",
+      "sha256": "a8f4b14a5047300fbe89c8c95cfa8e69948fe9f0cf023088a29663ee779bb04a"
+    },
+    {
+      "source": "src/lib/travelPayments.ts",
+      "destination": "src/chatbot/travelPayments.ts",
+      "sha256": "90212a3177e070259d8f81f1ede71ed2bd1c9b083f87fb6a955799272c8da1eb"
+    },
+    {
+      "source": "src/lib/travelSchema.ts",
+      "destination": "src/chatbot/travelSchema.ts",
+      "sha256": "1c6be8f3edf6c0a1a118583e78d71847526b48e783fa91923fb45c84bccc9a39"
+    },
+    {
+      "source": "src/lib/travelSessionDb.ts",
+      "destination": "src/chatbot/travelSessionDb.ts",
+      "sha256": "3c7ff4746320d55b4f87876179094515e951e725ed1c3e25784f1857141b1942"
+    },
+    {
+      "source": "src/lib/travelTextNorm.ts",
+      "destination": "src/chatbot/travelTextNorm.ts",
+      "sha256": "360900e2bf0201f84062d97ac67cebae3bad3307977cd4c91de95ac379af507c"
+    },
+    {
+      "source": "src/lib/travelTypes.ts",
+      "destination": "src/chatbot/travelTypes.ts",
+      "sha256": "ab656ce00d36f3c162bb4fa77f90c1f0c27c3be62fb23ec7b103ca9cb29f5476"
+    },
+    {
+      "source": "src/lib/tripAnswerPlan.ts",
+      "destination": "src/chatbot/tripAnswerPlan.ts",
+      "sha256": "c215b30ef8cd248a82e802061c5063755fa91f2f737ad55be9cbcfcc6f3720bf"
+    },
+    {
+      "source": "src/lib/tripAnswerRuntime.ts",
+      "destination": "src/chatbot/tripAnswerRuntime.ts",
+      "sha256": "fcf15fdbfd3a107f094b4d22a94c0fecf92b0767852a729befee2d9f623ea1d7"
+    },
+    {
+      "source": "src/lib/tripCatalogPdf.ts",
+      "destination": "src/chatbot/tripCatalogPdf.ts",
+      "sha256": "b8afec107dd09bbfff2d214f13918e78053ae766ade56b8998aa63300a234fc1"
+    },
+    {
+      "source": "src/lib/tripCategorization.ts",
+      "destination": "src/chatbot/tripCategorization.ts",
+      "sha256": "275942a52c7221dfbd3bcbaaaf506d1d2e2c50e82d603eeb60dbf1d355cb10cd"
+    },
+    {
+      "source": "src/lib/tripCompleteness.ts",
+      "destination": "src/chatbot/tripCompleteness.ts",
+      "sha256": "54528a576242329e775ece2920886274412950940f28049fe75b38a4a1666bca"
+    },
+    {
+      "source": "src/lib/tripConsistency.ts",
+      "destination": "src/chatbot/tripConsistency.ts",
+      "sha256": "07212e36189704ad90e1dd8c3ab8274f060e24af6685cde432586d8e9d5707c7"
+    },
+    {
+      "source": "src/lib/tripDataValidation.ts",
+      "destination": "src/chatbot/tripDataValidation.ts",
+      "sha256": "8ba605a2d2744b91defe8371b9b58a72cfc696953f4df3713d90b9ece14cdbb1"
+    },
+    {
+      "source": "src/lib/tripExtraSchema.ts",
+      "destination": "src/chatbot/tripExtraSchema.ts",
+      "sha256": "0f5181c7b1a313a52ed760ca497f4b236b82e5843d18de31d727e18431020653"
+    },
+    {
+      "source": "src/lib/tripFacts.ts",
+      "destination": "src/chatbot/tripFacts.ts",
+      "sha256": "e4bfcf850740fa494de7ae02e28deb920ccce84ce3cc1c7903bdea90e1c61732"
+    },
+    {
+      "source": "src/lib/tripFareBlock.ts",
+      "destination": "src/chatbot/tripFareBlock.ts",
+      "sha256": "7b48feef8a38898ce937cfa7cf3c9d546ffe396a1e89011d5d68b4e97e6e5772"
+    },
+    {
+      "source": "src/lib/tripHotelReply.ts",
+      "destination": "src/chatbot/tripHotelReply.ts",
+      "sha256": "ef4a047b5dd350c8e58dbfac4f750ec66362970176b339b183e7a04c64030577"
+    },
+    {
+      "source": "src/lib/tripItineraryBoundaries.ts",
+      "destination": "src/chatbot/tripItineraryBoundaries.ts",
+      "sha256": "720465872632da5c3958f903837de83a28d09bfee241eaee295c67cf8a014193"
+    },
+    {
+      "source": "src/lib/tripOffers.ts",
+      "destination": "src/chatbot/tripOffers.ts",
+      "sha256": "2b83eb7333b5490e5a3d53c69d42484cd987d481ea166562f09bdf1a96d785b3"
+    },
+    {
+      "source": "src/lib/tripPhotoImport/aiMatch.ts",
+      "destination": "src/chatbot/tripPhotoImport/aiMatch.ts",
+      "sha256": "be77835680452a0b8b8029c5e6becbdb725316ea2fec3d8448c551774d8f64a4"
+    },
+    {
+      "source": "src/lib/tripPhotoImport/batchStore.ts",
+      "destination": "src/chatbot/tripPhotoImport/batchStore.ts",
+      "sha256": "a00b35e5b31e8840dc27134cb9725432c77b10b1d92ae87a41b0570f7cb64d94"
+    },
+    {
+      "source": "src/lib/tripPhotoImport/dedupePhotos.ts",
+      "destination": "src/chatbot/tripPhotoImport/dedupePhotos.ts",
+      "sha256": "b0a582d0c41b884181465eee6db2f7cd1e4986393ca63ba5c0cb4e352261e6e4"
+    },
+    {
+      "source": "src/lib/tripPhotoImport/extract.ts",
+      "destination": "src/chatbot/tripPhotoImport/extract.ts",
+      "sha256": "a0af126aa572e25a1dbb2791754a99b4d2e74f29a92ae042b614cd2cf8422b61"
+    },
+    {
+      "source": "src/lib/tripPhotoImport/match.ts",
+      "destination": "src/chatbot/tripPhotoImport/match.ts",
+      "sha256": "49f7131e2e667d1847188bd473b9c6d02deceff983c3afd223251f455a6e9488"
+    },
+    {
+      "source": "src/lib/tripPhotoImport/normalize.ts",
+      "destination": "src/chatbot/tripPhotoImport/normalize.ts",
+      "sha256": "b40185ce6c4626bc5411088c101cf4fe09aee3fb5b6e46da632cfa30f242b90d"
+    },
+    {
+      "source": "src/lib/tripPhotoImport/types.ts",
+      "destination": "src/chatbot/tripPhotoImport/types.ts",
+      "sha256": "09778e9705c2536e43b261c453aff4c8e19af75809bc87f19561761a7e2b0a51"
+    },
+    {
+      "source": "src/lib/tripPhotoImport/upload.ts",
+      "destination": "src/chatbot/tripPhotoImport/upload.ts",
+      "sha256": "9afe18b0b9ce768103610aa199aa6d6b5d90b8818ca799241503ea78aec9ffd8"
+    },
+    {
+      "source": "src/lib/tripPlaceDaysReply.ts",
+      "destination": "src/chatbot/tripPlaceDaysReply.ts",
+      "sha256": "847b187ee96b92ad5a4840bd81d6605924ac1f47901d681d1c4ebc5f0f10dc04"
+    },
+    {
+      "source": "src/lib/tripReplyVerification.ts",
+      "destination": "src/chatbot/tripReplyVerification.ts",
+      "sha256": "23fa755de6e08caab4f5190a76ef3859042b5d19bd566562193cfcc47f8fb4f9"
+    },
+    {
+      "source": "src/lib/tripRequest.ts",
+      "destination": "src/chatbot/tripRequest.ts",
+      "sha256": "662e83d7b1e4cc945790de0a27577b41c87dd794213e6d54ac78601e81030996"
+    },
+    {
+      "source": "src/lib/tripSelectionState.ts",
+      "destination": "src/chatbot/tripSelectionState.ts",
+      "sha256": "3a0740919ce67dad64a9b43773f9c9aef3cd1b7f59446e5d60bc0b62c2d71d1c"
+    },
+    {
+      "source": "src/lib/tripUnderstanding.ts",
+      "destination": "src/chatbot/tripUnderstanding.ts",
+      "sha256": "d40ece8104240d98ff2e1c2f106e8aa801133011d34e1aa44af091df4ad89c23"
+    },
+    {
+      "source": "src/lib/tripUnderstandingModel.ts",
+      "destination": "src/chatbot/tripUnderstandingModel.ts",
+      "sha256": "369ac2eb75bffe8cf33710c8f9e4a80a24368345a0d9fa916132ef86ccfded03"
+    },
+    {
+      "source": "src/lib/tripWeather.ts",
+      "destination": "src/chatbot/tripWeather.ts",
+      "sha256": "1bda8069537ecbe7f1c1f03897d2e554063a9155f933253a7abac30c8cf17a06"
+    },
+    {
+      "source": "src/lib/tripWebsiteParity.ts",
+      "destination": "src/chatbot/tripWebsiteParity.ts",
+      "sha256": "c0f8f7618e08925085f87b198aad9ba0e0b3b13a48227507ccad188b165369f1"
+    },
+    {
+      "source": "src/lib/tripWebsiteParityValue.ts",
+      "destination": "src/chatbot/tripWebsiteParityValue.ts",
+      "sha256": "fb530b82e0a41e0a14030713c7119f5559314884750dd66cea561ae5f61ae060"
+    },
+    {
+      "source": "src/lib/webhookAttachments.ts",
+      "destination": "src/chatbot/webhookAttachments.ts",
+      "sha256": "0e96b657bce9afbc3046965ef4c2aa481c9de34ae21f400f663f12afb91a32e2"
+    },
+    {
+      "source": "src/lib/webhookDedup.ts",
+      "destination": "src/chatbot/webhookDedup.ts",
+      "sha256": "dd74ef76fe524d7b545709d7bc0eb0de1c4bdea91ad0f558678445611cc54a88"
+    },
+    {
+      "source": "src/lib/webhookMedia.ts",
+      "destination": "src/chatbot/webhookMedia.ts",
+      "sha256": "543a79d8c7e0ffea4f5fead006ef1970d4edfb78b6b812075c1a9a87b90406b6"
+    },
+    {
+      "source": "src/lib/webhookPhotoOnly.ts",
+      "destination": "src/chatbot/webhookPhotoOnly.ts",
+      "sha256": "5ddfa5f063ed49ac0611ce11a937212c3f697723ab51deb9722d9235776ad291"
+    },
+    {
+      "source": "src/lib/webhookSecurity.ts",
+      "destination": "src/chatbot/webhookSecurity.ts",
+      "sha256": "50e6edbe283af3977e84d648aff39face5d8a24c386a49c7563413df558d0f54"
+    },
+    {
+      "source": "src/lib/websiteSyncTransaction.ts",
+      "destination": "src/chatbot/websiteSyncTransaction.ts",
+      "sha256": "ee73d5efc4caa0f399623afc7873bf16432c8d0a3fe57aaba72e2b8a6ebabc17"
+    },
+    {
+      "source": "src/lib/websiteTripBridge.ts",
+      "destination": "src/chatbot/websiteTripBridge.ts",
+      "sha256": "0642d9fbc524659a5f4f374e6d0e56dbce122a5df0e6b8bb3f1710748b2ef31d"
+    },
+    {
+      "source": "src/lib/websiteTripDetails.ts",
+      "destination": "src/chatbot/websiteTripDetails.ts",
+      "sha256": "f7ae036f7472452aee5329792798864a5cba0aef11ade721c12d075c4b5dd060"
+    },
+    {
+      "source": "src/lib/websiteTripPayload.ts",
+      "destination": "src/chatbot/websiteTripPayload.ts",
+      "sha256": "be1bda7eb8aa157fc720e8c57eaeaa75b4668c2691917f9a9f2c59434bb37cf5"
+    },
+    {
+      "source": "src/lib/websiteTripSync.ts",
+      "destination": "src/chatbot/websiteTripSync.ts",
+      "sha256": "031810be06a6163540f2f894121b907819f928478df42aa765b0d14fa028036f"
+    },
+    {
+      "source": "src/lib/welcomeFlow.ts",
+      "destination": "src/chatbot/welcomeFlow.ts",
+      "sha256": "1bc8e231595637caa2205bac63e1f263791c8f329acaccc7e06e0a574329ac10"
+    },
+    {
+      "source": "tests/admin-ai-change-errors.test.ts",
+      "destination": "tests/chatbot/admin-ai-change-errors.test.ts",
+      "sha256": "c8db95388d79d7df157b7e6ede289f8be248bbc21219167a1dbdf3bb17e7a866"
+    },
+    {
+      "source": "tests/admin-ai-limits.test.ts",
+      "destination": "tests/chatbot/admin-ai-limits.test.ts",
+      "sha256": "9a9f9a2c0640f8d4585fd79e91e59cafae8deb77b9fca39220f8caf6fdab0021"
+    },
+    {
+      "source": "tests/admin-auth.test.ts",
+      "destination": "tests/chatbot/admin-auth.test.ts",
+      "sha256": "eb40b0a57e3e2b38c2c11cdd6158e4f966fd25eed3ba47322f06a365c7b6649c"
+    },
+    {
+      "source": "tests/admin-clarifications.test.ts",
+      "destination": "tests/chatbot/admin-clarifications.test.ts",
+      "sha256": "b04f0553effade26261a260a889ca565b47458c2256b1919c9897d588f247420"
+    },
+    {
+      "source": "tests/admin-date-pricing.test.ts",
+      "destination": "tests/chatbot/admin-date-pricing.test.ts",
+      "sha256": "6998434c90edc1b986d195cfab5b166c8d30d49896e341bb6c96cf5a3f321949"
+    },
+    {
+      "source": "tests/admin-media-upload.test.ts",
+      "destination": "tests/chatbot/admin-media-upload.test.ts",
+      "sha256": "b2b1decbd0a7a49f96ef76c1a3cf24f457cdf473091f120db36ae3a7b5abf49c"
+    },
+    {
+      "source": "tests/admin-proposal-utils.test.ts",
+      "destination": "tests/chatbot/admin-proposal-utils.test.ts",
+      "sha256": "e2410c728127763f80cc391ad325b600084ec8336ad6c75ee3abbde455e81cb0"
+    },
+    {
+      "source": "tests/admin-source-evidence.test.ts",
+      "destination": "tests/chatbot/admin-source-evidence.test.ts",
+      "sha256": "d886e3438d3f3c5660b55b783a40394a4832368577f77e3fdad291bc25ea9e7a"
+    },
+    {
+      "source": "tests/admin-system.test.ts",
+      "destination": "tests/chatbot/admin-system.test.ts",
+      "sha256": "638b5f17d4692c2071ad40a57ad63633db6cf0d43a330c089cd6c752b607b8e4"
+    },
+    {
+      "source": "tests/admin-trip-editor-ui.test.ts",
+      "destination": "tests/chatbot/admin-trip-editor-ui.test.ts",
+      "sha256": "a44df3e251a37180b91b6b57d29cf87e6cf769543b074cb110bd7a2a55bf17dd"
+    },
+    {
+      "source": "tests/age-range-picker.test.ts",
+      "destination": "tests/chatbot/age-range-picker.test.ts",
+      "sha256": "84f39f37cbaeb2f025ffbec66821d09f5c501099729d4526723cdd100d44458a"
+    },
+    {
+      "source": "tests/age-rules-and-infant-tier.test.ts",
+      "destination": "tests/chatbot/age-rules-and-infant-tier.test.ts",
+      "sha256": "62981c62b275d3fce95ccbb197135e7ebfaa4c924ae5b91fd5fa0cf646273aab"
+    },
+    {
+      "source": "tests/ai-health.test.ts",
+      "destination": "tests/chatbot/ai-health.test.ts",
+      "sha256": "06387a01f7a8301b9fda3bb980c37a5abb1313c180a9012a4e210508820c03d3"
+    },
+    {
+      "source": "tests/ai-trip-context.test.ts",
+      "destination": "tests/chatbot/ai-trip-context.test.ts",
+      "sha256": "6cd317694427738a622d22023af0e756c28e4bd0bcc2a25c3eda9d836b444ab9"
+    },
+    {
+      "source": "tests/ambiguous-trip-list.test.ts",
+      "destination": "tests/chatbot/ambiguous-trip-list.test.ts",
+      "sha256": "8f7ad29c8fc823b569c9b946866bf8b818bd223736f899960ab5d2dbf56b37c8"
+    },
+    {
+      "source": "tests/analytics-minimization.test.ts",
+      "destination": "tests/chatbot/analytics-minimization.test.ts",
+      "sha256": "9e15c9e721d6a3e62898f69fa4d20f6cd7bbe042c8af397d50a8bcdd372d8bd7"
+    },
+    {
+      "source": "tests/archived-trip-notice.test.ts",
+      "destination": "tests/chatbot/archived-trip-notice.test.ts",
+      "sha256": "37f0214e18e51011049878009663be96028e8e2cdecc32de045ec34712a57756"
+    },
+    {
+      "source": "tests/assistant-quick-actions-ui.test.ts",
+      "destination": "tests/chatbot/assistant-quick-actions-ui.test.ts",
+      "sha256": "b046a3b52b433e393f1acf41da8916695536b1f29fd77ea9ab0fd2ab96cd2e69"
+    },
+    {
+      "source": "tests/assistant-quick-actions.test.ts",
+      "destination": "tests/chatbot/assistant-quick-actions.test.ts",
+      "sha256": "c3792f10fcb700b01e297fbee2fdf44635bb9bedd811c400910a96883122fbc5"
+    },
+    {
+      "source": "tests/audit-2026-07-27.test.ts",
+      "destination": "tests/chatbot/audit-2026-07-27.test.ts",
+      "sha256": "1556333994bcb630f0be978b343b532f552eea499f47d4b467636e6e393728e4"
+    },
+    {
+      "source": "tests/bare-price.test.ts",
+      "destination": "tests/chatbot/bare-price.test.ts",
+      "sha256": "49f9a7ad12f76856b3b6408e242f32cebd24feb827551005180a63eeebad5df5"
+    },
+    {
+      "source": "tests/booking-collect.test.ts",
+      "destination": "tests/chatbot/booking-collect.test.ts",
+      "sha256": "6c8c84ad456079c765938d0250f47d3957c5420d89a5fd9635fbf6eb86e88245"
+    },
+    {
+      "source": "tests/booking-intent-latin.test.ts",
+      "destination": "tests/chatbot/booking-intent-latin.test.ts",
+      "sha256": "2fd1d0beb4734c10433bc80fa4d95310b8ef94566c839d62bcb9a1d74b09988b"
+    },
+    {
+      "source": "tests/booking-terms.test.ts",
+      "destination": "tests/chatbot/booking-terms.test.ts",
+      "sha256": "dfc5a68a7f5dbaae4a4d8fa4415e19d47936b5db06ae0057a74d535fbb6ed48b"
+    },
+    {
+      "source": "tests/catalog-listing.test.ts",
+      "destination": "tests/chatbot/catalog-listing.test.ts",
+      "sha256": "554b2117ff355387486b95c04101bba5034c85ae9305c5a325b2bc4572ac3a7c"
+    },
+    {
+      "source": "tests/chat-review-fixes.test.ts",
+      "destination": "tests/chatbot/chat-review-fixes.test.ts",
+      "sha256": "bc0366c68d0b45c5e04de893b30d4778e1c51a4e88a245ffb1cbbac98ae14263"
+    },
+    {
+      "source": "tests/chatbot-accuracy.test.ts",
+      "destination": "tests/chatbot/chatbot-accuracy.test.ts",
+      "sha256": "48a4c64d6b5a0b4e2cdc8f400fd3f19d93fef3fbafc3ade753184840c6699c4d"
+    },
+    {
+      "source": "tests/chatbot-baseline.test.ts",
+      "destination": "tests/chatbot/chatbot-baseline.test.ts",
+      "sha256": "72da808a1e3b169eebbc5d3324e455ea90c7133135a92d89790840751d6520b1"
+    },
+    {
+      "source": "tests/chatbot-quality.test.ts",
+      "destination": "tests/chatbot/chatbot-quality.test.ts",
+      "sha256": "d6dd128402d92717902a17357642592ca1f66b6918748d76ea9e1942cc54d684"
+    },
+    {
+      "source": "tests/chatbot-reply-policy.test.ts",
+      "destination": "tests/chatbot/chatbot-reply-policy.test.ts",
+      "sha256": "8fd94d8e4c51f8382ee366f9d659e40842a490195ff4cdd4208d2a1c91ad7ee0"
+    },
+    {
+      "source": "tests/clarification-state-persisted.test.ts",
+      "destination": "tests/chatbot/clarification-state-persisted.test.ts",
+      "sha256": "b36358014bb3f40e1ceedc705b5ea07fd0c0d02d71832a2f10a0ab0fa463f6de"
+    },
+    {
+      "source": "tests/connected-trip-mapping.test.ts",
+      "destination": "tests/chatbot/connected-trip-mapping.test.ts",
+      "sha256": "3085422390a6401d0fecf1ed9bc97a3b09d977a2f6da7464f3ebc1bdaa9a65ce"
+    },
+    {
+      "source": "tests/contextual-text.test.ts",
+      "destination": "tests/chatbot/contextual-text.test.ts",
+      "sha256": "a18b27d084976c674a1095c1da0d120839206e27a8b3feac7c666af32263e47e"
+    },
+    {
+      "source": "tests/conversation-memory-guards.test.ts",
+      "destination": "tests/chatbot/conversation-memory-guards.test.ts",
+      "sha256": "b2b64b1404dd82c9a96c6531c6f3ed9fc374115a709fa3b772b8daef9e4e227b"
+    },
+    {
+      "source": "tests/conversation-memory.test.ts",
+      "destination": "tests/chatbot/conversation-memory.test.ts",
+      "sha256": "d31006cd6a90e2ef1dbc573e4724f141572542f79c5523cdd1acbe955e2e8ece"
+    },
+    {
+      "source": "tests/customer-documents.test.ts",
+      "destination": "tests/chatbot/customer-documents.test.ts",
+      "sha256": "66fd12b1709001ac64dd14cac3213d9c1b27d5725cda83b7416f02a3c49f6ebd"
+    },
+    {
+      "source": "tests/date-seats.test.ts",
+      "destination": "tests/chatbot/date-seats.test.ts",
+      "sha256": "e0ee11f03a198d9499def9bac193f420815a4eff1233134a0a1ec693170fb549"
+    },
+    {
+      "source": "tests/dedupe-photos.test.ts",
+      "destination": "tests/chatbot/dedupe-photos.test.ts",
+      "sha256": "63f26fb61b3e6efae77190202318155c84ac22cb4236a38c1b2abb28b7f1119b"
+    },
+    {
+      "source": "tests/departure-availability.test.ts",
+      "destination": "tests/chatbot/departure-availability.test.ts",
+      "sha256": "afb2fda95f40ad29d0963429f70ae6ed1c6fc2c8a79cf5cc81fe5c02b691f31a"
+    },
+    {
+      "source": "tests/env.test.ts",
+      "destination": "tests/chatbot/env.test.ts",
+      "sha256": "d4032ba0e5db56049bbf1a16725edf4ce26a29fadde9d9b81f51c856df11b663"
+    },
+    {
+      "source": "tests/error-log-store.test.ts",
+      "destination": "tests/chatbot/error-log-store.test.ts",
+      "sha256": "80221cd04ceda2f10a10ba4d0f443fbc5a58809a0c208215a8dabc37c119e2d8"
+    },
+    {
+      "source": "tests/fast-path-routing.test.ts",
+      "destination": "tests/chatbot/fast-path-routing.test.ts",
+      "sha256": "399aec909cd2f6576ace63b8e7be60cf16383362061b9350e3bad3bf4e21e727"
+    },
+    {
+      "source": "tests/fb-attachment-bot-metadata.test.ts",
+      "destination": "tests/chatbot/fb-attachment-bot-metadata.test.ts",
+      "sha256": "68a08e8a350b192a9fb7c6e4a78b59df8410b9ad4c27b6b0cd2686de933b5c53"
+    },
+    {
+      "source": "tests/file-parse.test.ts",
+      "destination": "tests/chatbot/file-parse.test.ts",
+      "sha256": "5d91a61d6e718b983774372404707593335ce2e8f4250f8393d0b945f42d7958"
+    },
+    {
+      "source": "tests/flow-engine.test.ts",
+      "destination": "tests/chatbot/flow-engine.test.ts",
+      "sha256": "27191b20a108596a049e6472c85fa466bd4dc11d029d35b5e87e59e47dd1e8c9"
+    },
+    {
+      "source": "tests/golden-red-flags.test.ts",
+      "destination": "tests/chatbot/golden-red-flags.test.ts",
+      "sha256": "b5c3d5144fb201496eb888a7f2d6c07ea3b92a4d59136d2a93482c90c7d78c6c"
+    },
+    {
+      "source": "tests/google-drive-links.test.ts",
+      "destination": "tests/chatbot/google-drive-links.test.ts",
+      "sha256": "2821d6e910ea8e716979104884e9f7c8945e9014c3b85a0d11eb40304a28e9f6"
+    },
+    {
+      "source": "tests/greeting-phrases.test.ts",
+      "destination": "tests/chatbot/greeting-phrases.test.ts",
+      "sha256": "26a1ced22286364fbaba28ee7cf815b50b5848698288a89e33bada447b25b05d"
+    },
+    {
+      "source": "tests/helpers/env.ts",
+      "destination": "tests/chatbot/helpers/env.ts",
+      "sha256": "b4a90a54ca59a2a5cc0f4910a145c71b93f7a200df268266c4d85c3d96a59903"
+    },
+    {
+      "source": "tests/itinerary-day-controls.test.ts",
+      "destination": "tests/chatbot/itinerary-day-controls.test.ts",
+      "sha256": "5bbec8de445c8fe17877d28229e8e8082da8a900a58a281baad3d424048382ab"
+    },
+    {
+      "source": "tests/itinerary-days-schema.test.ts",
+      "destination": "tests/chatbot/itinerary-days-schema.test.ts",
+      "sha256": "50139b55870688447a2a4c7d2aefcebfc6100d30a72b31f85d8e4193f439e12e"
+    },
+    {
+      "source": "tests/live-chat-check-2026-09-27.test.ts",
+      "destination": "tests/chatbot/live-chat-check-2026-09-27.test.ts",
+      "sha256": "abbe081ffe829a2727fc7e84fc24e1e5c2b9190de22b77268f7d9cf887b32b76"
+    },
+    {
+      "source": "tests/messenger-image-url.test.ts",
+      "destination": "tests/chatbot/messenger-image-url.test.ts",
+      "sha256": "2074b88bbc82d4e0084425ac7f21749875c06a9e0fdc702e662ded4b2057667e"
+    },
+    {
+      "source": "tests/meta-outbound-kill-switch.test.ts",
+      "destination": "tests/chatbot/meta-outbound-kill-switch.test.ts",
+      "sha256": "d7372bb8c2eba6897036cbbc3f6acba1b0bcc3e7747e23ca5fac440d36b01343"
+    },
+    {
+      "source": "tests/multi-date-trip-replies-2026-10-01.test.ts",
+      "destination": "tests/chatbot/multi-date-trip-replies-2026-10-01.test.ts",
+      "sha256": "fe06d49913bbd4e5504281d09359f5b65802472a08bcc35b898dd1811b80c9cd"
+    },
+    {
+      "source": "tests/multi-place-routing.test.ts",
+      "destination": "tests/chatbot/multi-place-routing.test.ts",
+      "sha256": "ec7b1458c7aa75b08d68f0f008c89cefe5b87e980a9f6b589bcfdc316754cd9e"
+    },
+    {
+      "source": "tests/next-year-and-solo-prices-2026-09-30.test.ts",
+      "destination": "tests/chatbot/next-year-and-solo-prices-2026-09-30.test.ts",
+      "sha256": "2388cf1051d7bb95f93ffe4daaccfdf394c9f9c64123abaaf07dd3d2ee24b32f"
+    },
+    {
+      "source": "tests/openai-model-fallback.test.ts",
+      "destination": "tests/chatbot/openai-model-fallback.test.ts",
+      "sha256": "ca153eefcaaaf035e61c30a85e54c344eef214a265a8498b7edb82932e22cdfe"
+    },
+    {
+      "source": "tests/openai-provider.test.ts",
+      "destination": "tests/chatbot/openai-provider.test.ts",
+      "sha256": "e412a9427fc9affa7a8b27c87f376f8889706a61c46397bbaa323d601a3a57a4"
+    },
+    {
+      "source": "tests/package-scripts.test.ts",
+      "destination": "tests/chatbot/package-scripts.test.ts",
+      "sha256": "6df3c85a8b407deda3c80051f4829a4c20e89c7a6042164c78d6a7320ca49a36"
+    },
+    {
+      "source": "tests/passenger-total-and-groups.test.ts",
+      "destination": "tests/chatbot/passenger-total-and-groups.test.ts",
+      "sha256": "48f76488dd360736c3525ade16ffde97fab21c2b3026a7b0816838162dafb6c0"
+    },
+    {
+      "source": "tests/pause-duration.test.ts",
+      "destination": "tests/chatbot/pause-duration.test.ts",
+      "sha256": "43dd94686882dccc64b05f72dc92bb4c0492465f2f7b22a2a2d80a6bdf151432"
+    },
+    {
+      "source": "tests/pause-expiry.test.ts",
+      "destination": "tests/chatbot/pause-expiry.test.ts",
+      "sha256": "a8d5a6f611b1feafc8c544fe25fe2ccb07bfba241d4a12d547608a3d1c78d1ad"
+    },
+    {
+      "source": "tests/ping.test.ts",
+      "destination": "tests/chatbot/ping.test.ts",
+      "sha256": "42aae47d7ba9172df834d66e0932bd042ca909d4474f3a3fc5c9b291d7a1886c"
+    },
+    {
+      "source": "tests/poster-age-range-unit.test.ts",
+      "destination": "tests/chatbot/poster-age-range-unit.test.ts",
+      "sha256": "1fd1b63771fe0e550d7011a5b610b7c2b594527d6bdda473ce2ff466d3fd23bc"
+    },
+    {
+      "source": "tests/poster-bulk-plan.test.ts",
+      "destination": "tests/chatbot/poster-bulk-plan.test.ts",
+      "sha256": "8adb2c179ecae3fb8b18acc01fbc8dc129bfc0cd1c590b383611f88e1eb31def"
+    },
+    {
+      "source": "tests/poster-extract-merge.test.ts",
+      "destination": "tests/chatbot/poster-extract-merge.test.ts",
+      "sha256": "35b02a03b5439e838dce9491550fa0579b1c0915260bc09e6471137f71dbe957"
+    },
+    {
+      "source": "tests/poster-infant-free-fare.test.ts",
+      "destination": "tests/chatbot/poster-infant-free-fare.test.ts",
+      "sha256": "516eb25ab206c8786c940dfb3349a6aa685e0b04518c2612021854c8458a5c8a"
+    },
+    {
+      "source": "tests/poster-pdf-image-policy.test.ts",
+      "destination": "tests/chatbot/poster-pdf-image-policy.test.ts",
+      "sha256": "d495eccf1b1b375076dce374990d7085a683dc08d922503e1e233de0b31db4e4"
+    },
+    {
+      "source": "tests/poster-placeholder-data-2026-09-28.test.ts",
+      "destination": "tests/chatbot/poster-placeholder-data-2026-09-28.test.ts",
+      "sha256": "d9371a0401d3ecb08cd3465af9e774c0aac4f47106badcc2c2eb014f0db55f49"
+    },
+    {
+      "source": "tests/poster-sync.test.ts",
+      "destination": "tests/chatbot/poster-sync.test.ts",
+      "sha256": "f3309e594cd75c8e7163a7e53a97906d3013b945c04aa0002ee824340b099c2d"
+    },
+    {
+      "source": "tests/poster-trip-mapper.test.ts",
+      "destination": "tests/chatbot/poster-trip-mapper.test.ts",
+      "sha256": "3b2f26c4444b0d7ef849251809fbb7e1a2b7a6ca84b619fad14f71eabcde037d"
+    },
+    {
+      "source": "tests/preflight-script.test.ts",
+      "destination": "tests/chatbot/preflight-script.test.ts",
+      "sha256": "b3f50c01c41dac8531336fec13897b24c3c4bc26473e607b26c4ee2cc09f72e1"
+    },
+    {
+      "source": "tests/price-groups-note-survives-normalize.test.ts",
+      "destination": "tests/chatbot/price-groups-note-survives-normalize.test.ts",
+      "sha256": "8cf071ffb37232a0d7e295c4b408d8d5aa2e7c457063dd6d900fa1b56c92a308"
+    },
+    {
+      "source": "tests/price-groups.test.ts",
+      "destination": "tests/chatbot/price-groups.test.ts",
+      "sha256": "cf18d1a9a7c3ac6626ac0109709711dffd7f451e41532df948afa064bc9c3d31"
+    },
+    {
+      "source": "tests/qpay.test.ts",
+      "destination": "tests/chatbot/qpay.test.ts",
+      "sha256": "105fa831295df1e35b729cd1dc2f0d68aca290dea6735af18159dc2ad8e701ab"
+    },
+    {
+      "source": "tests/rate-limit.test.ts",
+      "destination": "tests/chatbot/rate-limit.test.ts",
+      "sha256": "b8e9bdd2a805a69edd0499f2db428a8760bda376a43ba5b8eefd64756b458b05"
+    },
+    {
+      "source": "tests/readiness.test.ts",
+      "destination": "tests/chatbot/readiness.test.ts",
+      "sha256": "a9b2fa884dbb6e88aa4e1f27ee6096e43ab6c2b2ec1744675e19a87040bb7ca1"
+    },
+    {
+      "source": "tests/real-chat-audit-2026-09-23.test.ts",
+      "destination": "tests/chatbot/real-chat-audit-2026-09-23.test.ts",
+      "sha256": "99c698b54359533280052a490a1937074b43ed6fdc683f0d3573b83b49d5a993"
+    },
+    {
+      "source": "tests/real-chat-audit-2026-10-02.test.ts",
+      "destination": "tests/chatbot/real-chat-audit-2026-10-02.test.ts",
+      "sha256": "9bf14beb5f20ccc6b6059feb18d6feda1833c0586b15ab96b17fca60d7b500f7"
+    },
+    {
+      "source": "tests/real-chat-regressions.test.ts",
+      "destination": "tests/chatbot/real-chat-regressions.test.ts",
+      "sha256": "0542b6e38f875dcbe9f842aef45de534929a83786d85837f29a3c7a8a2258ff1"
+    },
+    {
+      "source": "tests/reply-media-policy.test.ts",
+      "destination": "tests/chatbot/reply-media-policy.test.ts",
+      "sha256": "d5ac6e909944d67e07de9945043dde129066b82eff9e1d42172c05e7f7338e65"
+    },
+    {
+      "source": "tests/reply-price-guard-2026-09-28.test.ts",
+      "destination": "tests/chatbot/reply-price-guard-2026-09-28.test.ts",
+      "sha256": "f63b210172fe5b2e94534f14aeb2dd35a47036c3efdedc4eebb7faa99a68725e"
+    },
+    {
+      "source": "tests/reply-reasoning.test.ts",
+      "destination": "tests/chatbot/reply-reasoning.test.ts",
+      "sha256": "0c3cf5296160608dff49ef42cb4602251837a0854efd98024be02eb274dd8a4e"
+    },
+    {
+      "source": "tests/reply.test.ts",
+      "destination": "tests/chatbot/reply.test.ts",
+      "sha256": "4554f6c1b1d0f59cf65cf528c3549c5b5f445d99db8097443a9bbfb03c37db76"
+    },
+    {
+      "source": "tests/resilience.test.ts",
+      "destination": "tests/chatbot/resilience.test.ts",
+      "sha256": "9706867d6cbd90258108950fb8a83ba7ae254dcae4dce232e4ebc9c11fbac474"
+    },
+    {
+      "source": "tests/seasons.test.ts",
+      "destination": "tests/chatbot/seasons.test.ts",
+      "sha256": "149ecc1edd39a172cf43ec77c6bff365fd2ecb959583c9fa3429fad56abe261a"
+    },
+    {
+      "source": "tests/self-consistency.test.ts",
+      "destination": "tests/chatbot/self-consistency.test.ts",
+      "sha256": "63e7f8fe00fc3900e56fd147fd8200f05d017bd40332a54e7de329469a262a47"
+    },
+    {
+      "source": "tests/send-platform-message.test.ts",
+      "destination": "tests/chatbot/send-platform-message.test.ts",
+      "sha256": "981776e0e1c9ee3cfa96f05649698df24ea50b7af59960cf5e339965d8ff62fb"
+    },
+    {
+      "source": "tests/shared-trip-safety.test.ts",
+      "destination": "tests/chatbot/shared-trip-safety.test.ts",
+      "sha256": "d496334d58f6d03d6e4c6ed4e0cf18c2050c063cbec952362a2b9fdd221ef81c"
+    },
+    {
+      "source": "tests/site-photo-hosts.test.ts",
+      "destination": "tests/chatbot/site-photo-hosts.test.ts",
+      "sha256": "287073b0b96f836863ec05945785fb67689e04b5bb67fc37a2fd7b650b161ff0"
+    },
+    {
+      "source": "tests/smart-button-routing.test.ts",
+      "destination": "tests/chatbot/smart-button-routing.test.ts",
+      "sha256": "bba92ede9298e55e562871cffeacb05f0fb3e5d924e278d60b671b39af728e56"
+    },
+    {
+      "source": "tests/staff-alerts.test.ts",
+      "destination": "tests/chatbot/staff-alerts.test.ts",
+      "sha256": "77bd33fb2ad7229b29e5eb9d397194237982a0d4d56eef53282408885072004b"
+    },
+    {
+      "source": "tests/staff-takeover.test.ts",
+      "destination": "tests/chatbot/staff-takeover.test.ts",
+      "sha256": "9620cafed79f3772c9a121d5a6d1597d8311ee53952d8fdb54b3edb2756d7306"
+    },
+    {
+      "source": "tests/travel-ai-photos.test.ts",
+      "destination": "tests/chatbot/travel-ai-photos.test.ts",
+      "sha256": "7fd7138fa24924d723d62be627797392b958e83da52e388b02cb52d7066f668a"
+    },
+    {
+      "source": "tests/travel-dates.test.ts",
+      "destination": "tests/chatbot/travel-dates.test.ts",
+      "sha256": "4bd3791b44e833597780085fcde792eed961bd32baeae47f7bd27776cc303d02"
+    },
+    {
+      "source": "tests/travel-fast-paths.test.ts",
+      "destination": "tests/chatbot/travel-fast-paths.test.ts",
+      "sha256": "f637747c0cdd4c733a477334dd09351c9fbe66e07896ca85ba7faed6ef22ffff"
+    },
+    {
+      "source": "tests/travel-ops-validation.test.ts",
+      "destination": "tests/chatbot/travel-ops-validation.test.ts",
+      "sha256": "ead8b05af810fda66a6bbb1d16aeaa7a87098b9607de348749aaa63734911fbe"
+    },
+    {
+      "source": "tests/travel-program-photos.test.ts",
+      "destination": "tests/chatbot/travel-program-photos.test.ts",
+      "sha256": "74d8bb6ce82569c9c915c59df2a3eb5e5ec31143ecc64db424531e21abd6c555"
+    },
+    {
+      "source": "tests/travel-trip-maintenance.test.ts",
+      "destination": "tests/chatbot/travel-trip-maintenance.test.ts",
+      "sha256": "a6cf2b00f8ad4d03db91ca409c2ef48cd96b5be02b8073aaccfa5a48478d8348"
+    },
+    {
+      "source": "tests/trip-answer-plan.test.ts",
+      "destination": "tests/chatbot/trip-answer-plan.test.ts",
+      "sha256": "fa78f8014431beefea9c8a2d69fc804dc943675bed17ec96cdffb05f51972b5e"
+    },
+    {
+      "source": "tests/trip-calendar-recurring.test.ts",
+      "destination": "tests/chatbot/trip-calendar-recurring.test.ts",
+      "sha256": "b7448e79e63069914717dc442f00ecd20fbfadc3fc85eab7d4435b8715a6d266"
+    },
+    {
+      "source": "tests/trip-categorization.test.ts",
+      "destination": "tests/chatbot/trip-categorization.test.ts",
+      "sha256": "ebf8d178c11184b79230d3c1a87963502d59e2cd4d4a26e1d3bb9a4048982173"
+    },
+    {
+      "source": "tests/trip-completeness.test.ts",
+      "destination": "tests/chatbot/trip-completeness.test.ts",
+      "sha256": "ea00de5e5c1d9851a5f30144518fa1a91f5d5693611f9303cd6ddc9764d51478"
+    },
+    {
+      "source": "tests/trip-consistency.test.ts",
+      "destination": "tests/chatbot/trip-consistency.test.ts",
+      "sha256": "4d804fa2d18f7808085792f90e744d771775a61432f91cb095fa9b7fa61984d0"
+    },
+    {
+      "source": "tests/trip-data-validation.test.ts",
+      "destination": "tests/chatbot/trip-data-validation.test.ts",
+      "sha256": "2b547678a4b42bf1458763ae781948283704f6ea28201cd0de2c11e1044ae9c0"
+    },
+    {
+      "source": "tests/trip-itinerary-boundaries.test.ts",
+      "destination": "tests/chatbot/trip-itinerary-boundaries.test.ts",
+      "sha256": "03afe5d40bb57a5a4ee886f7a3c1e731e62d20fbd9d023c4355a294afd25e82b"
+    },
+    {
+      "source": "tests/trip-listing-filter.test.ts",
+      "destination": "tests/chatbot/trip-listing-filter.test.ts",
+      "sha256": "37c0885a244908bd54a6e62d5913f7d96a8ce374a89984d5efdf240246951362"
+    },
+    {
+      "source": "tests/trip-offers.test.ts",
+      "destination": "tests/chatbot/trip-offers.test.ts",
+      "sha256": "74d16d75e53c91188443b46017c664a4fc78901e34761b39658b174aea39f491"
+    },
+    {
+      "source": "tests/trip-photo-import-extract.test.ts",
+      "destination": "tests/chatbot/trip-photo-import-extract.test.ts",
+      "sha256": "2cd1eafee52a33e4b7d5e0b7bab6784386444932ff7a9fed4c10a5a04d09ff36"
+    },
+    {
+      "source": "tests/trip-photo-import-match.test.ts",
+      "destination": "tests/chatbot/trip-photo-import-match.test.ts",
+      "sha256": "22d2accda5a31ae22416290a7b952d5ac14b40aca4d234783ff8ad7ca0345e1a"
+    },
+    {
+      "source": "tests/trip-photo-import-normalize.test.ts",
+      "destination": "tests/chatbot/trip-photo-import-normalize.test.ts",
+      "sha256": "aced02ab263a079efac107e9bddb5ab2fea404e8096d43b832eafde5ebfb8618"
+    },
+    {
+      "source": "tests/trip-photo-upload.test.ts",
+      "destination": "tests/chatbot/trip-photo-upload.test.ts",
+      "sha256": "e7713ac1d31a36608eaac0e801e9949ef97134fd88e44641184da2cdc39ea025"
+    },
+    {
+      "source": "tests/trip-request.test.ts",
+      "destination": "tests/chatbot/trip-request.test.ts",
+      "sha256": "7c7f10ab9297e0b19a594455da461eef067b2b43fe85977f3972e7c7aee115ee"
+    },
+    {
+      "source": "tests/trip-understanding.test.ts",
+      "destination": "tests/chatbot/trip-understanding.test.ts",
+      "sha256": "eeef816131c322a19ec26e86994faa3efe2809f85bf2cffa8094224535677fca"
+    },
+    {
+      "source": "tests/trip-weather.test.ts",
+      "destination": "tests/chatbot/trip-weather.test.ts",
+      "sha256": "9cddd47b27d32e031dc7b9f8c8664456921f332b163f26e7583f81020dea98bd"
+    },
+    {
+      "source": "tests/trip-website-link-2026-10-02.test.ts",
+      "destination": "tests/chatbot/trip-website-link-2026-10-02.test.ts",
+      "sha256": "852c11df27b04ba87ae25c5aa98ec74a2f7687963c7778b81f80121cd6eded6e"
+    },
+    {
+      "source": "tests/trips-sections.test.ts",
+      "destination": "tests/chatbot/trips-sections.test.ts",
+      "sha256": "f59856d87867a30ac14f3d2b3f4047210ea1bb7a2678a50c6a4479af8baa89df"
+    },
+    {
+      "source": "tests/webhook-attachments.test.ts",
+      "destination": "tests/chatbot/webhook-attachments.test.ts",
+      "sha256": "aed030d9a75a4cca0079b7023dc41ae1fa3b811dbab7899bc4957331c5ffacd0"
+    },
+    {
+      "source": "tests/webhook-context.test.ts",
+      "destination": "tests/chatbot/webhook-context.test.ts",
+      "sha256": "61783d7ce5fa90e5b13c0a64129e6585617b14df58755f0888c5a91804154308"
+    },
+    {
+      "source": "tests/webhook-event-checkpoint.test.ts",
+      "destination": "tests/chatbot/webhook-event-checkpoint.test.ts",
+      "sha256": "92167a066e6ccc363f7f20dda2decf70988c6e756579635e4d1ca6d10bb90dbb"
+    },
+    {
+      "source": "tests/webhook-media.test.ts",
+      "destination": "tests/chatbot/webhook-media.test.ts",
+      "sha256": "69c44c9dc26bdbb314a6914fd804043f743073a68f2ebcb9a2d43a0e2f384be5"
+    },
+    {
+      "source": "tests/webhook-multipage.test.ts",
+      "destination": "tests/chatbot/webhook-multipage.test.ts",
+      "sha256": "bef0d99c763049c2d47dea6953e72c0e262e39ec5ebc52183b1d647bf7424bc5"
+    },
+    {
+      "source": "tests/webhook-pending-queue.test.ts",
+      "destination": "tests/chatbot/webhook-pending-queue.test.ts",
+      "sha256": "e764b375a6c9d3256074f488246a43bd388027ab63b67be21285b3081094d3c5"
+    },
+    {
+      "source": "tests/webhook-reliability.test.ts",
+      "destination": "tests/chatbot/webhook-reliability.test.ts",
+      "sha256": "3c4161a4340e3b12d5e192aa55f90cbd5b0a516e36030c6b32d1c688814e2ae7"
+    },
+    {
+      "source": "tests/webhook-replay.test.ts",
+      "destination": "tests/chatbot/webhook-replay.test.ts",
+      "sha256": "81dd9fe0628d1846c620976297a379fcf95f9f01eb40a462f092ceb5db8449f1"
+    },
+    {
+      "source": "tests/webhook-security.test.ts",
+      "destination": "tests/chatbot/webhook-security.test.ts",
+      "sha256": "2487d1e634a0441bf1a387eb2662c7835c41ddccf8351eb7efb9a229bc467596"
+    },
+    {
+      "source": "tests/website-canonical-offers.test.ts",
+      "destination": "tests/chatbot/website-canonical-offers.test.ts",
+      "sha256": "f23a60e6d307a20486360ee836148e13c66de643e17ebf1ba4859a2e483d0c00"
+    },
+    {
+      "source": "tests/website-parity.test.ts",
+      "destination": "tests/chatbot/website-parity.test.ts",
+      "sha256": "02a0b962062373e25c6a08eddfece8d132ab5ec769f49ece6e65d25238676522"
+    },
+    {
+      "source": "tests/website-poster-structured-facts.test.ts",
+      "destination": "tests/chatbot/website-poster-structured-facts.test.ts",
+      "sha256": "9cbdd37aed7dca295f9c7b0cbc538baec4bcb5ac1c1a6eddc25d4e69e1f7af7c"
+    },
+    {
+      "source": "tests/website-sync-content-conflict.test.ts",
+      "destination": "tests/chatbot/website-sync-content-conflict.test.ts",
+      "sha256": "439b58ad1b8ccad2e2acd945883ebbfa6fd47e470735d37fbc4ca64b47c2dbba"
+    },
+    {
+      "source": "tests/website-sync-transaction.test.ts",
+      "destination": "tests/chatbot/website-sync-transaction.test.ts",
+      "sha256": "1d2d6c83c5af5448cdfceec414f2f5c28dfd118f2fe01fe858119eb4669154ca"
+    },
+    {
+      "source": "tests/website-trip-bridge.test.ts",
+      "destination": "tests/chatbot/website-trip-bridge.test.ts",
+      "sha256": "2f482dce1be6d589b35f6c9fa8e0897f8bd2243b333dd3c947b31733534fb058"
+    },
+    {
+      "source": "tests/welcome-flow-media.test.ts",
+      "destination": "tests/chatbot/welcome-flow-media.test.ts",
+      "sha256": "b2d391d5390fca541e1d4dfb6bfe35658def936bb7bb64e7e11e6d6e197599aa"
+    },
+    {
+      "source": "src/pages/api/webhook.ts",
+      "destination": "src/pages/api/chatbot/webhook.ts",
+      "sha256": "d55a55569236c0234f1cc92967214f73b6fe1f5462179ce5303369fade6b668a"
+    },
+    {
+      "source": "src/pages/api/demo.ts",
+      "destination": "src/pages/api/chatbot/demo.ts",
+      "sha256": "b16567f7b5d29301f24e0335f5a0b7545748d19fd783e05efe97725c935d4f29"
+    },
+    {
+      "source": "src/pages/api/admin/analytics.ts",
+      "destination": "src/pages/api/chatbot/admin/analytics.ts",
+      "sha256": "e2106e34e103fec43d2292405f1182d7c406030dab890839ace4275339c7fcbb"
+    },
+    {
+      "source": "src/pages/api/admin/conversation.ts",
+      "destination": "src/pages/api/chatbot/admin/conversation.ts",
+      "sha256": "f816d5a268104c8cd76a733d4c50edb55e5999aaf172c9602ddce78cadda4d79"
+    },
+    {
+      "source": "src/pages/api/admin/error-logs.ts",
+      "destination": "src/pages/api/chatbot/admin/error-logs.ts",
+      "sha256": "1861311f2dd2d59c5629fc6a5364f83603f6e2ec0834d99e4819b4db6aba822b"
+    },
+    {
+      "source": "src/pages/api/admin/leads.ts",
+      "destination": "src/pages/api/chatbot/admin/leads.ts",
+      "sha256": "435791e71c29bd5ebc3e7c31f6b4c0bfe009515a565070ec2c5393d4f35dc6b6"
+    },
+    {
+      "source": "src/pages/api/admin/settings.ts",
+      "destination": "src/pages/api/chatbot/admin/settings.ts",
+      "sha256": "bb2613f3743feaaf437f3b5d7f183d616d6fbd1ba3c065aa56ef53f924aa06e9"
+    },
+    {
+      "source": "src/pages/api/admin/system.ts",
+      "destination": "src/pages/api/chatbot/admin/system.ts",
+      "sha256": "b955ff07171a4c7467c9aa370e0dfc29a7e10c560b39a2670487bbb1facbb3fd"
+    },
+    {
+      "source": "src/pages/api/admin/broadcast.ts",
+      "destination": "src/pages/api/chatbot/admin/broadcast.ts",
+      "sha256": "e895bc842792447d1c6cd7b892ac61b99b6d47a50bba8008ba1048fcb0ff51c7"
+    },
+    {
+      "source": "src/pages/api/admin/ai-change.ts",
+      "destination": "src/pages/api/chatbot/admin/ai-change.ts",
+      "sha256": "531f538927036c2069718d6c55da67203bc04b11cd1d65bdb239f6d28f5a1830"
+    },
+    {
+      "source": "src/components/admin/BotTab.tsx",
+      "destination": "src/admin/components/chatbot/uudam/BotTab.tsx",
+      "sha256": "265d09e5f2fd4431c2dc5f255701f1c8b9f054f02eb72647124ea3c05fc9b0d6"
+    },
+    {
+      "source": "src/components/admin/LeadsTab.tsx",
+      "destination": "src/admin/components/chatbot/uudam/LeadsTab.tsx",
+      "sha256": "92a77c07baff61d27bf2c96b2404d137667a3be05ba09c26b436d01f8350ec98"
+    },
+    {
+      "source": "src/components/admin/SettingsTab.tsx",
+      "destination": "src/admin/components/chatbot/uudam/SettingsTab.tsx",
+      "sha256": "2756d3206550dc41b5ee9fba5c6e2b5e577c93e37986b8bea4dada84f95c9862"
+    },
+    {
+      "source": "src/components/admin/GreetingTab.tsx",
+      "destination": "src/admin/components/chatbot/uudam/GreetingTab.tsx",
+      "sha256": "7f5557f8d46c8d639c022295d7d0efdc9de9437fd9a1f34a2755c3c1564cfbf3"
+    },
+    {
+      "source": "src/components/admin/ErrorLogsTab.tsx",
+      "destination": "src/admin/components/chatbot/uudam/ErrorLogsTab.tsx",
+      "sha256": "70e438d9bc08bd7f5664f4d892e94efc0455fd443cb6f47dfd7a57c7eb1ab68c"
+    },
+    {
+      "source": "src/components/admin/AnalyticsTab.tsx",
+      "destination": "src/admin/components/chatbot/uudam/AnalyticsTab.tsx",
+      "sha256": "c24707a55c600b6ea35a75ae632d39226067e8fe3ce1b5fb7f9c3d3b4c4c3563"
+    },
+    {
+      "source": "src/components/admin/AdminShared.tsx",
+      "destination": "src/admin/components/chatbot/uudam/AdminShared.tsx",
+      "sha256": "9ce1a5a6cc0fc7d1616eece39af6c841a2532214557a29d9e1385ca569759ddd"
+    },
+    {
+      "source": "src/components/admin/ContactInfoCard.tsx",
+      "destination": "src/admin/components/chatbot/uudam/ContactInfoCard.tsx",
+      "sha256": "5cb3cc725bee7ac1c8459544dc0e601459aec8967f252fbb0efaa81fb159c84f"
+    },
+    {
+      "source": "src/components/admin/adminTabData.ts",
+      "destination": "src/admin/components/chatbot/uudam/adminTabData.ts",
+      "sha256": "c7501fc7ba7ade212ea52e02cbe5bd55141e557bf16beae57a1af1136e564d90"
+    },
+    {
+      "source": "src/components/admin/AdminSidebarItem.tsx",
+      "destination": "src/admin/components/chatbot/uudam/AdminSidebarItem.tsx",
+      "sha256": "6479c59548461a2c7bdb94f974b6c42e219e0eb77938e86d39269bcd8ce9d17a"
+    }
+  ]
+}

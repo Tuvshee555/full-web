@@ -1,0 +1,195 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { aiFailureKind, reportAiOutage } from "./aiHealth";
+import { fixMojibake } from "./encoding";
+import { getEnv } from "./env";
+import {
+  classifyError,
+  logError,
+  logInfo,
+  logWarn,
+  recordCounter,
+} from "./observability";
+import { fetchWithRetry } from "./resilience";
+import type { OpenAIPart, OpenAIResult } from "./openaiProvider";
+
+const OPENAI_API_BASE = "https://api.openai.com/v1/chat/completions";
+const env = getEnv();
+
+/**
+ * OpenAI chat completion adapter for text and rendered image parts.
+ *
+ * The historical type names come from the old provider wrapper, but this
+ * function intentionally calls OpenAI only.
+ */
+export async function askOpenAIChatParts(
+  parts: OpenAIPart[],
+  options?: {
+    source?: string;
+    jsonMode?: boolean;
+    timeoutMs?: number;
+    temperature?: number;
+    maxOutputTokens?: number;
+    requestId?: string;
+    correlationId?: string;
+    /** Override model for this call (e.g. gpt-4o for file parsing). */
+    model?: string;
+    /** Rules/persona sent as an OpenAI system message. */
+    systemText?: string;
+    /** Internal recursion guard for the lower-cost alternate model. */
+    alternateModelAttempted?: boolean;
+  },
+): Promise<OpenAIResult | null> {
+  const key = env.openaiApiKey;
+  if (!key) return null;
+  if (
+    parts.some(
+      (part) =>
+        "inlineData" in part && part.inlineData.mimeType === "application/pdf",
+    )
+  ) {
+    return null;
+  }
+
+  const model = options?.model || process.env.OPENAI_MODEL || "gpt-4o-mini";
+  const source = options?.source || "unknown";
+  const startedAt = Date.now();
+
+  // Convert compatibility parts to OpenAI content blocks. Text stays text; rendered
+  // image binaries become data-URL image_url blocks.
+  const content: any[] = parts.map((part) => {
+    if ("inlineData" in part) {
+      return {
+        type: "image_url",
+        image_url: {
+          url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`,
+        },
+      };
+    }
+    return { type: "text", text: part.text };
+  });
+
+  const messages: Array<Record<string, unknown>> = [];
+  if (options?.systemText?.trim()) {
+    messages.push({ role: "system", content: options.systemText });
+  }
+  messages.push({ role: "user", content });
+
+  const requestBody: Record<string, unknown> = {
+    model,
+    messages,
+    temperature:
+      typeof options?.temperature === "number" ? options.temperature : 0,
+  };
+  if (options?.jsonMode) {
+    requestBody.response_format = { type: "json_object" };
+  }
+  if (typeof options?.maxOutputTokens === "number") {
+    requestBody.max_completion_tokens = Math.trunc(options.maxOutputTokens);
+  }
+
+  try {
+    const { response } = await fetchWithRetry(
+      OPENAI_API_BASE,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      },
+      {
+        upstream: "openai.chat",
+        timeoutMs: options?.timeoutMs ?? env.openaiTimeoutMs,
+        maxRetries: env.openaiMaxRetries,
+        retryBaseDelayMs: env.openaiRetryBaseDelayMs,
+        // gpt-4o's 30k tokens/min fits two ~15k-token reply prompts. A 429 there
+        // goes straight to gpt-4o-mini (its own, larger limit) below instead of
+        // burning seconds retrying a window that is already full.
+        retryableStatusCodes:
+          model !== "gpt-4o-mini" && !options?.alternateModelAttempted
+            ? [408, 425, 500, 502, 503, 504]
+            : undefined,
+        requestId: options?.requestId,
+        correlationId: options?.correlationId,
+        metricPrefix: "openai",
+      },
+    );
+
+    const data = await response.json();
+    const completion =
+      typeof data?.choices?.[0]?.message?.content === "string"
+        ? data.choices[0].message.content.trim()
+        : "";
+    const finishReason = data?.choices?.[0]?.finish_reason ?? null;
+    // An empty completion used to be swapped for a customer-facing apology with
+    // no trace anywhere — the bot looked broken and nothing recorded why.
+    if (!completion) {
+      logWarn("openai.empty_completion", {
+        source,
+        model,
+        finishReason,
+        refusal: data?.choices?.[0]?.message?.refusal ?? null,
+      });
+    } else if (finishReason === "length" || finishReason === "content_filter") {
+      logWarn("openai.incomplete_completion", { source, model, finishReason });
+    }
+    const raw = completion || "Уучлаарай, систем түр алдаатай байна.";
+
+    const usage = data?.usage ?? {};
+    recordCounter("openai.fallback_success_total", 1, { model, source });
+    logInfo("openai.fallback_success", {
+      source,
+      model,
+      durationMs: Date.now() - startedAt,
+      usage: {
+        prompt_tokens: usage.prompt_tokens ?? 0,
+        completion_tokens: usage.completion_tokens ?? 0,
+        total_tokens: usage.total_tokens ?? 0,
+      },
+    });
+
+    return {
+      text: fixMojibake(raw),
+      usage: {
+        prompt_tokens: usage.prompt_tokens ?? 0,
+        completion_tokens: usage.completion_tokens ?? 0,
+        total_tokens: usage.total_tokens ?? 0,
+      },
+    };
+  } catch (error) {
+    const classification = classifyError(error);
+    const failureKind = aiFailureKind(error);
+    recordCounter("openai.fallback_failures_total", 1, {
+      model,
+      source,
+      category: classification.category,
+    });
+    if (
+      classification.category === "rate_limited" &&
+      failureKind !== "credits_exhausted" &&
+      model !== "gpt-4o-mini" &&
+      !options?.alternateModelAttempted
+    ) {
+      logInfo("openai.falling_back_to_model", {
+        source,
+        model,
+        fallbackModel: "gpt-4o-mini",
+      });
+      const alternate = await askOpenAIChatParts(parts, {
+        ...options,
+        model: "gpt-4o-mini",
+        alternateModelAttempted: true,
+      });
+      if (alternate) return alternate;
+    }
+    logError("openai.fallback_failed", {
+      source,
+      model,
+      failure_kind: failureKind,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    void reportAiOutage(failureKind);
+    return null;
+  }
+}

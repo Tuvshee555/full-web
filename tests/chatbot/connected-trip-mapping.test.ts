@@ -1,0 +1,120 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { tripToPoster, websiteDepartures, posterPhotos, websiteMarketingBadge } from "../src/lib/connectedTripMapping";
+import type { TravelTrip } from "../src/lib/travelTypes";
+import { normalizeExtraPatch } from "../src/lib/tripExtraSchema";
+
+const trip: TravelTrip = { id:"fixture",route_name:"Trip",operator_name:"Uudam",category:"",duration_text:"3 өдөр 2 шөнө",
+  adult_price:1230000,child_price:1001000,infant_price:null,currency:"MNT",departure_dates:["2026-09-17"],seats_total:null,seats_left:null,
+  has_food:null,status:"draft",notes:"",hotel:"",source_description:"",photo_urls:[],extra:{},created_at:"",updated_at:"" };
+test("renaming preserves poster photos, layout and departure-specific price table", () => {
+  const prior={ title:"Trip",style:{photoScale:0.5},days:[{day:1,photo:"https://example.com/photo.jpg"}],price_table:{rows:[{cells:["100"]},{cells:["200"]}]} };
+  const result=tripToPoster({...trip,route_name:"Renamed"},prior,trip);
+  assert.equal(result.title,"Renamed");
+  assert.deepEqual(result.days,prior.days);
+  assert.deepEqual(result.price_table,prior.price_table);
+  assert.deepEqual(result.style,prior.style);
+});
+test("photo removal clears gallery slots while retaining day descriptions", () => {
+  const result=tripToPoster(trip,{days:[{day:1,summary:"Day one",photo:"https://example.com/a.jpg"}]},{...trip,photo_urls:["https://example.com/a.jpg"]});
+  assert.deepEqual(posterPhotos(result),[]);
+  assert.equal((result.days as {summary:string}[])[0].summary,"Day one");
+});
+test("changing the photo list keeps each day's own photo instead of dealing photos out by position", () => {
+  const [a, b, c, d] = ["https://example.com/a.jpg", "https://example.com/b.jpg", "https://example.com/c.jpg", "https://example.com/d.jpg"];
+  const prior = { days: [
+    { day: 1, route: "Arrival", photo: b },
+    { day: 2, route: "Zoo", photo: c },
+    { day: 3, route: "Theme park", photo: a },
+    { day: 4, route: "Flight home", photo: null },
+  ] };
+  const result = tripToPoster({ ...trip, photo_urls: [a, b, c, d] }, prior, { ...trip, photo_urls: [a, b, c] });
+  const days = result.days as { day: number; route: string; photo: string | null }[];
+  assert.deepEqual(days.map(day => [day.route, day.photo]), [["Arrival", b], ["Zoo", c], ["Theme park", a], ["Flight home", null], ["", d]]);
+  assert.equal(days[4].day, 5);
+  assert.equal(result.hero_image, a);
+
+  const removed = tripToPoster({ ...trip, photo_urls: [a, b] }, prior, { ...trip, photo_urls: [a, b, c] });
+  assert.deepEqual((removed.days as { photo: string | null }[]).map(day => day.photo), [b, null, a, null]);
+});
+test("departure parser never turns null or invalid dates into epoch dates", () => {
+  const result=websiteDepartures({...trip,extra:{departure_dates_resolved:[{ymd:null},{ymd:"2026-02-31"},{ymd:"2026-09-17"},{ymd:"2026-09-17"}]} });
+  assert.equal(result.length,1);
+  assert.equal(result[0].start,"2026-09-17T00:00:00.000Z");
+  assert.equal(result[0].end,"2026-09-19T00:00:00.000Z");
+});
+test("weekly rules are explicit and respect Mongolian calendar dates", () => {
+  const recurring=websiteDepartures({...trip,departure_dates:["Пүрэв гараг бүр"]},new Date("2026-09-09T23:00:00Z"));
+  assert.equal(recurring.length,12);
+  assert.equal(recurring[0].start,"2026-09-10T00:00:00.000Z");
+  const shortWeekdays=websiteDepartures({...trip,departure_dates:["Пүрэв","Ням гариг"],extra:{departure_dates_resolved:[{text:"Пүрэв",ymd:null},{text:"Ням гариг",ymd:null}]}},new Date("2026-09-09T23:00:00Z"));
+  assert.equal(shortWeekdays.length,24);
+  assert.equal(shortWeekdays[0].start,"2026-09-10T00:00:00.000Z");
+  assert.equal(shortWeekdays[1].start,"2026-09-13T00:00:00.000Z");
+  assert.deepEqual(websiteDepartures({...trip,departure_dates:["Хугацаа тодорхойгүй"]}),[]);
+});
+test("website departures inherit date-specific price group overrides", () => {
+  const result=websiteDepartures({...trip,extra:{
+    departure_dates_resolved:[
+      {text:"8 сарын 17",ymd:"2026-08-17"},
+      {text:"8 сарын 24",ymd:"2026-08-24"},
+    ],
+    price_groups:[
+      {dates:["8 сарын 17"],adult_price:1001000,child_price:901000,infant_price:401000},
+      {dates:["8 сарын 24"],adult_price:1201000,child_price:1001000,infant_price:401000},
+    ],
+  }},new Date("2026-07-16T04:00:00.000Z"));
+  assert.equal(result.length,2);
+  assert.equal(result[0].price,1001000);
+  assert.equal(result[0].childPrice,901000);
+  assert.equal(result[1].price,1201000);
+  assert.equal(result[1].childPrice,1001000);
+});
+test("a priced date with no supplied seat count remains open", () => {
+  const result = websiteDepartures({
+    ...trip,
+    status: "active",
+    departure_dates: ["2026-09-17"],
+  }, new Date("2026-07-16T04:00:00.000Z"));
+  assert.equal(result[0].status, "OPEN");
+  assert.equal(result[0].seatsLeft, null);
+});
+test("website calendar keeps the lowest fare when hotels share a departure", () => {
+  const result = websiteDepartures({ ...trip, extra: {
+    departure_dates_resolved: [{ text: "10 сарын 1", ymd: "2026-10-01" }],
+    price_groups: [
+      { hotel: "Delta Cove", date_keys: ["2026-10-01"], adult_price: 2790000, child_price: 2590000 },
+      { hotel: "Alpha Bay", date_keys: ["2026-10-01"], adult_price: 3290000, child_price: 3090000 },
+    ],
+  } }, new Date("2026-09-30T00:00:00Z"));
+  assert.equal(result[0].price, 2790000);
+  assert.equal(result[0].childPrice, 2590000);
+});
+test("partial metadata updates preserve visibility, prices and unrelated details", () => {
+  const existing = {customer_visible:false,price_groups:[{adult_price:123}],included_items:["Hotel"],departure_rule:"Weekly"};
+  const patch = normalizeExtraPatch({included_items:[],website_sync:{synced:true}});
+  assert.deepEqual({...existing,...patch},{...existing,included_items:[]});
+  assert.deepEqual(normalizeExtraPatch({customer_visible:false}),{customer_visible:false});
+  assert.deepEqual(normalizeExtraPatch({}),{});
+});
+test("marketing badge settings normalize and map to website metadata", () => {
+  const patch = normalizeExtraPatch({
+    marketing_badge: { sale_enabled: true, sale_label: "SUPER SALE LONG LABEL", seats_percent_left: 130 },
+  });
+  assert.deepEqual(patch, {
+    marketing_badge: { sale_enabled: true, sale_label: "SUPER SALE LONG LABEL", seats_percent_left: 100 },
+  });
+  const badge = websiteMarketingBadge({
+    ...trip,
+    seats_left: 6,
+    seats_total: 20,
+    extra: patch,
+  });
+  assert.deepEqual(badge, {
+    saleEnabled: true,
+    saleLabel: "SUPER SALE LONG LABEL",
+    seatsPercentLeft: 100,
+    seatsLeft: 6,
+    seatsTotal: 20,
+  });
+});

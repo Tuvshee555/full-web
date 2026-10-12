@@ -1,0 +1,308 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import {
+  buildDepartureDateAvailabilityReply,
+  buildTemporalPromptContext,
+  filterFutureDepartureDates,
+  hasDepartureDateAvailabilityIntent,
+  parseDepartureDateText,
+  parseTripDepartureDateText,
+  resolveDepartureDatesAtWrite,
+  resolveRequestedMonth,
+  resolveRequestedDate,
+} from "../src/lib/travelDates";
+import type { TravelTrip } from "../src/lib/travelOps";
+
+const NOW_IN_MONGOLIA = new Date("2026-05-30T04:00:00.000Z");
+
+function trip(fields: Partial<TravelTrip>): TravelTrip {
+  return {
+    id: "trip-1",
+    category: "Outbound",
+    operator_name: "Uudam Travel",
+    route_name: "Вэлмор аялал",
+    duration_text: "4 өдөр",
+    adult_price: 2500000,
+    child_price: null,
+    infant_price: null,
+    currency: "MNT",
+    departure_dates: [],
+    seats_total: 20,
+    seats_left: 6,
+    has_food: true,
+    status: "active",
+    notes: "",
+    hotel: "",
+    source_description: "",
+    photo_urls: [],
+    extra: {},
+    created_at: "",
+    updated_at: "",
+    ...fields,
+  };
+}
+
+test("resolves margaash/tomorrow against Mongolia time", () => {
+  const requested = resolveRequestedDate(
+    "margaash garah aylal baina uu",
+    NOW_IN_MONGOLIA,
+  );
+
+  assert.equal(requested?.ymd, "2026-05-31");
+  assert.equal(requested?.label, "маргааш");
+});
+
+test("parses common stored departure date formats", () => {
+  assert.deepEqual(parseDepartureDateText("2026.05.31", NOW_IN_MONGOLIA), [
+    "2026-05-31",
+  ]);
+  assert.deepEqual(parseDepartureDateText("5 сарын 31", NOW_IN_MONGOLIA), [
+    "2026-05-31",
+  ]);
+});
+
+test("answers direct tomorrow availability from active trip dates", () => {
+  const reply = buildDepartureDateAvailabilityReply({
+    userText: "маргааш гарах аялал байна уу",
+    now: NOW_IN_MONGOLIA,
+    trips: [
+      trip({ departure_dates: ["2026-05-31"] }),
+      trip({
+        id: "cancelled",
+        route_name: "Цуцлагдсан аялал",
+        departure_dates: ["2026-05-31"],
+        status: "cancelled",
+      }),
+    ],
+  });
+
+  assert.match(reply || "", /Тийм ээ/);
+  assert.match(reply || "", /маргааш буюу 5 сарын 31/);
+  assert.match(reply || "", /Вэлмор аялал/);
+  assert.doesNotMatch(reply || "", /Цуцлагдсан/);
+});
+
+test("missing target date suggests upcoming departures without dead-end wording", () => {
+  const reply = buildDepartureDateAvailabilityReply({
+    userText: "tomorrow departure available?",
+    now: NOW_IN_MONGOLIA,
+    trips: [trip({ departure_dates: ["2026-06-02"] })],
+  });
+
+  assert.match(reply || "", /ойрхон гарах хувилбарууд/);
+  assert.match(reply || "", /6 сарын 2/);
+  assert.doesNotMatch(reply || "", /2026-06-02|MNT|Uudam Travel/);
+  assert.doesNotMatch(reply || "", /алга байна|ямар огноо|тодруулах/i);
+});
+
+test("direct date availability with no usable trips goes to silent handoff", () => {
+  const reply = buildDepartureDateAvailabilityReply({
+    userText: "margaash garah aylal baina uu",
+    now: NOW_IN_MONGOLIA,
+    trips: [],
+  });
+
+  assert.equal(reply, "REFER");
+});
+
+test("recognizes date availability even when the user also wants to book", () => {
+  assert.equal(
+    hasDepartureDateAvailabilityIntent(
+      "margaash garah aylal baina uu zahialah gesen yum",
+      NOW_IN_MONGOLIA,
+    ),
+    true,
+  );
+});
+
+test("date availability intent does not steal date-specific price questions", () => {
+  assert.equal(
+    hasDepartureDateAvailabilityIntent(
+      "Торвал Нордэн 5 өдөр 8 сарын 24-нд хэд вэ?",
+      NOW_IN_MONGOLIA,
+    ),
+    false,
+  );
+});
+
+test("broad month availability lists options instead of picking one trip", () => {
+  const now = new Date("2026-07-08T04:00:00.000Z");
+  const reply = buildDepartureDateAvailabilityReply({
+    userText: "7 сард явах аялал байна уу",
+    now,
+    trips: [
+      trip({
+        id: "velmor",
+        route_name: "Вэлмор газрын аялал",
+        adult_price: 1790000,
+        departure_dates: ["7 сарын 9", "7 сарын 17"],
+      }),
+      trip({
+        id: "kardan",
+        route_name: "Кардан далайтай аялал",
+        adult_price: 1160000,
+        departure_dates: ["7 сарын 16", "8 сарын 1"],
+      }),
+    ],
+  });
+
+  assert.match(reply || "", /7 сар/);
+  assert.match(reply || "", /Вэлмор газрын аялал/);
+  assert.match(reply || "", /Кардан далайтай аялал/);
+  assert.match(reply || "", /Аль чиглэл/);
+});
+
+test("resolves broad month request without stealing exact day requests", () => {
+  const now = new Date("2026-07-08T04:00:00.000Z");
+  assert.deepEqual(resolveRequestedMonth("7 сард явах аялал байна уу", now), {
+    year: 2026,
+    month: 7,
+    label: "7 сар",
+  });
+  assert.equal(resolveRequestedMonth("7 сарын 9-нд явах аялал байна уу", now), null);
+});
+
+test("resolves relative and English month availability requests", () => {
+  const now = new Date("2026-07-26T04:00:00.000Z");
+
+  assert.deepEqual(resolveRequestedMonth("энэ сард ямар аялал байна", now), {
+    year: 2026,
+    month: 7,
+    label: "7 сар",
+  });
+  assert.deepEqual(resolveRequestedMonth("ирэх сарын аяллууд", now), {
+    year: 2026,
+    month: 8,
+    label: "8 сар",
+  });
+  assert.deepEqual(resolveRequestedMonth("next month trips", now), {
+    year: 2026,
+    month: 8,
+    label: "8 сар",
+  });
+  assert.deepEqual(resolveRequestedMonth("October trips", now), {
+    year: 2026,
+    month: 10,
+    label: "10 сар",
+  });
+  assert.equal(hasDepartureDateAvailabilityIntent("October trips", now), true);
+});
+
+test("prompt context tells the model what tomorrow means", () => {
+  const context = buildTemporalPromptContext("margaash?", NOW_IN_MONGOLIA);
+
+  assert.match(context, /Current date .*2026-05-30/);
+  assert.match(context, /tomorrow.*2026-05-31/);
+  assert.match(context, /requested date resolves to 2026-05-31/);
+});
+
+test("trip-date parsing keeps bare month/day in the CURRENT year (no roll-forward)", () => {
+  // 2026-05-30 in Mongolia: "3 сарын 8" on a stored trip is March 2026 (past),
+  // never March 2027 — roll-forward here made stale trips look bookable.
+  assert.deepEqual(parseTripDepartureDateText("3 сарын 8", NOW_IN_MONGOLIA), ["2026-03-08"]);
+  assert.deepEqual(parseTripDepartureDateText("2026 он 7 сар 7", NOW_IN_MONGOLIA), ["2026-07-07"]);
+});
+
+test("filterFutureDepartureDates drops past dates, keeps future and recurring text", () => {
+  const filtered = filterFutureDepartureDates(
+    [
+      "3 сарын 8", // past (March 2026 vs now = May 30, 2026)
+      "6 сарын 10", // future
+      "Пүрэв гараг бүр", // recurring — always kept
+      "аяллын групп бүрдсэн огноогоор", // flexible — always kept
+      "2026-05-30", // today — kept
+      "2025-12-01", // explicit past year — dropped
+    ],
+    NOW_IN_MONGOLIA,
+  );
+  assert.deepEqual(filtered, [
+    "6 сарын 10",
+    "Пүрэв гараг бүр",
+    "аяллын групп бүрдсэн огноогоор",
+    "2026-05-30",
+  ]);
+});
+
+test("resolveDepartureDatesAtWrite freezes bare dates with roll-forward from write time", () => {
+  // In July 2026: "1 сарын 15" is next January (2027), "8 сарын 1" is this August.
+  const resolved = resolveDepartureDatesAtWrite(
+    ["1 сарын 15", "8 сарын 1", "Пүрэв гараг бүр"],
+    new Date("2026-07-04T04:00:00.000Z"),
+  );
+  assert.deepEqual(resolved, [
+    { text: "1 сарын 15", ymd: "2027-01-15" },
+    { text: "8 сарын 1", ymd: "2026-08-01" },
+    { text: "Пүрэв гараг бүр", ymd: null }, // recurring — no calendar date
+  ]);
+});
+
+test("resolveDepartureDatesAtWrite still rolls a recently-passed date forward a full year (grace window does NOT apply here)", () => {
+  // Staff entering a trip a few days late: "7 сарын 2" saved on 2026-07-09.
+  // Must stay unconditional roll-forward (2027), NOT snap to this year like
+  // the live customer-query grace window does — otherwise a genuine next-year
+  // recurrence gets frozen to an already-past date and silently dropped.
+  const resolved = resolveDepartureDatesAtWrite(
+    ["7 сарын 2"],
+    new Date("2026-07-09T04:00:00.000Z"),
+  );
+  assert.deepEqual(resolved, [{ text: "7 сарын 2", ymd: "2027-07-02" }]);
+});
+
+test("resolveRequestedDate keeps a recently-passed date in the current year (live customer query)", () => {
+  // Real customer message: "7.2 nd garah aylal" asked 2026-07-09 (7 days
+  // after July 2) must resolve to 2026-07-02, not roll forward to 2027 —
+  // rolling forward here produced nonsense replies like "2027-07-02 гарах
+  // аялал алга байна" for a trip that departed a week ago.
+  const requested = resolveRequestedDate("7.2 nd garah aylal", new Date("2026-07-09T04:00:00.000Z"));
+  assert.equal(requested?.ymd, "2026-07-02");
+});
+
+test("resolveRequestedDate still rolls a far-past date forward a full year (grace window is bounded)", () => {
+  // A date more than RECENT_PAST_GRACE_DAYS in the past still means "next
+  // year" — only genuinely recent dates get the current-year reading.
+  const requested = resolveRequestedDate("1 сарын 15-нд гарах аялал байгаа юу?", new Date("2026-07-09T04:00:00.000Z"));
+  assert.equal(requested?.ymd, "2027-01-15");
+});
+
+test("resolved map keeps a genuine next-season date that text parsing would hide", () => {
+  const now = new Date("2026-07-04T04:00:00.000Z");
+  // Without the map, "1 сарын 15" parses to 2026-01-15 (past) and is dropped.
+  assert.deepEqual(filterFutureDepartureDates(["1 сарын 15"], now), []);
+  // With the frozen write-time resolution (next January), it is kept.
+  const resolved = [{ text: "1 сарын 15", ymd: "2027-01-15" }];
+  assert.deepEqual(filterFutureDepartureDates(["1 сарын 15"], now, resolved), ["1 сарын 15"]);
+});
+
+test("resolved map still drops a frozen date that has since passed", () => {
+  const now = new Date("2026-07-04T04:00:00.000Z");
+  const resolved = [{ text: "3 сарын 8", ymd: "2026-03-08" }]; // frozen, now past
+  assert.deepEqual(filterFutureDepartureDates(["3 сарын 8"], now, resolved), []);
+});
+
+test("date availability does not resurrect a past-season trip as next year", () => {
+  // User asks for March 8 (rolls forward to 2027-03-08); the trip's stored
+  // "3 сарын 8" means March 2026 — they must NOT match.
+  const reply = buildDepartureDateAvailabilityReply({
+    userText: "3 сарын 8-нд гарах аялал байна уу",
+    now: NOW_IN_MONGOLIA,
+    trips: [trip({ departure_dates: ["3 сарын 8"] })],
+  });
+  assert.equal(reply, "REFER");
+});
+
+test("availability matches a next-season trip via its write-time resolved map", () => {
+  const now = new Date("2026-07-04T04:00:00.000Z");
+  const reply = buildDepartureDateAvailabilityReply({
+    userText: "1 сарын 15-нд гарах аялал байна уу",
+    now,
+    trips: [
+      trip({
+        route_name: "Мирвэн өвлийн аялал",
+        departure_dates: ["1 сарын 15"],
+        extra: { departure_dates_resolved: [{ text: "1 сарын 15", ymd: "2027-01-15" }] },
+      }),
+    ],
+  });
+  assert.match(reply || "", /Тийм ээ/);
+  assert.match(reply || "", /Мирвэн өвлийн аялал/);
+});

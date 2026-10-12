@@ -1,0 +1,467 @@
+import { getEnv } from "./env";
+import { isMetaOutboundDisabled, logMetaOutboundSuppressed } from "./metaOutboundKillSwitch";
+import { BOT_MESSAGE_METADATA } from "./messenger";
+import { logError, logInfo } from "./observability";
+import { isPosterPdfEndpointUrl } from "./poster/pdfUrl";
+
+const GDRIVE_VIEW_RE = /drive\.google\.com\/file\/d\/([^/?#]+)/;
+const FB_API_VERSION = "v19.0";
+
+function toCloudinaryJpegUrl(url: string): string {
+  if (!url.startsWith("https://res.cloudinary.com/")) return url;
+  if (!url.includes("/image/upload/")) return url;
+  if (url.includes("/image/upload/f_jpg,q_100/")) return url;
+  return url.replace("/image/upload/", "/image/upload/f_jpg,q_100/");
+}
+
+/** Prefer the server's own file name, so Messenger labels the trip, not an id. */
+function filenameFromDisposition(header: string | null): string {
+  if (!header) return "";
+  const encoded = /filename\*\s*=\s*UTF-8''([^;]+)/i.exec(header)?.[1];
+  const plain = /filename\s*=\s*"([^"]+)"/i.exec(header)?.[1];
+  const raw = encoded ? decodeURIComponent(encoded.trim()) : plain?.trim() || "";
+  const cleaned = raw.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim();
+  if (!cleaned || !cleaned.toLowerCase().endsWith(".pdf")) return "";
+  return cleaned.slice(0, 100);
+}
+
+/**
+ * Convert a Google Drive share/view URL to a direct-download URL and
+ * download the PDF bytes on our server (bypassing the need for Facebook's
+ * servers to access Drive, which they can't do reliably).
+ *
+ * Returns { buffer, filename } if the download is a valid PDF, or null if:
+ * - The URL resolves to an HTML page (login wall, virus-scan confirmation)
+ * - The first bytes are not %PDF
+ * - Network/timeout errors
+ */
+async function downloadPdfBuffer(
+  url: string,
+  timeoutMs = 20_000,
+): Promise<{ buffer: Buffer; filename: string } | null> {
+  let resolvedUrl = url;
+  let filename = "ayalal.pdf";
+
+  const driveMatch = GDRIVE_VIEW_RE.exec(url);
+  if (driveMatch) {
+    const fileId = driveMatch[1];
+    resolvedUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+    filename = `drive-${fileId}.pdf`;
+    logInfo("fbAttachmentUpload.gdrive_converted", { original: url, resolved: resolvedUrl });
+  }
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const resp = await fetch(resolvedUrl, {
+      signal: controller.signal,
+      headers: {
+        // Impersonate a browser so Drive serves the file directly without a confirmation page.
+        "User-Agent": "Mozilla/5.0 (compatible; TravelBot/1.0)",
+      },
+    }).finally(() => clearTimeout(timer));
+
+    if (!resp.ok) {
+      logInfo("fbAttachmentUpload.pdf_download_not_ok", { url: resolvedUrl, status: resp.status });
+      return null;
+    }
+
+    const contentType = resp.headers.get("content-type") || "";
+    if (contentType.startsWith("text/html")) {
+      // Drive login wall or virus-scan confirmation page — not a PDF.
+      logInfo("fbAttachmentUpload.pdf_download_html", { url: resolvedUrl, contentType });
+      return null;
+    }
+
+    const arrayBuf = await resp.arrayBuffer();
+    const buffer = Buffer.from(arrayBuf);
+
+    // Check PDF magic bytes.
+    if (buffer.length < 4 || buffer.slice(0, 4).toString("ascii") !== "%PDF") {
+      logInfo("fbAttachmentUpload.pdf_download_bad_magic", {
+        url: resolvedUrl,
+        header: buffer.slice(0, 4).toString("ascii"),
+        sizeBytes: buffer.length,
+      });
+      return null;
+    }
+
+    logInfo("fbAttachmentUpload.pdf_download_ok", {
+      url: resolvedUrl,
+      sizeBytes: buffer.length,
+    });
+    return { buffer, filename: filenameFromDisposition(resp.headers.get("content-disposition")) || filename };
+  } catch (err) {
+    logInfo("fbAttachmentUpload.pdf_download_error", {
+      url: resolvedUrl,
+      message: err instanceof Error ? err.message : String(err),
+    });
+    return null;
+  }
+}
+
+/**
+ * resolveAndValidatePdfUrl — kept for callers that only need to check a URL.
+ * Downloads the first bytes and checks the PDF magic header. Returns the
+ * resolved URL if valid, null otherwise.
+ */
+export async function resolveAndValidatePdfUrl(url: string): Promise<string | null> {
+  const result = await downloadPdfBuffer(url);
+  if (!result) return null;
+  // Return the resolved (possibly converted Drive) URL.
+  const driveMatch = GDRIVE_VIEW_RE.exec(url);
+  if (driveMatch) {
+    return `https://drive.google.com/uc?export=download&id=${driveMatch[1]}`;
+  }
+  return url;
+}
+
+/**
+ * Build a clean PDF filename from a trip route name.
+ */
+export function pdfFilenameFromRoute(routeName: string): string {
+  const slug = routeName
+    .replace(/[–—]/g, "-")
+    .replace(/[^a-zA-Z0-9а-яА-ЯөүёЁ\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 60);
+  return `${slug || "ayalal"}.pdf`;
+}
+
+/**
+ * Uploads a PDF to the Facebook Reusable Attachment API.
+ * Returns a permanent attachment_id that can be re-sent to any user
+ * on the same page without re-uploading. Returns null on any error so
+ * the caller (trip save) is never blocked.
+ */
+export async function uploadPdfToFacebook(
+  base64Data: string,
+  filename: string,
+): Promise<string | null> {
+  try {
+    if (isMetaOutboundDisabled()) {
+      logMetaOutboundSuppressed("fbAttachmentUpload.uploadPdfToFacebook");
+      return null;
+    }
+
+    const env = getEnv();
+    const token = env.facebookPages[0]?.token;
+    if (!token) return null;
+
+    const cleanBase64 = base64Data.includes(",")
+      ? base64Data.slice(base64Data.indexOf(",") + 1)
+      : base64Data;
+
+    const buffer = Buffer.from(cleanBase64, "base64");
+    const pdfFilename = filename.endsWith(".pdf") ? filename : `${filename}.pdf`;
+
+    const formData = new FormData();
+    formData.append(
+      "message",
+      JSON.stringify({ attachment: { type: "file", payload: { is_reusable: true } } }),
+    );
+    formData.append("filedata", new Blob([buffer], { type: "application/pdf" }), pdfFilename);
+
+    const resp = await fetch(
+      `https://graph.facebook.com/${FB_API_VERSION}/me/message_attachments?access_token=${token}`,
+      { method: "POST", body: formData },
+    );
+
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "");
+      logError("fbAttachmentUpload.failed", { status: resp.status, body: text, filename });
+      return null;
+    }
+
+    const json = (await resp.json()) as { attachment_id?: string };
+    return typeof json.attachment_id === "string" ? json.attachment_id : null;
+  } catch (err) {
+    logError("fbAttachmentUpload.error", {
+      message: err instanceof Error ? err.message : String(err),
+      filename,
+    });
+    return null;
+  }
+}
+
+/**
+ * Upload a PDF buffer directly to Facebook's attachment API.
+ * Returns an attachment_id, or null on failure.
+ */
+async function uploadPdfBufferToFacebook(
+  buffer: Buffer,
+  filename: string,
+  pageToken: string,
+): Promise<string | null> {
+  try {
+    if (isMetaOutboundDisabled()) {
+      logMetaOutboundSuppressed("fbAttachmentUpload.uploadPdfBufferToFacebook");
+      return null;
+    }
+
+    const pdfFilename = filename.endsWith(".pdf") ? filename : `${filename}.pdf`;
+    const formData = new FormData();
+    formData.append(
+      "message",
+      JSON.stringify({ attachment: { type: "file", payload: { is_reusable: true } } }),
+    );
+    const arrayBuf: ArrayBuffer = buffer.buffer instanceof ArrayBuffer
+      ? buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer
+      : new Uint8Array(buffer).buffer;
+    formData.append("filedata", new Blob([arrayBuf], { type: "application/pdf" }), pdfFilename);
+
+    const resp = await fetch(
+      `https://graph.facebook.com/${FB_API_VERSION}/me/message_attachments?access_token=${pageToken}`,
+      { method: "POST", body: formData },
+    );
+
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "");
+      logError("fbAttachmentUpload.buffer_upload_failed", {
+        status: resp.status,
+        body: text,
+        filename,
+      });
+      return null;
+    }
+
+    const json = (await resp.json()) as { attachment_id?: string };
+    return typeof json.attachment_id === "string" ? json.attachment_id : null;
+  } catch (err) {
+    logError("fbAttachmentUpload.buffer_upload_error", {
+      message: err instanceof Error ? err.message : String(err),
+      filename,
+    });
+    return null;
+  }
+}
+
+async function downloadImageBuffer(
+  url: string,
+): Promise<{ buffer: Buffer; filename: string; contentType: string } | null> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 20_000);
+    const resp = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; TravelBot/1.0)",
+      },
+    }).finally(() => clearTimeout(timer));
+
+    if (!resp.ok) {
+      logInfo("fbAttachmentUpload.image_download_not_ok", { url, status: resp.status });
+      return null;
+    }
+
+    const contentType = (resp.headers.get("content-type") || "").toLowerCase();
+    if (!contentType.startsWith("image/")) {
+      logInfo("fbAttachmentUpload.image_download_bad_type", { url, contentType });
+      return null;
+    }
+
+    const arrayBuf = await resp.arrayBuffer();
+    const buffer = Buffer.from(arrayBuf);
+    const pathname = new URL(url).pathname;
+    const filename = pathname.split("/").pop() || "trip-image";
+    return { buffer, filename, contentType };
+  } catch (err) {
+    logInfo("fbAttachmentUpload.image_download_error", {
+      url,
+      message: err instanceof Error ? err.message : String(err),
+    });
+    return null;
+  }
+}
+
+async function buildPdfFromImageUrl(
+  imageUrl: string,
+  fallbackFilename: string,
+): Promise<{ buffer: Buffer; filename: string } | null> {
+  let downloaded = await downloadImageBuffer(imageUrl);
+  if (
+    (!downloaded || (!downloaded.contentType.includes("png") && !downloaded.contentType.includes("jpeg") && !downloaded.contentType.includes("jpg"))) &&
+    imageUrl.startsWith("https://res.cloudinary.com/")
+  ) {
+    downloaded = await downloadImageBuffer(toCloudinaryJpegUrl(imageUrl));
+  }
+  if (!downloaded) return null;
+
+  try {
+    const { PDFDocument } = await import("pdf-lib");
+    const pdf = await PDFDocument.create();
+    const isPng = downloaded.contentType.includes("png");
+    const embedded = isPng
+      ? await pdf.embedPng(downloaded.buffer)
+      : await pdf.embedJpg(downloaded.buffer);
+    const width = embedded.width;
+    const height = embedded.height;
+    const page = pdf.addPage([width, height]);
+    page.drawImage(embedded, { x: 0, y: 0, width, height });
+    const bytes = await pdf.save();
+    const filename = fallbackFilename.endsWith(".pdf")
+      ? fallbackFilename
+      : `${fallbackFilename}.pdf`;
+    return { buffer: Buffer.from(bytes), filename };
+  } catch (err) {
+    logError("fbAttachmentUpload.image_pdf_build_failed", {
+      imageUrl,
+      contentType: downloaded.contentType,
+      message: err instanceof Error ? err.message : String(err),
+    });
+    return null;
+  }
+}
+
+/**
+ * Sends a previously-uploaded reusable attachment to a Messenger recipient.
+ * Returns true if the API accepted it.
+ */
+export async function sendFbFileAttachment(
+  recipientId: string,
+  attachmentId: string,
+  pageToken: string,
+): Promise<boolean> {
+  try {
+    if (isMetaOutboundDisabled()) {
+      logMetaOutboundSuppressed("fbAttachmentUpload.sendFbFileAttachment");
+      return true;
+    }
+
+    const resp = await fetch(
+      `https://graph.facebook.com/${FB_API_VERSION}/me/messages?access_token=${pageToken}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipient: { id: recipientId },
+          message: {
+            attachment: {
+              type: "file",
+              payload: { attachment_id: attachmentId },
+            },
+            // Must carry the bot tag: Meta echoes every Page-sent message back
+            // to the webhook, and an untagged echo is treated as a HUMAN
+            // operator reply, which pauses the bot for this customer. Without
+            // it, sending a program PDF silenced the bot for the next 14 days.
+            metadata: BOT_MESSAGE_METADATA,
+          },
+        }),
+      },
+    );
+    return resp.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Sends a PDF file to a Messenger recipient.
+ *
+ * For Google Drive URLs (which Facebook's servers cannot access directly),
+ * we download the PDF on our own server and re-upload it to Facebook's
+ * attachment API, then send the resulting attachment_id.
+ *
+ * For other publicly accessible URLs, we pass them directly to the
+ * Facebook URL attachment API (Facebook fetches the file itself).
+ *
+ * Returns true if the message was delivered successfully.
+ */
+export async function sendFbFileByUrl(
+  recipientId: string,
+  fileUrl: string,
+  pageToken: string,
+): Promise<boolean> {
+  if (isMetaOutboundDisabled()) {
+    logMetaOutboundSuppressed("fbAttachmentUpload.sendFbFileByUrl");
+    return true;
+  }
+
+  const isGoogleDrive = GDRIVE_VIEW_RE.test(fileUrl);
+  // Our poster endpoint renders the poster in a headless browser on a cold
+  // cache, which outlasts Facebook's own fetch. Pull the bytes ourselves and
+  // hand Facebook a finished upload instead.
+  const isRenderedPoster = isPosterPdfEndpointUrl(fileUrl);
+
+  if (isGoogleDrive || isRenderedPoster) {
+    const downloaded = await downloadPdfBuffer(fileUrl, isRenderedPoster ? 45_000 : 20_000);
+    if (!downloaded) {
+      logError(
+        isRenderedPoster
+          ? "fbAttachmentUpload.poster_render_failed"
+          : "fbAttachmentUpload.gdrive_download_failed",
+        { fileUrl },
+      );
+      return false;
+    }
+
+    const attachmentId = await uploadPdfBufferToFacebook(
+      downloaded.buffer,
+      downloaded.filename,
+      pageToken,
+    );
+    if (!attachmentId) {
+      logError(
+        isRenderedPoster
+          ? "fbAttachmentUpload.poster_upload_failed"
+          : "fbAttachmentUpload.gdrive_upload_failed",
+        { fileUrl },
+      );
+      return false;
+    }
+
+    return sendFbFileAttachment(recipientId, attachmentId, pageToken);
+  }
+
+  // Non-Drive URL: let Facebook fetch it directly (simpler, no proxy needed).
+  try {
+    const resp = await fetch(
+      `https://graph.facebook.com/${FB_API_VERSION}/me/messages?access_token=${pageToken}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipient: { id: recipientId },
+          message: {
+            attachment: {
+              type: "file",
+              payload: { url: fileUrl, is_reusable: false },
+            },
+            metadata: BOT_MESSAGE_METADATA,
+          },
+        }),
+      },
+    );
+    return resp.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function sendFbImageAsPdfByUrl(
+  recipientId: string,
+  imageUrl: string,
+  pageToken: string,
+  filenameBase: string,
+): Promise<boolean> {
+  const pdf = await buildPdfFromImageUrl(imageUrl, filenameBase);
+  if (!pdf) {
+    logError("fbAttachmentUpload.image_to_pdf_failed", { imageUrl, filenameBase });
+    return false;
+  }
+  const attachmentId = await uploadPdfBufferToFacebook(
+    pdf.buffer,
+    pdf.filename,
+    pageToken,
+  );
+  if (!attachmentId) {
+    logError("fbAttachmentUpload.image_pdf_upload_failed", {
+      imageUrl,
+      filename: pdf.filename,
+    });
+    return false;
+  }
+  return sendFbFileAttachment(recipientId, attachmentId, pageToken);
+}

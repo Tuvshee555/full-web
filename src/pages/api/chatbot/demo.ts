@@ -1,0 +1,1138 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { NextApiRequest, NextApiResponse } from "next";
+import { askOpenAI } from "../../lib/openaiProvider";
+import { askOpenAIChatParts } from "../../lib/openaiFallback";
+import {
+  buildShardedRateLimitKey,
+  getClientKey,
+  rateLimitAsync,
+} from "../../lib/rateLimit";
+import { readBusinessData } from "../../lib/businessData";
+import { appendMessage as appendConversationMessage, buildPromptParts, getHistory, hasAskedForPhone } from "../../lib/conversation";
+import { buildContextualUserText } from "../../lib/contextualText";
+import { isLikelyCatalogMaintenanceText } from "../../lib/customerTextClassification";
+import { isKnownGreetingPhrase, isThanksOnly, MID_CONVERSATION_GREETING_REPLY, THANKS_REPLY } from "../../lib/greetingPhrases";
+import { stripTripNamesForIntent } from "../../lib/customerTurn";
+import { buildCatalogListingReply } from "../../lib/catalogListing";
+import { setClarificationState } from "../../lib/clarificationState";
+import { buildTripWeatherReply, isWeatherTurn } from "../../lib/tripWeather";
+import { routeFastPathText, type FastPathRoute } from "../../lib/fastPathRouting";
+import { notInCatalogReply, tripUnderstandingEnabled, understandTripMessage } from "../../lib/tripUnderstanding";
+import { understandingModel } from "../../lib/tripUnderstandingModel";
+import { buildTripAnswerRuntime } from "../../lib/tripAnswerRuntime";
+import { verifyTripReply } from "../../lib/tripReplyVerification";
+import { presentAssistantReply } from "../../lib/chatbotReplyPolicy";
+import { recordReplyPresentation } from "../../lib/chatbotReplyTelemetry";
+import type { TripSelection } from "../../lib/tripRequest";
+import type { TravelTrip } from "../../lib/travelTypes";
+import { getCustomerMemoryText, scheduleCustomerMemoryUpdate } from "../../lib/conversationMemory";
+import { analyzeBeforeReply, buildTripIndexLines, shouldAnalyzeBeforeReply } from "../../lib/replyReasoning";
+import { fixMojibake } from "../../lib/encoding";
+import { scheduleDriveAutoSync } from "../../lib/googleDriveSync";
+import { buildContactReply, contactSettingsOf } from "../../lib/contactReplies";
+import { buildHandoffAcknowledgement, enforcePaymentNeverSelfConfirmed, enforceWebsiteForPayment, extractButtons, guardInventedBookingTerms, guardUnverifiedDates, guardUnverifiedPrices, hasPaymentClaimIntent, isReferReply, PAYMENT_VERIFICATION_DEFERRAL_REPLY, reconcilePhotoAttachmentReply, rewriteRepeatedGenericClarifier, sanitizeAssistantReply, shouldSilenceNoDataReply, stripRepeatedGreeting, WHICH_TRIP_CLARIFY_REPLY } from "../../lib/reply";
+import { findWrongTripReference } from "../../lib/tripConsistency";
+import { dbGetRecentAdminMessages, getTravelBotSettings, listTrips } from "../../lib/travelOps";
+import { hasDepartureDateAvailabilityIntent } from "../../lib/travelDates";
+import { AMBIGUOUS_REPLY_MARKER, appendLeadCaptureCta, buildAmbiguousPassengerTotalReply, buildAmbiguousTripReply, buildArchivedTripNotice, buildBudgetReply, buildClarificationButtons, buildCompareReply, buildDiscountReply, buildPriceObjectionReply, buildProgramOrStructuredReply, buildSeatsReply, buildSmartButtons, buildStandalonePriceLookupReply, buildBarePriceReply, isBarePriceMessage, buildStructuredTripReply, buildDateQuestionReply, buildGroupSizeReply, hasBudgetIntent, hasCompareIntent, hasDiscountIntent, hasSeatsIntent, hasStandalonePriceLookupIntent, hasProgramIntent, isGenericTripRequest, isStructuredTripQuestion, resolveTripFromUserMessage, sanitizeTripForCustomers, buildSoldOutPrecedenceReply } from "../../lib/travelFastPaths";
+import { extractTripPhotosForReply } from "../../lib/welcomeFlow";
+import { buildReplyMedia } from "../../lib/replyMediaPolicy";
+import { CONTACT_OPERATOR_LABEL, extractPhoneNumber, isBookingIntent, isHandoffRequest, isPhoneOnlyMessage, isQuickInfoKeyword } from "../../lib/webhookMedia";
+import { getEnv } from "../../lib/env";
+import {
+  beginRequestTrace,
+  classifyError,
+  finishRequestTrace,
+  hashIdentifier,
+  logError,
+  logInfo,
+  recordCounter,
+} from "../../lib/observability";
+
+const env = getEnv();
+const DEMO_MAX_TEXT_CHARS = env.demoMaxTextChars;
+const DEMO_GLOBAL_LIMIT = env.demoGlobalRateLimit;
+const DEMO_CONVERSATION_ID_PATTERN = /^[a-zA-Z0-9_-]{16,80}$/;
+
+// English-demo counterpart of CONTACT_OPERATOR_LABEL — the label the English
+// demo UI renders for its contact button.
+const CONTACT_OPERATOR_LABEL_EN = "👤 Talk to a human";
+
+type DemoMedia = {
+  mediaUrls: string[];
+  brochureUrl: string | null;
+};
+
+function normalizeConversationId(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!DEMO_CONVERSATION_ID_PATTERN.test(trimmed)) return null;
+  return trimmed;
+}
+
+function isLocalQaRequest(req: NextApiRequest): boolean {
+  if (process.env.NODE_ENV === "production") return false;
+  const marker = req.headers["x-uudam-demo-qa"];
+  return marker === "1" || marker === "true";
+}
+
+function imageAttachments(urls: string[]) {
+  return urls.map((url) => ({ type: "image" as const, url }));
+}
+
+function shouldHandoffSilently(reply: string) {
+  return isReferReply(reply) || shouldSilenceNoDataReply(reply);
+}
+
+function localizeEnglishDemoReply(reply: string): string {
+  return reply
+    .replace(/Утасны дугаараа үлдээвэл манай аяллын зөвлөх тан руу шууд залгана 🙌\.?/g, "If you leave your phone number, our travel consultant will call you directly 🙌.")
+    .replace(/Том хүн:/g, "Adult:")
+    .replace(/Хүүхэд:/g, "Child:")
+    .replace(/Нярай:/g, "Infant:")
+    .replace(/Гарах:/g, "Departure:")
+    .replace(/Үнэ:/g, "Price:")
+    .replace(/(\d+)\s*өдөр\s*\/\s*(\d+)\s*шөнө/g, "$1 days / $2 nights")
+    .replace(/(\d+)\s*өдөр/g, "$1 days")
+    .replace(/(\d+)\s*шөнө/g, "$1 nights");
+}
+
+function buildDemoMedia(input: {
+  reply: string;
+  userText: string;
+  trips: Awaited<ReturnType<typeof listTrips>>;
+  explicitMediaUrls?: string[];
+  brochureUrl?: string | null;
+}): DemoMedia {
+  return buildReplyMedia(input);
+}
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
+  const trace = beginRequestTrace({
+    route: "api.demo",
+    method: req.method,
+    url: req.url,
+    headers: req.headers,
+    setHeader: (name, value) => res.setHeader(name, value),
+  });
+
+  try {
+    if (req.method === "GET") {
+      const settings = await getTravelBotSettings();
+      return res.status(200).json({ pinned_buttons: settings.chat_buttons });
+    }
+
+    if (req.method !== "POST") {
+      return res.status(405).end();
+    }
+
+    const { text, conversationId, lang } = req.body || {};
+    if (typeof text !== "string") return res.status(400).json({ error: "missing text" });
+    // English demo mode: the public landing page serves English-speaking
+    // evaluators. Same catalog, same history, same guards — only the reply
+    // language and the deterministic strings change.
+    const isEnglishDemo = lang === "en";
+
+    const normalizedText = text.trim();
+    if (!normalizedText) return res.status(400).json({ error: "missing text" });
+    if (normalizedText.length > DEMO_MAX_TEXT_CHARS) {
+      return res.status(413).json({ error: "text_too_long", max: DEMO_MAX_TEXT_CHARS });
+    }
+
+    const clientKey = getClientKey(req);
+    const clientHash = hashIdentifier(clientKey);
+    const normalizedConversationId = normalizeConversationId(conversationId);
+    if (!normalizedConversationId) {
+      return res.status(400).json({ error: "invalid_conversation_id" });
+    }
+    const qaBypassRateLimit = isLocalQaRequest(req);
+
+    if (!qaBypassRateLimit) {
+      const key = `demo:${clientKey}`;
+      const limit = await rateLimitAsync(key, 30, 5 * 60 * 1000); // 30 requests per 5 minutes per IP
+      if (!limit.allowed) {
+        recordCounter("abuse.rate_limited_total", 1, {
+          route: "api.demo",
+          scope: "client",
+        });
+        return res.status(429).json({
+          error: "rate_limited",
+          reset: limit.reset,
+        });
+      }
+
+      const shardKey = buildShardedRateLimitKey("demo:global", clientKey, 32);
+      const shardLimit = await rateLimitAsync(
+        shardKey,
+        DEMO_GLOBAL_LIMIT,
+        60 * 1000,
+      );
+      if (!shardLimit.allowed) {
+        recordCounter("abuse.rate_limited_total", 1, {
+          route: "api.demo",
+          scope: "global_shard",
+        });
+        return res.status(429).json({
+          error: "server_busy",
+          reset: shardLimit.reset,
+        });
+      }
+
+      const globalLimit = await rateLimitAsync(
+        "demo:global:all",
+        DEMO_GLOBAL_LIMIT * 32,
+        60 * 1000,
+      );
+      if (!globalLimit.allowed) {
+        recordCounter("abuse.rate_limited_total", 1, {
+          route: "api.demo",
+          scope: "global_all",
+        });
+        return res.status(429).json({
+          error: "server_busy",
+          reset: globalLimit.reset,
+        });
+      }
+    }
+
+    try {
+      scheduleDriveAutoSync({ source: "api.demo" });
+      const { systemPrompt, business, pinnedButtonLabels } = await readBusinessData();
+      // Same settings the production webhook reads — lets the test bot mirror
+      // the config-driven branches (handoff keywords, quick-info reply, the
+      // booking nudge) instead of silently diverging into the model.
+      const botSettings = await getTravelBotSettings();
+      const sessionId = `demo:${normalizedConversationId}`;
+      let factualScope: TravelTrip[] | null = null;
+      let currentSelection: TripSelection | null = null;
+      let approvedPlanReply: string | null = null;
+      const checkedReply = (reply: string) => {
+        const presented = presentAssistantReply({ reply, userText: normalizedText,
+          hasPriorReply: history.some((message) => message.role === "assistant"), phoneAlreadyRequested });
+        return factualScope && reply !== approvedPlanReply
+          ? verifyTripReply({ reply: presented, trips: factualScope, selection: currentSelection }) : presented;
+      };
+      const appendMessage = (...args: Parameters<typeof appendConversationMessage>) => {
+        if (args[1] === "assistant") {
+          args[2] = checkedReply(args[2]);
+          if (isReferReply(args[2])) {
+            args[2] = buildHandoffAcknowledgement();
+            args[3] = undefined;
+          }
+        }
+        return appendConversationMessage(...args);
+      };
+      const sendJson = res.json.bind(res);
+      res.json = (body) => {
+        if (body && typeof body.reply === "string") {
+          const reply = checkedReply(body.reply);
+          if (isReferReply(reply)) {
+            recordCounter("demo.factual_reply_rejected_total", 1, {});
+            return sendJson({ reply: buildHandoffAcknowledgement(), buttons: [], mediaUrls: [], brochureUrl: null, handoff: true });
+          }
+          recordReplyPresentation({ reply, userText: normalizedText, path: "demo", latencyMs: Date.now() - trace.startedAtMs });
+          return sendJson({ ...body, reply });
+        }
+        return sendJson(body);
+      };
+      const history = await getHistory(sessionId);
+      const detectedPhone = extractPhoneNumber(normalizedText);
+      const phoneCollected =
+        Boolean(detectedPhone) ||
+        history.some(
+          (message) => message.role === "user" && extractPhoneNumber(message.text),
+        );
+      const phoneAlreadyRequested = phoneCollected || hasAskedForPhone(history);
+      const customerMemory = await getCustomerMemoryText(sessionId);
+      // Non-blocking memory merge — same as production Messenger.
+      const rememberTurn = () =>
+        scheduleCustomerMemoryUpdate({
+          senderId: sessionId,
+          requestId: trace.requestId,
+          correlationId: trace.correlationId,
+          source: "api.demo",
+        });
+      const returnHandoff = async (options: { aiOutage?: boolean } = {}) => {
+        const reply = isEnglishDemo
+          ? options.aiOutage
+            ? "Our AI assistant is briefly unavailable 🙏 In production a staff member would take over right here — please try again in a minute."
+            : "I passed this to our travel consultant so they can check the exact information and reply here 🙏"
+          : buildHandoffAcknowledgement(options);
+        await appendMessage(sessionId, "assistant", reply);
+        await rememberTurn();
+        return res.status(200).json({
+          reply,
+          buttons: [],
+          mediaUrls: [],
+          brochureUrl: null,
+          handoff: true,
+        });
+      };
+
+      // Keep the local test bot aligned with Messenger: when the customer is
+      // answering the phone-number ask, acknowledge it deterministically
+      // instead of sending the bare number through trip matching.
+      if (detectedPhone && isPhoneOnlyMessage(normalizedText)) {
+        const confirmation = isEnglishDemo
+          ? `Thank you! 🙌 Our travel consultant will contact you at ${detectedPhone} shortly. ` +
+            "Feel free to ask anything else 😊"
+          : `Баярлалаа! 🙌 Манай аяллын зөвлөх таны ${detectedPhone} дугаарт удахгүй холбогдоно. ` +
+            "Өөр асуух зүйл байвал чөлөөтэй бичээрэй 😊";
+        await appendMessage(sessionId, "user", normalizedText);
+        await appendMessage(sessionId, "assistant", confirmation);
+        await rememberTurn();
+        recordCounter("demo.phone_capture_confirmation_total", 1, {});
+        return res.status(200).json({
+          reply: confirmation,
+          buttons: [],
+          mediaUrls: [],
+          brochureUrl: null,
+        });
+      }
+      // A bare greeting ("hi", "сайн уу") gets a deterministic friendly reply.
+      // Without this it falls through to the model, which — when the previous
+      // turn was a multi-trip clarification — re-emits that clarification's
+      // price list on "hi" ~50% of the time (found 2026-07-22 in the
+      // 100-question sweep). A greeting asks nothing; it must never re-serve a
+      // stale trip. Mirrors the production webhook's mid-conversation greeting.
+      if (isKnownGreetingPhrase(normalizedText)) {
+        const greetingReply = isEnglishDemo
+          ? "Hello! 😊 Ask me anything about our tours — prices, departure dates, seats, meals or itineraries."
+          : MID_CONVERSATION_GREETING_REPLY;
+        await appendMessage(sessionId, "user", normalizedText);
+        await appendMessage(sessionId, "assistant", greetingReply);
+        await rememberTurn();
+        recordCounter("demo.greeting_fast_path_total", 1, {});
+        return res.status(200).json({
+          reply: greetingReply,
+          buttons: [],
+          mediaUrls: [],
+          brochureUrl: null,
+        });
+      }
+
+      // A bare thank-you asks nothing (mirrors the webhook's thanks fast path).
+      if (!isEnglishDemo && isThanksOnly(normalizedText)) {
+        await appendMessage(sessionId, "user", normalizedText);
+        await appendMessage(sessionId, "assistant", THANKS_REPLY);
+        await rememberTurn();
+        return res.status(200).json({ reply: THANKS_REPLY, buttons: [], mediaUrls: [], brochureUrl: null });
+      }
+
+      // Handoff request (contact-operator button tap or a handoff keyword):
+      // Messenger returns the configured handoff message. The production webhook
+      // also pauses the bot + creates a lead — those are side effects a text
+      // test bot deliberately doesn't reproduce; only the customer-facing reply
+      // is mirrored so testers see the real handoff wording.
+      if (
+        normalizedText === CONTACT_OPERATOR_LABEL ||
+        normalizedText === CONTACT_OPERATOR_LABEL_EN ||
+        (botSettings.handoff_enabled && isHandoffRequest(normalizedText, botSettings.handoff_keywords))
+      ) {
+        const handoffMsg = isEnglishDemo
+          ? "Got it 🤝 In production a staff member takes over the conversation right here and contacts you directly. (This public page is a demo, so no human is standing by — but this is exactly where the bot hands off.)"
+          : botSettings.handoff_reply ||
+            "Таны хүсэлтийг хүлээн авлаа. Манай ажилтан удахгүй тантай холбогдоно.";
+        await appendMessage(sessionId, "user", normalizedText);
+        await appendMessage(sessionId, "assistant", handoffMsg);
+        await rememberTurn();
+        recordCounter("demo.handoff_requested_total", 1, {});
+        return res.status(200).json({
+          reply: handoffMsg,
+          buttons: [],
+          mediaUrls: [],
+          brochureUrl: null,
+        });
+      }
+
+      // Contact / address buttons → the admin's contact settings, exactly like Messenger.
+      const contactReply = isEnglishDemo ? null : buildContactReply(normalizedText, contactSettingsOf(botSettings.extra));
+      if (contactReply) {
+        await appendMessage(sessionId, "user", normalizedText);
+        await appendMessage(sessionId, "assistant", contactReply);
+        await rememberTurn();
+        return res.status(200).json({ reply: contactReply, buttons: [], mediaUrls: [], brochureUrl: null });
+      }
+
+      // Quick-info keyword → the admin's canned reply, exactly like Messenger.
+      if (
+        !isEnglishDemo &&
+        botSettings.quick_info_reply &&
+        isQuickInfoKeyword(normalizedText, botSettings.quick_info_keywords)
+      ) {
+        await appendMessage(sessionId, "user", normalizedText);
+        await appendMessage(sessionId, "assistant", botSettings.quick_info_reply);
+        await rememberTurn();
+        recordCounter("demo.quick_info_total", 1, {});
+        return res.status(200).json({
+          reply: botSettings.quick_info_reply,
+          buttons: [],
+          mediaUrls: [],
+          brochureUrl: null,
+        });
+      }
+
+      // Reference resolution + current-message-first routing, identical to the
+      // production webhook — the demo used to skip this entirely, so QA runs
+      // never exercised the exact matching path Messenger customers hit.
+      const contextualUserText = buildContextualUserText(history, normalizedText);
+      let cachedTrips: Awaited<ReturnType<typeof listTrips>> | null = null;
+      const getTrips = async () => {
+        if (cachedTrips) return cachedTrips;
+        cachedTrips = (await listTrips({ limit: 5000 })).map(sanitizeTripForCustomers);
+        return cachedTrips;
+      };
+      // Only fetched on the miss path (nothing in the active catalogue
+      // matched), so a normal message never pays for this extra query.
+      let cachedArchivedTrips: Awaited<ReturnType<typeof listTrips>> | null = null;
+      const getArchivedTrips = async () => {
+        if (cachedArchivedTrips) return cachedArchivedTrips;
+        cachedArchivedTrips = await listTrips({ status: "archived", limit: 500 });
+        return cachedArchivedTrips;
+      };
+      let routedCache: FastPathRoute | null = null;
+      const getRouted = async (): Promise<FastPathRoute> => {
+        if (routedCache !== null) return routedCache;
+        routedCache = await routeFastPathText({
+          senderId: sessionId,
+          text: normalizedText,
+          contextualUserText,
+          history,
+          trips: await getTrips(),
+          understand: tripUnderstandingEnabled()
+            ? async (pendingTripIds, selection) =>
+                understandTripMessage({ text: normalizedText, history, trips: await getTrips(), pendingTripIds, selection, ask: understandingModel(trace) })
+            : undefined,
+        });
+        currentSelection = routedCache.selection || null;
+        factualScope = routedCache.chosenTripId
+          ? (await getTrips()).filter((trip) => trip.id === routedCache?.chosenTripId)
+          : routedCache.scopedClarify || routedCache.understanding?.trips || [];
+        return routedCache;
+      };
+      const getFastPathText = async (): Promise<string> => (await getRouted()).matchText;
+      // Same as the webhook: intent comes from the customer's words, trip names removed.
+      const intentText = stripTripNamesForIntent(normalizedText, await getTrips());
+
+      if (isLikelyCatalogMaintenanceText(normalizedText)) {
+        await appendMessage(sessionId, "user", normalizedText);
+        await rememberTurn();
+        recordCounter("demo.catalog_note_suppressed_total", 1, {});
+        return res.status(200).json({
+          reply: "",
+          buttons: [],
+          mediaUrls: [],
+          brochureUrl: null,
+          handoff: true,
+          silent: true,
+        });
+      }
+
+      // A payment/booking confirmation claim ("5 сая шилжүүлсэн") must be
+      // acknowledged BEFORE any trip/date/price fast-path runs — those are
+      // blind text/number matchers and were hijacking payment claims into an
+      // unrelated trip reply (a bare number like "5" or "8" in "5 сая" /
+      // "8 сая" matched a trip alias or month availability instead).
+      if (hasPaymentClaimIntent(normalizedText)) {
+        const deferralReply = enforceWebsiteForPayment(
+          sanitizeAssistantReply(PAYMENT_VERIFICATION_DEFERRAL_REPLY),
+        );
+        await appendMessage(sessionId, "user", normalizedText);
+        await appendMessage(sessionId, "assistant", deferralReply);
+        await rememberTurn();
+        recordCounter("demo.payment_claim_deferred_total", 1, {});
+        return res.status(200).json({ reply: deferralReply, buttons: [] });
+      }
+
+      // English demo: every deterministic fast path below is a Mongolian
+      // reply builder, and some of their intent matchers fire on English
+      // input too (buildBudgetReply matches "cheapest"/"most expensive";
+      // catalog aliases can carry Latin script) — which answered an English
+      // question in Mongolian on the live page. Route English questions
+      // straight to the model instead; the AI path keeps the same guards
+      // (wrong-trip suppression, REFER handoff, payment enforcement).
+      if (!isEnglishDemo) {
+      // Generic price objections must run before route matching. Otherwise a
+      // plain complaint can match a trip note that happens to contain "unetei".
+      {
+        const objectionReply = buildPriceObjectionReply(normalizedText);
+        if (objectionReply) {
+          const safeReply = enforceWebsiteForPayment(sanitizeAssistantReply(objectionReply));
+          await appendMessage(sessionId, "user", normalizedText);
+          await appendMessage(sessionId, "assistant", safeReply);
+          await rememberTurn();
+          recordCounter("demo.price_objection_fast_path_total", 1, {});
+          return res.status(200).json({ reply: safeReply, buttons: [] });
+        }
+      }
+
+      // Compare questions mention multiple destinations on purpose. Let the
+      // comparison fast path answer before scoped clarification narrows to one
+      // destination family and turns "A уу B уу?" into "which A variant?".
+      {
+        const route = await getRouted();
+        const plan = await buildTripAnswerRuntime({ text: normalizedText, trips: await getTrips(), route });
+        if (plan) {
+          const reply = enforceWebsiteForPayment(sanitizeAssistantReply(plan.reply));
+          approvedPlanReply = reply;
+          await appendMessage(sessionId, "user", normalizedText);
+          if (plan.status === "handoff") return returnHandoff();
+          const media = buildDemoMedia({ reply, userText: normalizedText, trips: factualScope || [], explicitMediaUrls: plan.mediaUrls, brochureUrl: plan.brochureUrl });
+          await appendMessage(sessionId, "assistant", reply, imageAttachments(media.mediaUrls));
+          await rememberTurn();
+          recordCounter("demo.answer_plan_total", 1, { status: plan.status });
+          if (plan.missingTopics.length) recordCounter("demo.answer_plan_missing_topics_total", plan.missingTopics.length, {});
+          return res.status(200).json({ reply, buttons: plan.status === "clarify" ? [] : buildSmartButtons(reply, factualScope || []) || [], ...media });
+        }
+      }
+      if (hasCompareIntent(intentText)) {
+        const trips = await getTrips();
+        const compareReply = buildCompareReply(await getFastPathText(), trips);
+        if (compareReply) {
+          const safeReply = appendLeadCaptureCta(
+            enforceWebsiteForPayment(sanitizeAssistantReply(compareReply)),
+            phoneAlreadyRequested,
+          );
+          await appendMessage(sessionId, "user", normalizedText);
+          if (shouldHandoffSilently(safeReply)) return returnHandoff();
+          await appendMessage(sessionId, "assistant", safeReply);
+          await rememberTurn();
+          recordCounter("demo.compare_fast_path_total", 1, {});
+          return res.status(200).json({ reply: safeReply, buttons: [] });
+        }
+      }
+
+      // Answer fits several offered candidates — re-ask scoped to exactly
+      // those (mirrors the production webhook).
+      {
+        const routed = await getRouted();
+        if (routed.scopedClarify && routed.scopedClarify.length > 0) {
+          const totalReply = buildAmbiguousPassengerTotalReply(await getFastPathText(), routed.scopedClarify);
+          const clarifyBody = routed.scopedClarifyNote
+            ? totalReply
+              ? `${routed.scopedClarifyNote}\n${totalReply}`
+              : buildAmbiguousTripReply(
+                  routed.scopedClarify,
+                  routed.scopedClarifyNote,
+                  { askToChoose: !routed.informationalAlternatives },
+                )
+            : totalReply || buildAmbiguousTripReply(routed.scopedClarify);
+          const clarifyReply = enforceWebsiteForPayment(
+            sanitizeAssistantReply(clarifyBody),
+          );
+          await appendMessage(sessionId, "user", normalizedText);
+          await appendMessage(sessionId, "assistant", clarifyReply);
+          await rememberTurn();
+          recordCounter("demo.scoped_clarify_total", 1, {});
+          return res.status(200).json({
+            reply: clarifyReply,
+            buttons: routed.informationalAlternatives
+              ? undefined
+              : buildClarificationButtons(routed.scopedClarify),
+          });
+        }
+        if (routed.notInCatalog) {
+          const reply = notInCatalogReply(routed.notInCatalog);
+          await appendMessage(sessionId, "user", normalizedText);
+          await appendMessage(sessionId, "assistant", reply);
+          await rememberTurn();
+          recordCounter("demo.not_in_catalog_total", 1, {});
+          return res.status(200).json({ reply });
+        }
+      }
+
+      // Mirrors the webhook: weather from the booking website's own report.
+      if (isWeatherTurn(intentText, history)) {
+        const weather = await buildTripWeatherReply(await getFastPathText(), await getTrips(), undefined, (await getRouted()).chosenTripId, intentText);
+        if (weather.kind === "clarify") await setClarificationState(sessionId, weather.candidates.map((t) => t.id));
+        const weatherReply = sanitizeAssistantReply(weather.reply);
+        await appendMessage(sessionId, "user", normalizedText);
+        await appendMessage(sessionId, "assistant", weatherReply);
+        await rememberTurn();
+        recordCounter("demo.weather_fast_path_total", 1, {});
+        return res.status(200).json({
+          reply: weatherReply,
+          buttons: weather.kind === "clarify" ? buildClarificationButtons(weather.candidates) : [],
+        });
+      }
+
+      // Mirrors the webhook: a trip the customer named that is sold out, and a
+      // question about the catalog when no trip is named.
+      {
+        const soldOutReply = buildSoldOutPrecedenceReply(normalizedText, await getTrips());
+        const listing = soldOutReply ? null : buildCatalogListingReply(intentText, await getTrips());
+        const listingApplies = listing && (
+          listing.authoritative === true ||
+          resolveTripFromUserMessage(await getFastPathText(), await getTrips(), { allowLooseFallback: false }).status === "not_found"
+        );
+        if (soldOutReply || listingApplies) {
+          if (listingApplies) factualScope = listing!.listed;
+          if (listingApplies && listing!.listed.length > 0) {
+            await setClarificationState(sessionId, listing!.listed.map((trip) => trip.id));
+          }
+          const safeReply = enforceWebsiteForPayment(sanitizeAssistantReply(soldOutReply || listing!.reply));
+          await appendMessage(sessionId, "user", normalizedText);
+          await appendMessage(sessionId, "assistant", safeReply);
+          await rememberTurn();
+          return res.status(200).json({
+            reply: soldOutReply ? appendLeadCaptureCta(safeReply, phoneAlreadyRequested) : safeReply,
+            buttons: listingApplies ? buildClarificationButtons(listing!.listed) : [],
+          });
+        }
+      }
+
+      // Broad structured questions ("<хот> аялал хэд вэ?") should clarify
+      // from the DB when several active trips match. Do not send these to the
+      // model and risk a silent REFER.
+      {
+        const fastPathText = await getFastPathText();
+        if (isStructuredTripQuestion(intentText)) {
+          const archivedNotice = buildArchivedTripNotice(
+            fastPathText,
+            await getArchivedTrips(),
+          );
+          if (archivedNotice) {
+            const safeReply = appendLeadCaptureCta(
+              enforceWebsiteForPayment(sanitizeAssistantReply(archivedNotice.reply)),
+              phoneAlreadyRequested,
+            );
+            await appendMessage(sessionId, "user", normalizedText);
+            await appendMessage(sessionId, "assistant", safeReply);
+            await rememberTurn();
+            recordCounter("demo.archived_trip_notice_total", 1, {});
+            return res.status(200).json({
+              reply: safeReply,
+              buttons: [],
+              mediaUrls: [],
+              brochureUrl: null,
+            });
+          }
+          const resolution = resolveTripFromUserMessage(fastPathText, await getTrips(), {
+            allowLooseFallback: false,
+          });
+          if (resolution.status === "ambiguous" && resolution.candidates.length > 1) {
+            // Mirrors the webhook fix: remember exactly the list shown, so a
+            // numbered/named answer on the next turn resolves against it.
+            await setClarificationState(sessionId, resolution.candidates.map((trip) => trip.id));
+            const totalReply = buildAmbiguousPassengerTotalReply(fastPathText, resolution.candidates);
+            const clarifyReply = enforceWebsiteForPayment(
+              sanitizeAssistantReply(totalReply || buildAmbiguousTripReply(resolution.candidates)),
+            );
+            await appendMessage(sessionId, "user", normalizedText);
+            await appendMessage(sessionId, "assistant", clarifyReply);
+            await rememberTurn();
+            recordCounter("demo.structured_clarify_total", 1, {});
+            return res.status(200).json({
+              reply: clarifyReply,
+              buttons: buildClarificationButtons(resolution.candidates),
+            });
+          }
+          if (
+            resolution.status === "not_found" &&
+            !hasDepartureDateAvailabilityIntent(intentText) &&
+            !hasCompareIntent(intentText) &&
+            !hasBudgetIntent(intentText) &&
+            !hasDiscountIntent(intentText) &&
+            !hasSeatsIntent(intentText)
+          ) {
+            recordCounter("demo.structured_trip_not_found_total", 1, {});
+            // No destination named at all ("Үнэ", "Хөтөлбөр"): ask which trip,
+            // exactly like the webhook.
+            if (isGenericTripRequest(normalizedText)) {
+              await appendMessage(sessionId, "user", normalizedText);
+              await appendMessage(sessionId, "assistant", WHICH_TRIP_CLARIFY_REPLY);
+              await rememberTurn();
+              return res.status(200).json({ reply: WHICH_TRIP_CLARIFY_REPLY, buttons: [] });
+            }
+            return returnHandoff();
+          }
+        }
+      }
+
+      // Fast path: departure date availability
+      if (hasDepartureDateAvailabilityIntent(intentText) && !hasProgramIntent(intentText)) {
+        const trips = await getTrips();
+        const dateReply = buildDateQuestionReply(intentText, await getFastPathText(), trips);
+        if (dateReply) {
+          // Mirror the webhook: a booking-intent date question gets nudged for
+          // name + phone so the answer ends the same way Messenger's does.
+          const bookingNudge =
+            botSettings.handoff_enabled && isBookingIntent(normalizedText)
+              ? " Захиалгаа баталгаажуулах бол нэр, утасны дугаараа үлдээгээрэй."
+              : "";
+          const safeReply = appendLeadCaptureCta(
+            enforceWebsiteForPayment(sanitizeAssistantReply(fixMojibake(`${dateReply}${bookingNudge}`))),
+            phoneAlreadyRequested,
+          );
+          await appendMessage(sessionId, "user", normalizedText);
+          if (shouldHandoffSilently(safeReply)) return returnHandoff();
+          await appendMessage(sessionId, "assistant", safeReply);
+          await rememberTurn();
+          recordCounter("demo.date_fast_path_total", 1, {});
+          return res.status(200).json({
+            reply: safeReply,
+            buttons: buildSmartButtons(safeReply, trips) || [],
+          });
+        }
+      }
+
+      // Fast path: seats availability
+      // Fast path: group size after a trip ("11-13хүн байна") — mirrors the webhook.
+      {
+        const trips = await getTrips();
+        const groupReply = buildGroupSizeReply(await getFastPathText(), trips);
+        if (groupReply) {
+          const safeReply = appendLeadCaptureCta(sanitizeAssistantReply(groupReply), phoneAlreadyRequested);
+          await appendMessage(sessionId, "user", normalizedText);
+          await appendMessage(sessionId, "assistant", safeReply);
+          await rememberTurn();
+          recordCounter("demo.group_size_total", 1, {});
+          return res.status(200).json({ reply: safeReply, buttons: buildSmartButtons(safeReply, trips) || [] });
+        }
+      }
+
+      if (hasSeatsIntent(intentText)) {
+        const trips = await getTrips();
+        const seatsReply = buildSeatsReply(await getFastPathText(), trips);
+        if (seatsReply) {
+          const safeReply = appendLeadCaptureCta(
+            enforceWebsiteForPayment(sanitizeAssistantReply(seatsReply)),
+            phoneAlreadyRequested,
+          );
+          await appendMessage(sessionId, "user", normalizedText);
+          if (shouldHandoffSilently(safeReply)) return returnHandoff();
+          await appendMessage(sessionId, "assistant", safeReply);
+          await rememberTurn();
+          recordCounter("demo.seats_fast_path_total", 1, {});
+          return res.status(200).json({
+            reply: safeReply,
+            buttons: buildSmartButtons(safeReply, trips) || [],
+          });
+        }
+      }
+
+      // Fast path: cheapest / under-budget questions
+      if (hasBudgetIntent(intentText)) {
+        const trips = await getTrips();
+        const budgetReply = buildBudgetReply(await getFastPathText(), trips);
+        if (budgetReply) {
+          const safeReply = appendLeadCaptureCta(
+            enforceWebsiteForPayment(sanitizeAssistantReply(budgetReply)),
+            phoneAlreadyRequested,
+          );
+          await appendMessage(sessionId, "user", normalizedText);
+          if (shouldHandoffSilently(safeReply)) return returnHandoff();
+          await appendMessage(sessionId, "assistant", safeReply);
+          await rememberTurn();
+          recordCounter("demo.budget_fast_path_total", 1, {});
+          return res.status(200).json({
+            reply: safeReply,
+            buttons: buildSmartButtons(safeReply, trips) || [],
+          });
+        }
+      }
+
+      // Fast path: discount query
+      if (hasDiscountIntent(intentText)) {
+        const trips = await getTrips();
+        const discountReply = buildDiscountReply(await getFastPathText(), trips);
+        if (discountReply) {
+          const safeReply = appendLeadCaptureCta(
+            enforceWebsiteForPayment(sanitizeAssistantReply(discountReply)),
+            phoneAlreadyRequested,
+          );
+          await appendMessage(sessionId, "user", normalizedText);
+          if (shouldHandoffSilently(safeReply)) return returnHandoff();
+          await appendMessage(sessionId, "assistant", safeReply);
+          await rememberTurn();
+          recordCounter("demo.discount_fast_path_total", 1, {});
+          return res.status(200).json({
+            reply: safeReply,
+            buttons: buildSmartButtons(safeReply, trips) || [],
+          });
+        }
+      }
+
+      // Fast path: standalone price lookup ("1,111,111 гэсэн аялал аль вэ?").
+      // Deterministic on purpose: a customer quoting a price and asking which
+      // trip it is must never get a DIFFERENT trip's price stated back as if
+      // it matched. When no trip's price matches, hand off rather than let
+      // the model improvise a nearby-priced trip.
+      // A message that is only a price pasted from an advert: same as the webhook.
+      if (isBarePriceMessage(normalizedText)) {
+        const trips = await getTrips();
+        const barePriceReply = buildBarePriceReply(normalizedText, trips);
+        if (barePriceReply) {
+          const safeReply = appendLeadCaptureCta(
+            enforceWebsiteForPayment(sanitizeAssistantReply(barePriceReply)),
+            phoneAlreadyRequested,
+          );
+          await appendMessage(sessionId, "user", normalizedText);
+          await appendMessage(sessionId, "assistant", safeReply);
+          await rememberTurn();
+          recordCounter("demo.bare_price_fast_path_total", 1, {});
+          return res.status(200).json({ reply: safeReply, buttons: buildSmartButtons(safeReply, trips) || [] });
+        }
+      }
+      if (hasStandalonePriceLookupIntent(intentText)) {
+        const trips = await getTrips();
+        const priceLookupReply = buildStandalonePriceLookupReply(await getFastPathText(), trips);
+        await appendMessage(sessionId, "user", normalizedText);
+        if (!priceLookupReply) {
+          recordCounter("demo.price_lookup_no_match_total", 1, {});
+          return returnHandoff();
+        }
+        const safeReply = appendLeadCaptureCta(
+          enforceWebsiteForPayment(sanitizeAssistantReply(priceLookupReply)),
+          phoneAlreadyRequested,
+        );
+        if (shouldHandoffSilently(safeReply)) return returnHandoff();
+        await appendMessage(sessionId, "assistant", safeReply);
+        await rememberTurn();
+        recordCounter("demo.price_lookup_fast_path_total", 1, {});
+        return res.status(200).json({
+          reply: safeReply,
+          buttons: buildSmartButtons(safeReply, trips) || [],
+        });
+      }
+
+      // Fast path: structured trip query (price/duration/dates/flight for a specific trip)
+      {
+        const trips = await getTrips();
+        const programFastPathText = await getFastPathText();
+        // buildProgramOrStructuredReply already falls back to the structured
+        // (price/date/duration) answer whenever the program path's only
+        // answer would be pure "no photos" silence — covers every compound
+        // "zurag + X" phrasing, not just ones containing hasPriceIntent's
+        // specific keyword set (a bare "хэд төгрөг" price ask used to still
+        // fall through to silence here).
+        const programReply = buildProgramOrStructuredReply(programFastPathText, trips);
+        if (programReply) {
+          // Mirror the webhook exactly: the reply TEXT is programReply.reply
+          // (with its own "sending the photos/PDF" footnote) — the URLs are
+          // never inlined into the bubble. Media rides as attachments, which the
+          // demo UI already renders from mediaUrls/brochureUrl below.
+          const inferredMediaUrls = programReply.mediaUrls.length > 0
+            ? programReply.mediaUrls
+            : programReply.reply.includes(AMBIGUOUS_REPLY_MARKER)
+              ? []
+              : extractTripPhotosForReply(programReply.reply, trips, { userText: programFastPathText });
+          const safeReply = appendLeadCaptureCta(
+            enforceWebsiteForPayment(
+              sanitizeAssistantReply(
+                reconcilePhotoAttachmentReply(programReply.reply, inferredMediaUrls.length > 0),
+              ),
+            ),
+            phoneAlreadyRequested,
+          );
+          const media = buildDemoMedia({
+            reply: safeReply,
+            userText: programFastPathText,
+            trips,
+            explicitMediaUrls: programReply.mediaUrls,
+            brochureUrl: programReply.brochure?.type === "url" ? programReply.brochure.value : null,
+          });
+          await appendMessage(sessionId, "user", normalizedText);
+          if (shouldHandoffSilently(safeReply)) return returnHandoff();
+          await appendMessage(sessionId, "assistant", safeReply, imageAttachments(media.mediaUrls));
+          await rememberTurn();
+          recordCounter("demo.program_fast_path_total", 1, {});
+          const programResolution = programReply.reply.includes(AMBIGUOUS_REPLY_MARKER)
+            ? resolveTripFromUserMessage(programFastPathText, trips, {
+                allowLooseFallback: false,
+              })
+            : null;
+          if (programResolution?.status === "ambiguous") {
+            await setClarificationState(sessionId, programResolution.candidates.map((trip) => trip.id));
+          }
+          const buttons =
+            programResolution?.status === "ambiguous"
+              ? buildClarificationButtons(programResolution.candidates)
+              : buildSmartButtons(safeReply, trips) || [];
+          return res.status(200).json({ reply: safeReply, buttons, ...media });
+        }
+        // The active catalogue has nothing to say — check whether the customer
+        // actually named a tour that expired (every departure date passed)
+        // rather than one we've simply never heard of, so they get told why,
+        // not silence. Mirrors the live webhook exactly.
+        const archivedNotice = buildArchivedTripNotice(
+          programFastPathText,
+          await getArchivedTrips(),
+        );
+        if (archivedNotice) {
+          const safeReply = appendLeadCaptureCta(
+            enforceWebsiteForPayment(sanitizeAssistantReply(archivedNotice.reply)),
+            phoneAlreadyRequested,
+          );
+          const media = buildDemoMedia({ reply: safeReply, userText: programFastPathText, trips });
+          await appendMessage(sessionId, "user", normalizedText);
+          if (shouldHandoffSilently(safeReply)) return returnHandoff();
+          await appendMessage(sessionId, "assistant", safeReply, imageAttachments(media.mediaUrls));
+          await rememberTurn();
+          recordCounter("demo.archived_trip_notice_total", 1, {});
+          return res.status(200).json({ reply: safeReply, buttons: [], ...media });
+        }
+        const structuredReply = buildStructuredTripReply(await getFastPathText(), trips);
+        if (structuredReply) {
+          // Same as the webhook: a "which trip?" list is checked against the trips it names.
+          if (structuredReply.includes(AMBIGUOUS_REPLY_MARKER) && factualScope) {
+            factualScope = [...new Set([...factualScope, ...trips.filter((trip) => structuredReply.includes(trip.route_name))])];
+          }
+          const safeReply = appendLeadCaptureCta(
+            enforceWebsiteForPayment(sanitizeAssistantReply(structuredReply)),
+            phoneAlreadyRequested,
+          );
+          const media = buildDemoMedia({
+            reply: safeReply,
+            userText: await getFastPathText(),
+            trips,
+          });
+          await appendMessage(sessionId, "user", normalizedText);
+          if (shouldHandoffSilently(safeReply)) return returnHandoff();
+          await appendMessage(sessionId, "assistant", safeReply, imageAttachments(media.mediaUrls));
+          await rememberTurn();
+          recordCounter("demo.structured_fast_path_total", 1, {});
+          const structuredResolution = structuredReply.includes(AMBIGUOUS_REPLY_MARKER)
+            ? resolveTripFromUserMessage(await getFastPathText(), trips, {
+                allowLooseFallback: false,
+              })
+            : null;
+          if (structuredResolution?.status === "ambiguous") {
+            await setClarificationState(sessionId, structuredResolution.candidates.map((trip) => trip.id));
+          }
+          return res.status(200).json({
+            reply: safeReply,
+            buttons: structuredReply.includes(AMBIGUOUS_REPLY_MARKER)
+              ? structuredResolution?.status === "ambiguous"
+                ? buildClarificationButtons(structuredResolution.candidates)
+                : []
+              : buildSmartButtons(safeReply, trips) || [],
+            ...media,
+          });
+        }
+      }
+
+      }
+
+      await appendMessage(sessionId, "user", normalizedText);
+
+      // Pre-answer reasoning (mirrors production webhook): analyze intent,
+      // references, and memory before the reply. Best-effort — null on failure.
+      const reasoningTrips = await getTrips().catch(() => []);
+      const reasoning = shouldAnalyzeBeforeReply(normalizedText)
+        ? await analyzeBeforeReply({
+            customerMemory,
+            history,
+            userText: normalizedText,
+            tripIndexLines: buildTripIndexLines(reasoningTrips),
+            requestId: trace.requestId,
+            correlationId: trace.correlationId,
+            source: "api.demo.reasoning",
+          })
+        : null;
+      const relevantTripNames = (() => {
+        const understood = (routedCache as FastPathRoute | null)?.understanding;
+    if (understood) return understood.trips.slice(0, 4).map((trip) => trip.route_name);
+        if (reasoningTrips.length === 0) return [] as string[];
+        const direct = resolveTripFromUserMessage(normalizedText, reasoningTrips, {
+          allowLooseFallback: false,
+        });
+        if (direct.status === "verified") return [direct.trip.route_name];
+        if (direct.status === "ambiguous") {
+          return direct.candidates.slice(0, 4).map((trip) => trip.route_name);
+        }
+        if (contextualUserText !== normalizedText) {
+          const contextual = resolveTripFromUserMessage(contextualUserText, reasoningTrips, {
+            allowLooseFallback: false,
+          });
+          if (contextual.status === "verified") return [contextual.trip.route_name];
+          if (contextual.status === "ambiguous") {
+            return contextual.candidates.slice(0, 4).map((trip) => trip.route_name);
+          }
+        }
+        return [] as string[];
+      })();
+      const previousAssistantMessages = history.filter((m) => m.role === "assistant");
+      const previousAssistantReply = previousAssistantMessages.length > 0
+        ? previousAssistantMessages[previousAssistantMessages.length - 1].text
+        : undefined;
+      // Same "Mimic Myself" toggle the live webhook reads — keeps demo/live
+      // parity instead of the two bots silently diverging (see dc19abe).
+      const mimicMyselfEnabled =
+        (botSettings.extra as Record<string, unknown> | undefined)?.mimic_myself_enabled === true;
+      const toneExamples = mimicMyselfEnabled
+        ? await dbGetRecentAdminMessages(8).catch(() => [])
+        : undefined;
+      const promptParts = buildPromptParts({
+        systemPrompt,
+        business: business || {},
+        history,
+        customerMemory,
+        reasoning: reasoning || undefined,
+        previousAssistantReply,
+        relevantTripNames,
+        toneExamples,
+        userText: normalizedText,
+        pinnedButtonLabels,
+        phoneCollected,
+        phoneRequested: phoneAlreadyRequested,
+        replyLanguage: isEnglishDemo ? "en" : "mn",
+      });
+      // English demo: same prompt, same rules — only the output language flips.
+      const systemInstructionText = isEnglishDemo
+        ? `${promptParts.system}\n\nENGLISH DEMO MODE: An English-speaking visitor is evaluating this bot on a public demo page. Reply ONLY in English. Keep trip names as they appear in the catalog and keep every price in MNT with the ₮ sign — never convert currencies or invent amounts. Every rule above still applies, including replying REFER when the catalog has no answer. If the visitor asks to speak to a human, explain that in production a staff member takes over the chat at this point.`
+        : promptParts.system;
+      // Mirrors the production webhook: OpenAI down/overloaded must not mean
+      // the customer gets a bare error while a working second model sits
+      // idle. Try OpenAI with the same prompt before giving up.
+      let aiReplyText: string;
+      try {
+        // OpenAI is the primary model for customer replies (owner's call —
+        // more reliable in practice).
+        const result = await askOpenAI(promptParts.user, {
+          requestId: trace.requestId,
+          correlationId: trace.correlationId,
+          source: "api.demo",
+          systemInstruction: systemInstructionText,
+          openaiModel: process.env.OPENAI_REPLY_MODEL || "gpt-4o",
+          preferOpenAI: true,
+        });
+        aiReplyText = result.text;
+      } catch (error) {
+        let fallbackText = "";
+        try {
+          const fallback = await askOpenAIChatParts([{ text: promptParts.user }], {
+            source: "api.demo.reply_fallback",
+            timeoutMs: 20_000,
+            requestId: trace.requestId,
+            correlationId: trace.correlationId,
+            model: process.env.OPENAI_REPLY_MODEL || "gpt-4o",
+            systemText: systemInstructionText,
+          });
+          fallbackText = fallback?.text?.trim() || "";
+        } catch {
+          // fall through to REFER below
+        }
+        logError("demo.ai_fallback_reply", {
+          requestId: trace.requestId,
+          correlationId: trace.correlationId,
+          classification: classifyError(error),
+          openaiFallbackUsed: Boolean(fallbackText),
+        });
+        aiReplyText = fallbackText || "REFER";
+      }
+      const guardCandidateTrips = factualScope || reasoningTrips.filter((trip) => relevantTripNames.includes(trip.route_name));
+      const rawFixed = guardInventedBookingTerms(
+        fixMojibake(aiReplyText),
+        promptParts.user,
+        guardCandidateTrips,
+      );
+      // REFER (or legacy SILENT) = the model has no data for this question.
+      // Mirror production: stay silent customer-side for missing data.
+      if (isReferReply(rawFixed)) {
+        recordCounter("demo.ai_refer_total", 1, {});
+        return returnHandoff();
+      }
+      const { text: rawNoButtons, buttons } = extractButtons(rawFixed);
+      const recentAssistantReplies = history
+        .filter((message) => message.role === "assistant")
+        .map((message) => message.text)
+        .slice(-3);
+      const cleanedReply = enforcePaymentNeverSelfConfirmed(
+        normalizedText,
+        enforceWebsiteForPayment(
+          rewriteRepeatedGenericClarifier({
+            userText: normalizedText,
+            replyText: stripRepeatedGreeting(
+              sanitizeAssistantReply(rawNoButtons),
+              history.some((message) => message.role === "assistant"),
+            ),
+            recentAssistantReplies,
+          }),
+        ),
+      );
+      // Price guard (mirrors the webhook): every ₮ figure must be a real,
+      // quotable price on one of the trips this turn resolved to.
+      const priceCheckedReply = guardUnverifiedDates(
+        guardUnverifiedPrices(cleanedReply, guardCandidateTrips),
+        guardCandidateTrips,
+        normalizedText,
+      );
+      const verifiedReply = verifyTripReply({ reply: priceCheckedReply, trips: guardCandidateTrips, selection: currentSelection });
+      const reply = isEnglishDemo ? localizeEnglishDemoReply(verifiedReply) : verifiedReply;
+      if (shouldHandoffSilently(reply)) return returnHandoff();
+      // Wrong-trip guard (mirrors the webhook): asked about trip A, model priced
+      // a different destination → silent handoff instead of a confident wrong answer.
+      if (findWrongTripReference({ replyText: reply, relevantTripNames, catalog: reasoningTrips })) {
+        recordCounter("demo.ai_wrong_trip_reply_suppressed_total", 1, {});
+        return returnHandoff();
+      }
+
+      // A repeated customer question deserves the answer again. Delivery/event
+      // retries are deduplicated separately, not by comparing reply wording.
+
+      // Button parity with Messenger: the AI reply carries the model's own
+      // BUTTONS line, plus deterministic smart buttons, plus the contact-operator
+      // button always last — identical to the production webhook.
+      let replyButtons: string[] = isEnglishDemo
+        ? buttons.map(localizeEnglishDemoReply)
+        : [...buttons];
+      try {
+        // Smart buttons carry Mongolian labels; tapping one would route the
+        // English demo into a Mongolian fast-path reply, so skip them there —
+        // the model's own BUTTONS line is already in English.
+        const smartButtons = isEnglishDemo ? null : buildSmartButtons(reply, reasoningTrips);
+        if (smartButtons) {
+          for (const b of smartButtons) {
+            if (!replyButtons.some((x) => x.toLowerCase() === b.toLowerCase())) {
+              replyButtons.push(b);
+            }
+          }
+        }
+      } catch {
+        // smart buttons are best-effort — never block a reply
+      }
+      replyButtons = replyButtons.slice(0, 10);
+      const contactOperatorLabel = isEnglishDemo
+        ? CONTACT_OPERATOR_LABEL_EN
+        : CONTACT_OPERATOR_LABEL;
+      if (!replyButtons.includes(contactOperatorLabel)) {
+        replyButtons.push(contactOperatorLabel);
+      }
+
+      const media = buildDemoMedia({
+        reply,
+        userText: normalizedText,
+        trips: reasoningTrips,
+      });
+      await appendMessage(sessionId, "assistant", reply, imageAttachments(media.mediaUrls));
+      await rememberTurn();
+
+      logInfo("demo.reply_generated", {
+        requestId: trace.requestId,
+        correlationId: trace.correlationId,
+        clientHash,
+        conversationIdSuffix: normalizedConversationId.slice(-8),
+        promptLength: promptParts.system.length + promptParts.user.length,
+        replyLength: reply.length,
+        buttonCount: replyButtons.length,
+      });
+
+      return res.status(200).json({ reply, buttons: replyButtons, ...media });
+    } catch (error: any) {
+      const classification = classifyError(error);
+      logError("demo.request_failed", {
+        requestId: trace.requestId,
+        correlationId: trace.correlationId,
+        classification,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return res.status(500).json({ error: "server_error" });
+    }
+  } finally {
+    finishRequestTrace(trace, res.statusCode || 500);
+  }
+}
