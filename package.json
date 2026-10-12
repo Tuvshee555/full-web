@@ -10,6 +10,8 @@
     "api": "node server/index.js",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
+    "test:chatbot": "node --test server/chatbot/tests/*.test.js",
+    "qa:chatbot": "node scripts/chatbot-qa.mjs",
     "db:local": "node scripts/local-db.mjs",
     "db:migrate": "prisma migrate deploy",
     "db:studio": "prisma studio",

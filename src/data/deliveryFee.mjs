@@ -1,0 +1,1 @@
+export const DEFAULT_DELIVERY_FEE = 9000;

@@ -1,6 +1,6 @@
 export type DeliveryZone = "UB" | "RURAL";
 
-export const DELIVERY_FEE = 9000;
+export { DEFAULT_DELIVERY_FEE as DELIVERY_FEE } from "./deliveryFee.mjs";
 
 export const DELIVERY_ZONE_OPTIONS: {
   value: DeliveryZone;

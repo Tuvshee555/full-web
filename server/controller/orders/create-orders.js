@@ -7,9 +7,9 @@ import { sendEmail } from "../../utils/sendEmail.js";
 import { orderCreatedEmail } from "../../utils/emailTemplates.js";
 import { applyStockDecrements } from "../../utils/stock.js";
 import { background } from "../../utils/background.js";
+import { deliveryFee as currentDeliveryFee } from "../../utils/deliveryFee.js";
 
 // Delivery fee is the server-side source of truth (must match the customer UI).
-const DELIVERY_FEE = Number(process.env.DELIVERY_FEE) || 9000;
 const DELIVERY_ZONES = new Set(["UB", "RURAL"]);
 
 export const createFoodOrder = async (req, res) => {
@@ -131,7 +131,7 @@ export const createFoodOrder = async (req, res) => {
 
     // Normalize the delivery zone and derive the fee server-side.
     const normalizedZone = DELIVERY_ZONES.has(deliveryZone) ? deliveryZone : "UB";
-    const deliveryFee = DELIVERY_FEE;
+    const deliveryFee = currentDeliveryFee();
 
     // Grand total the customer is actually charged (items + delivery).
     const computedTotalPrice = Number((itemsSubtotal + deliveryFee).toFixed(2));
