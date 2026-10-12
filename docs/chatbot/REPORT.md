@@ -73,6 +73,7 @@ Only `.env.example` is tracked, containing placeholders. Shared facts now belong
 - The live catalogue currently lacks some structured product usage/FAQ/ingredient details. The bot offers staff assistance for missing evidence. Populate truthful `PRODUCT_CONTENT` or catalogue fields to improve coverage; no placeholder claims were invented.
 - Product names, variant labels and published source descriptions are preserved verbatim. The assistant's surrounding language and stock labels are Mongolian/English; it does not manufacture translations of product facts.
 - Real Messenger/Instagram account delivery cannot be confirmed before the new Page/app and credentials exist. Meta account permissions, review and messaging windows apply. No Uudam token is used. An ambiguous outgoing timeout is marked uncertain; inspect the platform inbox before resending.
+- Meta currently rejects batches over ten messages or a combined conversation burst over 2,000 characters with a retryable response to keep provider work bounded. This limit should be revisited when the new accounts have real traffic.
 - Conversations and leads contain the customer's voluntarily supplied text/contact details. Inbox access requires admin auth; public transcript access requires the secret capability token. The store should choose a retention period before volume grows. Expired rate buckets/error logs currently require periodic operator cleanup; no additional recurring service was introduced.
 - Long responses fall back to staff instead of cutting prices, stock facts or links. Product recommendations are catalogue options, without promises of suitability, growth or medical results.
 - Local Windows builds require stopping a running Prisma-backed server before `prisma generate`, because the loaded query-engine DLL is locked. This does not affect the verified Vercel builds.
@@ -90,3 +91,9 @@ Only `.env.example` is tracked, containing placeholders. Shared facts now belong
 | 6 — final QA / report / runtime polish | `ca68edfa509b45041a852c935fefc2ea7fb90b76` |
 
 Each phase was pushed to `main` after its checks; production health and deployment status were verified. The pre-existing untracked `docs/codex/` material was left untouched and unstaged.
+
+## Final deployment audit
+
+The final Git pushes did not produce a new automatic Vercel deployment. A clean `git archive` of commit `fd068fb` was therefore deployed directly to the existing project using the Vercel CLI. The export contained only tracked files, excluding local secrets, backups and the owner's untracked material. Build status was confirmed **Ready** for `dpl_DVppPmQ8MBNUsTq3VkRMZsAUFCbg`, created 2026-10-12 10:45 (Asia/Ulaanbaatar), and aliased to `https://full-web-lac.vercel.app`.
+
+Deployment: `https://full-180ceayx7-tuvshinsaihans-projects.vercel.app`. The final post-deployment smoke test checks the real production OpenAI answer, capability privacy, idempotency, human polling and takeover, plus storefront, admin-auth and disabled-Meta status codes. This audit update changes documentation only; deployed application code matches the final implementation above.
