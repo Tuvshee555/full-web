@@ -221,3 +221,100 @@ enum PaymentMethod {
   QPAY
   LEMON
 }
+
+model ChatSettings {
+  id                String   @id @default("default")
+  enabled           Boolean  @default(true)
+  metaOutbound      Boolean  @default(false)
+  greetingMn        String   @default("Сайн байна уу! Lorentz-ийн бүтээгдэхүүн, хүргэлт, захиалгын талаар асуугаарай.")
+  greetingEn        String   @default("Hello! Ask about Lorentz products, delivery or your order.")
+  handoffMn         String   @default("Таны хүсэлтийг ажилтанд хадгаллаа. Нэр, холбогдох утсаа үлдээнэ үү.")
+  handoffEn         String   @default("Your request has been saved for our team. Please leave your name and phone number.")
+  lowStockThreshold Int      @default(5)
+  showExactStock    Boolean  @default(false)
+  extraKnowledgeMn  String   @default("")
+  extraKnowledgeEn  String   @default("")
+  updatedAt         DateTime @updatedAt
+}
+
+model ChatConversation {
+  id             String   @id @default(uuid())
+  tokenHash      String
+  channel        String   @default("website")
+  externalId     String?
+  locale         String   @default("mn")
+  paused         Boolean  @default(false)
+  needsHuman     Boolean  @default(false)
+  unread         Int      @default(0)
+  state          Json     @default("{}")
+  leaseUntil     DateTime?
+  leaseOwner     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  messages       ChatMessage[]
+  leads          ChatLead[]
+  events         ChatWebhookEvent[]
+
+  @@unique([channel, externalId])
+  @@index([updatedAt])
+  @@index([needsHuman, updatedAt])
+}
+
+model ChatMessage {
+  id              String   @id @default(uuid())
+  conversationId  String
+  role            String
+  text            String
+  clientMessageId String?
+  metadata        Json     @default("{}")
+  deliveryStatus  String   @default("local")
+  createdAt       DateTime @default(now())
+  conversation    ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, clientMessageId])
+  @@index([conversationId, createdAt])
+}
+
+model ChatLead {
+  id             String   @id @default(uuid())
+  conversationId String
+  name           String?
+  phone          String?
+  question       String
+  status         String   @default("new")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([conversationId])
+}
+
+model ChatErrorLog {
+  id             String   @id @default(uuid())
+  conversationId String?
+  code           String
+  source         String
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model ChatRateBucket {
+  key       String   @id
+  count     Int      @default(1)
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
+model ChatWebhookEvent {
+  id             String   @id
+  conversationId String
+  messageId      String?
+  completed      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+}

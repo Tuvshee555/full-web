@@ -10,6 +10,7 @@ import { productContent } from "@/config/store";
 import { firstLine, isBestseller, isSoldOut, onSale, productImages, productUrl, rating, sizeLabel, sizeSoldOut } from "./lib/product";
 import { useStoreT } from "./lib/useStoreT";
 import { Badge, Price, salePercent, Stars } from "./ui";
+import { StockBadge } from "./StockBadge";
 
 /** Clean product card: photo (2nd photo on hover), small badge, name, price.
  *  Quick add is a small "+" on the photo instead of a big button per card. */
@@ -96,6 +97,7 @@ export function ProductCard({ product, quickAdd = true }: { product: any; quickA
         </div>
         {subtitle && <p className="mt-[4px] text-[13px] text-taupe line-clamp-1">{subtitle}</p>}
         <Stars avg={stars.avg} count={stars.count} size={11} className="mt-[6px]" />
+        <StockBadge level={product.stockLevel} locale={locale} />
       </div>
     </div>
   );

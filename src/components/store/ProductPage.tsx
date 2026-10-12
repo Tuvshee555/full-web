@@ -14,6 +14,7 @@ import { isSoldOut, money, onSale, rating, sizeLabel, sizeSoldOut } from "./lib/
 import { useStoreT } from "./lib/useStoreT";
 import { ProductCard } from "./ProductCard";
 import { Badge, CREAM, DevHint, Price, QuantityInput, salePercent, Stars } from "./ui";
+import { StockBadge } from "./StockBadge";
 
 type Media = { type: "image" | "video"; src: string };
 
@@ -107,6 +108,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
 
             <div className="mt-[14px] flex flex-wrap items-center gap-[12px]">
               <Price product={product} className="text-[20px]" />
+              <StockBadge level={product.stockLevel} locale={locale} />
               {soldOut ? <Badge kind="soldout">{st("sold_out")}</Badge> : onSale(product) && <Badge kind="sale">-{salePercent(product)}%</Badge>}
             </div>
             <p className="mt-[6px] text-[13px]">{st("shipping_note")}</p>
@@ -139,12 +141,15 @@ export function ProductPage({ product, related }: { product: any; related: any[]
                         key={label}
                         type="button"
                         onClick={() => setSize(label)}
+                        disabled={out}
                         aria-pressed={active}
                         className={`relative min-w-[60px] rounded-[40px] px-[20px] py-[10px] text-[14px] tracking-normal transition-colors
                           ${active ? "bg-[#1c1714] text-white" : "bg-white text-[#1c1714] shadow-[0_0_0_1px_rgba(28,23,20,0.55)] hover:shadow-[0_0_0_1px_#1c1714]"}
                           ${out ? "line-through opacity-60" : ""}`}
                       >
                         {label}
+                        <span className="block"><StockBadge level={s.stockLevel} locale={locale} /></span>
+                        {s.stock != null && s.stock > 0 && <span className="block text-xs">{s.stock}</span>}
                       </button>
                     );
                   })}

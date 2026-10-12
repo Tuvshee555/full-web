@@ -5,6 +5,7 @@ import { ChevronRight, ImageOff, PackageX, Pencil, Star } from "lucide-react";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 import { FoodType } from "@admin/type/type";
 import { formatMNT } from "@admin/utils/format";
+import { StockBadge } from "@/components/store/StockBadge";
 
 type Props = {
   foods: FoodType[];
@@ -18,7 +19,7 @@ type Props = {
 const thumb = (f: FoodType) => (typeof f.image === "string" && f.image.trim() ? f.image : null);
 
 export function ProductList({ foods, categoryName, showCategory, onEdit, onToggleFeatured, emptyText }: Props) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   if (foods.length === 0) {
     return (
@@ -71,6 +72,7 @@ export function ProductList({ foods, categoryName, showCategory, onEdit, onToggl
                 <div className="min-w-0">
                   <div className="flex items-center gap-[8px]">
                     <p className="truncate text-[14px] font-medium text-ink">{f.foodName}</p>
+                    <StockBadge level={f.stockLevel} locale={locale} />
                     {f.isFeatured && (
                       <Star className="h-[12px] w-[12px] shrink-0 fill-ink text-ink md:hidden" strokeWidth={1.6} />
                     )}

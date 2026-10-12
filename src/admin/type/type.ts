@@ -4,6 +4,7 @@ import type { Key } from "react";
 
 // Represents a single food item
 export type FoodType = {
+  stockLevel?: "untracked" | "soldout" | "low" | "available";
   oldPrice: string;
   discount: string;
   isFeatured: boolean;
@@ -25,7 +26,7 @@ export type FoodType = {
   video?: string | File | null;
 
   // 📏 Sizes (array of strings or objects like { label: string })
-  sizes?: { label: string }[] | string[];
+  sizes?: { label: string; stock?: number | null; stockLevel?: "untracked" | "soldout" | "low" | "available" }[] | string[];
 
   // Misc frontend-only helper fields
   foodData?: [];

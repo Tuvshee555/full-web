@@ -69,7 +69,7 @@ export const FoodMenu = () => {
 
   const reloadFoods = useCallback(async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/food`, {
+      const res = await axios.get(`${API_BASE_URL}/food/admin/inventory`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setFoods(res.data || []);

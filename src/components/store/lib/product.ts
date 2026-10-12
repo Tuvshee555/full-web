@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { stockLevel, productStockLevel } from "../../../../server/utils/stockLevel.js";
 
 export const money = (v: number | null | undefined) =>
   `${Math.round(Number(v ?? 0)).toLocaleString("en-US")}₮`;
@@ -22,11 +23,11 @@ export const sizeLabel = (s: any): string =>
 
 /** A size is sold out only when its stock is tracked and has run out. */
 export const sizeSoldOut = (s: any) =>
-  typeof s === "object" && s !== null && s.stock !== null && s.stock !== undefined && Number(s.stock) <= 0;
+  stockLevel(s) === "soldout";
 
 export function isSoldOut(p: any) {
   const sizes = Array.isArray(p?.sizes) ? p.sizes : [];
-  return sizes.length > 0 && sizes.every(sizeSoldOut);
+  return productStockLevel(sizes) === "soldout";
 }
 
 export function onSale(p: any) {

@@ -1,5 +1,7 @@
 import { prisma } from "../../prismaClient.js";
 import { cached } from "../../utils/cache.js";
+import { getSettings } from "../../chatbot/settings.js";
+import { publicInventory } from "../../utils/stockLevel.js";
 
 export const getFood = async (req, res) => {
   try {
@@ -15,7 +17,8 @@ export const getFood = async (req, res) => {
       })
     );
 
-    return res.status(200).json(foods);
+    const settings = await getSettings();
+    return res.status(200).json(foods.map((food) => publicInventory(food, settings, req.user?.role === "ADMIN")));
   } catch (err) {
     console.error("Error fetching foods:", err);
     return res

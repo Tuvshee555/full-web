@@ -9,6 +9,7 @@ import { requireAdmin } from "../middleware/requireAdmin.js";
 import { publicCache } from "../middleware/publicCache.js";
 
 export const foodRouter = Router();
+foodRouter.get("/admin/inventory", requireAdmin, getFood);
 
 foodRouter.post("/", requireAdmin, createFood);
 foodRouter.get("/", publicCache(), getFood);

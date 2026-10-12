@@ -1,5 +1,7 @@
 import { prisma } from "../../prismaClient.js";
 import { cached } from "../../utils/cache.js";
+import { getSettings } from "../../chatbot/settings.js";
+import { publicInventory } from "../../utils/stockLevel.js";
 
 /**
  * GET /category/:id/foods-tree
@@ -47,6 +49,7 @@ export const getCategoryFoodsTree = async (req, res) => {
       }
 
       const foods = await prisma.food.findMany({
+        include: { sizes: true },
         where: {
           categoryId: {
             in: Array.from(allIds),
@@ -74,7 +77,8 @@ export const getCategoryFoodsTree = async (req, res) => {
       });
     }
 
-    return res.status(200).json(payload);
+    const settings = await getSettings();
+    return res.status(200).json({ ...payload, foods: payload.foods.map((food) => publicInventory(food, settings)) });
   } catch (error) {
     console.error("Error in getCategoryFoodsTree:", error);
     return res.status(500).json({
