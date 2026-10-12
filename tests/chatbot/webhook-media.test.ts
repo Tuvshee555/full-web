@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isHandoffRequest } from "../src/lib/handoffDetection";
+import { isHandoffRequest } from "../../src/chatbot/handoffDetection";
 
 test("frustrated customer messages trigger human handoff without custom keywords", () => {
   const cases = [

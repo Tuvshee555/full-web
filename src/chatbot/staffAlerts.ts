@@ -1,25 +1,13 @@
-import { getEnv } from "./env";
-import { sendTextMessage, type UpstreamTraceOptions } from "./messenger";
-import { logError, logInfo, logWarn, recordCounter } from "./observability";
-
-export type StaffLeadAlert = {
-  kind: "handoff" | "booking";
-  platform: string;
-  customerMessage: string;
-  contactPhone?: string;
-};
-
-export type StaffAlertDeliveryResult = {
-  attempted: number;
-  delivered: number;
-};
-
+import { sendTelegramMessage } from "../../server/utils/telegram.js";
+import { logError, logInfo, recordCounter } from "./observability";
+export type StaffLeadAlert = { kind: "handoff"; platform: string; customerMessage: string; contactPhone?: string };
+export type StaffAlertDeliveryResult = { attempted: number; delivered: number };
 export function buildAlertText(alert: StaffLeadAlert): string {
   const heading =
     alert.kind === "handoff"
       ? "🔔 Шинэ хүсэлт — хэрэглэгч хүнтэй ярихыг хүсэв"
       : "🔔 Шинэ хүсэлт — захиалгын сонирхол";
-  const channel = alert.platform === "instagram" ? "Instagram" : "Facebook";
+  const channel = alert.platform === "instagram" ? "Instagram" : alert.platform === "messenger" ? "Facebook" : "Website";
   const lines = [
     heading,
     `Суваг: ${channel}`,
@@ -30,120 +18,19 @@ export function buildAlertText(alert: StaffLeadAlert): string {
   return lines.join("\n");
 }
 
-/**
- * Sends a plain-text message to a Telegram chat via the Bot API. Telegram has
- * no 24-hour messaging window, so it delivers staff alerts even when the
- * Messenger RESPONSE-type ping is blocked by Meta policy. Throws on failure so
- * the caller can record it.
- */
-async function sendTelegramMessage(
-  botToken: string,
-  chatId: string,
-  text: string,
-  timeoutMs: number,
-): Promise<void> {
-  const response = await fetch(
-    `https://api.telegram.org/bot${botToken}/sendMessage`,
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
-      signal: AbortSignal.timeout(timeoutMs),
-    },
-  );
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`telegram_send_failed:${response.status}:${body.slice(0, 200)}`);
-  }
+
+export function hasStaffAlertChannel(): boolean { return Boolean(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID); }
+/** Durable lead is written first; caller holds the conversation lease and calls once. */
+export async function notifyStaffOfLead(alert: StaffLeadAlert): Promise<StaffAlertDeliveryResult> {
+  if (alert.platform === "test") return { attempted: 0, delivered: 0 };
+  return notifyStaff(buildAlertText(alert), alert.kind, alert.platform);
 }
-
-/**
- * Best-effort staff notification for a new lead across every configured
- * channel. Never throws — a failed staff alert must not break customer-facing
- * webhook delivery.
- *
- * Realtime staff pings are optional. The durable source of truth is the admin
- * Leads tab; STAFF_NOTIFY_PSIDS can additionally ping staff inside Messenger
- * when Meta allows it.
- *
- * The lead already exists in the DB regardless; this only controls the ping.
- * If NO channel is configured, or every configured channel fails, that is
- * logged at ERROR level (not warn) — a delivered-nowhere lead is exactly the
- * silent lead loss this hardening exists to surface.
- */
-export async function notifyStaffOfLead(
-  alert: StaffLeadAlert,
-  trace?: UpstreamTraceOptions,
-): Promise<StaffAlertDeliveryResult> {
-  return notifyStaff(buildAlertText(alert), alert.kind, trace);
-}
-
-export function hasStaffAlertChannel(env = getEnv()): boolean {
-  return env.staffNotifyPsids.length > 0 || Boolean(env.telegramBotToken && env.telegramStaffChatIds.length > 0);
-}
-
-/** Every configured staff channel receives `text`; `kind` labels logs and metrics. Never throws. */
-export async function notifyStaff(
-  text: string,
-  kind: string,
-  trace?: UpstreamTraceOptions,
-): Promise<StaffAlertDeliveryResult> {
-  const env = getEnv();
-  const alert = { kind };
-  let attempted = 0;
-  let delivered = 0;
-
-  for (const psid of env.staffNotifyPsids) {
-    attempted += 1;
-    try {
-      await sendTextMessage(psid, text, env.tokenPage, trace);
-      delivered += 1;
-      recordCounter("staff_alert.sent_total", 1, { kind: alert.kind, channel: "messenger" });
-      logInfo("staff_alert.sent", { kind: alert.kind, channel: "messenger" });
-    } catch (error) {
-      recordCounter("staff_alert.failed_total", 1, { kind: alert.kind, channel: "messenger" });
-      logWarn("staff_alert.failed", {
-        kind: alert.kind,
-        channel: "messenger",
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
-
-  if (env.telegramBotToken && env.telegramStaffChatIds.length > 0) {
-    for (const chatId of env.telegramStaffChatIds) {
-      attempted += 1;
-      try {
-        await sendTelegramMessage(env.telegramBotToken, chatId, text, env.metaApiTimeoutMs);
-        delivered += 1;
-        recordCounter("staff_alert.sent_total", 1, { kind: alert.kind, channel: "telegram" });
-        logInfo("staff_alert.sent", { kind: alert.kind, channel: "telegram" });
-      } catch (error) {
-        recordCounter("staff_alert.failed_total", 1, { kind: alert.kind, channel: "telegram" });
-        logWarn("staff_alert.failed", {
-          kind: alert.kind,
-          channel: "telegram",
-          message: error instanceof Error ? error.message : String(error),
-        });
-      }
-    }
-  }
-
-  if (attempted === 0) {
-    recordCounter("staff_alert.no_channel_total", 1, { kind: alert.kind });
-    logError("staff_alert.no_channel_configured", {
-      kind: alert.kind,
-      hint: "A lead was created but no realtime staff alert channel is configured. Keep the admin Leads tab monitored, or configure STAFF_NOTIFY_PSIDS for Messenger staff pings.",
-    });
-    return { attempted, delivered };
-  }
-  if (delivered === 0) {
-    recordCounter("staff_alert.all_channels_failed_total", 1, { kind: alert.kind });
-    logError("staff_alert.all_channels_failed", {
-      kind: alert.kind,
-      attempted,
-      hint: "Every configured staff-alert channel failed. The lead is still in the admin Leads tab; check Messenger staff-ping permissions or monitor the admin queue.",
-    });
-  }
-  return { attempted, delivered };
+export async function notifyStaff(text: string, kind: string, channel = "test"): Promise<StaffAlertDeliveryResult> {
+  if (channel === "test") return { attempted: 0, delivered: 0 };
+  if (!hasStaffAlertChannel()) { recordCounter("staff_alert.no_channel_total", 1, { kind }); logError("staff_alert.no_channel_configured", { kind }); return { attempted: 0, delivered: 0 }; }
+  const delivered = (await sendTelegramMessage(text)) === true ? 1 : 0;
+  recordCounter(delivered ? "staff_alert.sent_total" : "staff_alert.failed_total", 1, { kind, channel: "telegram" });
+  if (delivered) logInfo("staff_alert.sent", { kind, channel: "telegram" });
+  else logError("staff_alert.all_channels_failed", { kind });
+  return { attempted: 1, delivered };
 }

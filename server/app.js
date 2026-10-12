@@ -17,9 +17,6 @@ import { expireUnpaidOrders } from "./jobs/expireOrders.js";
 import { cleanupGuestUsers } from "./jobs/cleanupGuests.js";
 import { reviewRouter } from "./routers/review.router.js";
 import { connectPrismaWithRetry } from "./utils/prisma.js";
-import { publicChatRouter } from "./chatbot/routes.js";
-import { adminChatRouter, registerMetaSender } from "./chatbot/admin.js";
-import { metaRouter, sendMetaMessage } from "./chatbot/meta.js";
 
 // Optional hardening/perf middleware, loaded defensively so the server still
 // boots if the deps aren't installed yet (run `npm install` to enable them).
@@ -102,12 +99,13 @@ app.use("/stats", statRouter);
 app.use("/email", emailRouter);
 app.use("/upload", uploadRouter);
 app.use("/review", reviewRouter);
-app.use("/chat", publicChatRouter);
-app.use("/admin/chat", adminChatRouter);
-registerMetaSender(sendMetaMessage);
-app.use("/chat/webhooks", metaRouter);
+// Preserve cached widget URLs while every channel uses the ported Pages engine.
+app.use("/chat/webhooks", (req, res) => res.redirect(308, "/api/chatbot/webhook"));
+app.use("/chat", (req, res) => res.redirect(308, `/api/chatbot/public${req.url}`));
+app.use("/admin/chat", (req, res) => res.redirect(308, `/api/chatbot/admin${req.url}`));
 
-app.use((err, req, res, next) => {
+// Express recognises error middleware by its four parameters, so `_next` must stay.
+app.use((err, req, res, _next) => {
   if (/^\/(?:chat|admin\/chat)(?:\/|$)/.test(req.url)) {
     console.error(JSON.stringify({ scope: "chatbot", code: "INVALID_REQUEST" }));
     return res.status(err.status === 413 ? 413 : 400).json({ code: "INVALID_REQUEST" });

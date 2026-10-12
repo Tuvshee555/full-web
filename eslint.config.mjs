@@ -10,8 +10,13 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
-  { ignores: ["src/chatbot/**", "src/pages/api/chatbot/**", "src/admin/components/chatbot/uudam/**", "tests/chatbot/**"] },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    // `_name` marks an intentionally unused argument; `{ size: _size, ...rest }` drops a prop from rest.
+    rules: {
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_", ignoreRestSiblings: true }],
+    },
+  },
 ];
 
 export default eslintConfig;

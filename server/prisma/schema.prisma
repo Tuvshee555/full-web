@@ -295,6 +295,8 @@ model ChatErrorLog {
   conversationId String?
   code           String
   source         String
+  level          String   @default("error")
+  details        Json     @default("{}")
   createdAt      DateTime @default(now())
 
   @@index([createdAt])
@@ -313,8 +315,12 @@ model ChatWebhookEvent {
   conversationId String
   messageId      String?
   completed      Boolean  @default(false)
+  leaseOwner     String?
+  leaseUntil     DateTime?
+  payload        Json     @default("{}")
   createdAt      DateTime @default(now())
   conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])
+  @@index([completed, createdAt])
 }

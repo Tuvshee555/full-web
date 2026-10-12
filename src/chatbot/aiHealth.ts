@@ -1,12 +1,8 @@
-import type { queryNeon as QueryNeon } from "./neonDb";
+import { prisma } from "./prisma";
+import { getChatbotContext } from "./runtimeContext";
 import { logError, logWarn } from "./observability";
 import type { ReadinessIssue } from "./readiness";
 import { UpstreamHttpError } from "./resilience";
-
-// Loaded on first use: neonDb and the staff-alert sender validate the whole
-// server env at import, and the OpenAI client (which imports this module) must
-// stay importable without it.
-const queryNeon: typeof QueryNeon = async (...args) => (await import("./neonDb")).queryNeon(...args);
 
 export type AiFailureKind = "credits_exhausted" | "unauthorized" | "other";
 
@@ -23,34 +19,28 @@ export function aiFailureKind(error: unknown): AiFailureKind {
 }
 
 const ALERT_INTERVAL_HOURS = 6;
-const LEADS_PATH = "Энэ хооронд ирсэн хүсэлтүүд админ самбарын «Хүсэлтүүд» хэсэгт хадгалагдаж байна.";
+const LEADS_PATH = "Бот баталгаатай мэдээллээс товч хариулж байна.";
 
 export function aiOutageAlertText(kind: Exclude<AiFailureKind, "other">): string {
   return kind === "credits_exhausted"
-    ? `⚠️ Чатбот хэрэглэгчдэд хариулахаа больсон: OpenAI-ийн кредит дууссан.\nplatform.openai.com → Billing хэсэгт кредит нэмнэ үү. ${LEADS_PATH}`
-    : `⚠️ Чатбот хэрэглэгчдэд хариулахаа больсон: OpenAI түлхүүр хүчингүй байна.\nOPENAI_API_KEY-г шалгана уу. ${LEADS_PATH}`;
+    ? `⚠️ Чатботын AI үйлчилгээ түр ажиллахгүй байна: OpenAI-ийн кредит дууссан.\nplatform.openai.com → Billing хэсэгт кредит нэмнэ үү. ${LEADS_PATH}`
+    : `⚠️ Чатботын AI үйлчилгээ түр ажиллахгүй байна: OpenAI түлхүүр хүчингүй байна.\nOPENAI_API_KEY-г шалгана уу. ${LEADS_PATH}`;
 }
 
 let lastAlertAtMs = 0;
 
 /** Tells staff nobody is being answered — at most once per six hours across instances. Never throws. */
 export async function reportAiOutage(kind: AiFailureKind): Promise<void> {
+  if (getChatbotContext()?.channel === "test") return;
   if (kind === "other") return;
   try {
     const now = Date.now();
     if (now - lastAlertAtMs < ALERT_INTERVAL_HOURS * 3_600_000) return;
     lastAlertAtMs = now;
-    const recent = await queryNeon(
-      `SELECT 1 FROM travel_error_logs
-        WHERE event = 'ai_outage.staff_alerted' AND created_at > NOW() - make_interval(hours => $1) LIMIT 1`,
-      [ALERT_INTERVAL_HOURS],
-    );
-    if (recent?.rows.length) return;
-    logWarn("ai_outage.staff_alerted", { kind });
-    // The admin system check shows the outage regardless; the message is only
-    // sent where a staff channel exists, instead of logging an error on every one.
-    const staff = await import("./staffAlerts");
-    if (staff.hasStaffAlertChannel()) await staff.notifyStaff(aiOutageAlertText(kind), "ai_outage");
+    const recent = await prisma.chatErrorLog.findFirst({ where: { code: "ai_outage.detected", createdAt: { gt: new Date(now - ALERT_INTERVAL_HOURS * 3600000) } } });
+    if (recent) return;
+    // Operational inbox warning only: QA provider failures must never alert Telegram.
+    logWarn("ai_outage.detected", { kind });
   } catch (error) {
     logError("ai_outage.report_failed", { message: error instanceof Error ? error.message : String(error) });
   }
@@ -62,14 +52,8 @@ type AiFailureSummary = { failures: number; minutes_since_last: number | null; c
 export async function getOperationalIssues(): Promise<ReadinessIssue[]> {
   const issues: ReadinessIssue[] = [];
   try {
-    const failures = (await queryNeon<AiFailureSummary>(
-      `SELECT COUNT(*)::int AS failures,
-              (EXTRACT(EPOCH FROM NOW() - MAX(created_at)) / 60)::int AS minutes_since_last,
-              COALESCE(BOOL_OR(fields::text LIKE '%credits_exhausted%'), FALSE) AS credits,
-              COALESCE(BOOL_OR(fields::text LIKE '%"unauthorized"%'), FALSE) AS unauthorized
-         FROM travel_error_logs
-        WHERE event = 'openai.fallback_failed' AND created_at > NOW() - INTERVAL '2 hours'`,
-    ))?.rows[0];
+    const rows = await prisma.chatErrorLog.findMany({ where: { code: "openai.fallback_failed", createdAt: { gt: new Date(Date.now() - 2 * 3600000) } }, orderBy: { createdAt: "desc" }, take: 500 });
+    const failures: AiFailureSummary = { failures: rows.length, minutes_since_last: rows[0] ? (Date.now() - rows[0].createdAt.getTime()) / 60000 : null, credits: rows.some(row => JSON.stringify(row.details).includes("credits_exhausted")), unauthorized: rows.some(row => JSON.stringify(row.details).includes("unauthorized")) };
     const ongoing = failures && failures.minutes_since_last !== null && failures.minutes_since_last <= 30;
     if (ongoing && (failures.credits || failures.unauthorized || failures.failures >= 3)) {
       const cause = failures.credits
@@ -80,7 +64,7 @@ export async function getOperationalIssues(): Promise<ReadinessIssue[]> {
       issues.push({
         severity: "critical",
         key: "ai_outage",
-        message: `Бот хэрэглэгчдэд хариулж чадахгүй байна (сүүлийн 2 цагт ${failures.failures} алдаа). ${cause}`,
+        message: `AI үйлчилгээ түр ажиллахгүй, бот баталгаатай мэдээллээс хариулж байна (сүүлийн 2 цагт ${failures.failures} алдаа). ${cause}`,
       });
     }
   } catch (error) {

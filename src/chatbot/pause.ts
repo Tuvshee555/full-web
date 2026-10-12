@@ -1,89 +1,29 @@
-import {
-  dbAutoHandoffSender,
-  dbIsPaused,
-  dbListPaused,
-  dbListRecent,
-  dbMarkGetStarted,
-  dbPauseSender,
-  dbResumeSender,
-  dbStoreSenderName,
-  dbTrackSender,
-  type TrackedSender,
-} from "./travelDb";
-
-export type PausedRow = {
-  sender_id: string;
-  display_name?: string;
-  paused_at: string;
-  expires_at: string | null;
-  reason?: string;
-};
+import { prisma } from "./prisma";
+export type PausedRow = { sender_id: string; paused_at: string; expires_at: string | null; reason?: string };
 export type RecentSender = { sender_id: string; last_seen: string; display_name?: string };
-
 export async function isPaused(senderId: string): Promise<boolean> {
-  return dbIsPaused(senderId);
+  const row = await prisma.chatConversation.findUnique({ where: { id: senderId }, select: { paused: true } });
+  return row?.paused === true;
 }
-
-/**
- * A customer who has booked, sent documents, asked for the bank account or
- * said they paid belongs to staff from then on. The 60-minute handoff pause
- * let the bot return the next day and re-send the trip card over a staff
- * member's own replies (2026-10-06..08). Meta's staff-reply echoes do not
- * reach the webhook, so this cannot wait for an operator echo to pause it.
- */
-export const BOOKED_CUSTOMER_PAUSE_MS = 3 * 24 * 60 * 60 * 1000;
-
-export async function pauseBookedCustomer(senderId: string): Promise<void> {
-  await dbPauseSender(senderId, BOOKED_CUSTOMER_PAUSE_MS, "booked_customer");
+// Automatic handoff only flags the conversation. Explicit admin takeover owns pause.
+export async function pauseBot(senderId: string, _durationMs?: number, reason = "manual"): Promise<void> {
+  const row = await prisma.chatConversation.findUniqueOrThrow({ where: { id: senderId } });
+  const state = row.state && typeof row.state === "object" && !Array.isArray(row.state) ? row.state : {};
+  await prisma.chatConversation.update({ where: { id: senderId }, data: { paused: true, needsHuman: true, state: { ...state, humanTakeoverAt: new Date().toISOString(), pauseReason: reason } } });
 }
-
-export async function pauseBot(
-  senderId: string,
-  durationMs?: number,
-  reason?: string,
-): Promise<void> {
-  await dbPauseSender(senderId, durationMs, reason ?? "manual");
-}
-
 export async function resumeBot(senderId: string): Promise<void> {
-  await dbResumeSender(senderId);
+  const row = await prisma.chatConversation.findUniqueOrThrow({ where: { id: senderId } });
+  const state = row.state && typeof row.state === "object" && !Array.isArray(row.state) ? row.state : {};
+  await prisma.chatConversation.update({ where: { id: senderId }, data: { paused: false, needsHuman: false, state: { ...state, humanTakeoverAt: "", pauseReason: "" } } });
 }
-
-export async function listPaused(): Promise<PausedRow[]> {
-  const rows = await dbListPaused();
-  return rows.map((r) => ({
-    sender_id: r.sender_id,
-    display_name: r.display_name || undefined,
-    paused_at: r.paused_at ?? new Date().toISOString(),
-    expires_at: r.expires_at,
-    reason: r.pause_reason || undefined,
-  }));
-}
-
-export async function trackSender(
-  senderId: string,
-  platform = "facebook",
-): Promise<TrackedSender> {
-  return dbTrackSender(senderId, platform);
-}
-
-export async function markGetStarted(senderId: string, platform = "facebook"): Promise<void> {
-  await dbMarkGetStarted(senderId, platform);
-}
-
 export async function autoHandoffSender(senderId: string): Promise<void> {
-  await dbAutoHandoffSender(senderId);
+  await prisma.chatConversation.update({ where: { id: senderId }, data: { needsHuman: true } });
 }
-
-export async function storeSenderName(senderId: string, name: string): Promise<void> {
-  await dbStoreSenderName(senderId, name);
+export async function listPaused(): Promise<PausedRow[]> {
+  const rows = await prisma.chatConversation.findMany({ where: { paused: true, channel: { not: "test" } }, orderBy: { updatedAt: "desc" }, take: 100 });
+  return rows.map((r) => ({ sender_id: r.id, paused_at: r.updatedAt.toISOString(), expires_at: null, reason: "manual" }));
 }
-
 export async function listRecent(): Promise<RecentSender[]> {
-  const rows = await dbListRecent();
-  return rows.map((r) => ({
-    sender_id: r.sender_id,
-    last_seen: r.last_seen,
-    display_name: r.display_name || undefined,
-  }));
+  const rows = await prisma.chatConversation.findMany({ where: { channel: { not: "test" } }, orderBy: { updatedAt: "desc" }, take: 100 });
+  return rows.map((r) => ({ sender_id: r.id, last_seen: r.updatedAt.toISOString() }));
 }

@@ -7,7 +7,7 @@ import {
   resetResilienceStateForTests,
   TimeoutError,
   UpstreamHttpError,
-} from "../src/lib/resilience";
+} from "../../src/chatbot/resilience";
 
 test("fetchWithRetry retries retryable statuses and eventually succeeds", async () => {
   const originalFetch = globalThis.fetch;

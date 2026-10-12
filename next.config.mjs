@@ -1,8 +1,6 @@
 import { deliveryFee } from "./server/utils/deliveryFee.js";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Temporary, unwired import: original Pages API .ts files enter the build after adaptation.
-  pageExtensions: ["js", "jsx", "tsx"],
   env: { NEXT_PUBLIC_DELIVERY_FEE: String(deliveryFee()) },
   reactStrictMode: true,
   images: {

@@ -11,7 +11,7 @@ export function BotSettings({ settings, onSaved }: { settings: Settings; onSaved
   const [notice, setNotice] = useState("");
   const save = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true); setNotice("");
-    try { const { data } = await api.patch("/admin/chat/settings", draft); onSaved(data); setNotice(t("chatbot.saved")); }
+    try { const { data } = await api.patch("/chatbot/admin/settings", draft); onSaved(data); setNotice(t("chatbot.saved")); }
     catch { setNotice(t("chatbot.settings_error")); }
     finally { setBusy(false); }
   };

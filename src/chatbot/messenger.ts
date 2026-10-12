@@ -4,23 +4,28 @@ import { isMetaOutboundDisabled, logMetaOutboundSuppressed } from "./metaOutboun
 import { logInfo } from "./observability";
 import { fetchWithRetry } from "./resilience";
 import { quickReplyTitle } from "./quickReplyTitle";
-import { isReferReply } from "./reply";
+function isReferReply(text: string) { return /^(?:REFER|SILENT)$/i.test(text.trim()); }
 
 const env = getEnv();
+function graphVersion() {
+  const value = process.env.META_GRAPH_VERSION || "v23.0";
+  if (!/^v\d+\.\d+$/.test(value)) throw new Error("META_INVALID_VERSION");
+  return value;
+}
 
 // Messenger commonly re-compresses oversized/tall PNG uploads. For Cloudinary
 // images, serve a high-quality JPEG variant first so Meta fetches a readable
-// poster-sized asset instead of an over-large PNG.
+// product asset instead of an over-large PNG.
 //
 // The height cap only exists to bound a pathological upload; it must never
-// bite a real poster. `c_limit` scales BOTH axes to fit, so a height cap that
+// bite a real image. `c_limit` scales BOTH axes to fit, so a height cap that
 // is too low silently narrows the poster — and narrower is exactly what makes
 // Messenger's own re-compression turn poster text to mush. A 1440px cap made
-// 5-slice posters unreadable; a 4096px cap still shrank a full 2160x5160
+// tall images unreadable; a 4096px cap still shrank a full 2160x5160
 // single-page poster to 1715px wide *and* inflated it from 721KB to 2199KB,
 // because resampling defeats the source JPEG's own encoding. Full-height
 // passthrough is both sharper and smaller, so keep the cap well clear of any
-// real poster and let width carry the quality.
+// real image and let width carry the quality.
 const MESSENGER_IMAGE_TRANSFORM = "f_jpg,q_100,c_limit,w_2160,h_8192";
 
 export function toMessengerImageUrl(imageUrl: string): string {
@@ -37,7 +42,7 @@ export type UpstreamTraceOptions = {
   source?: string;
 };
 
-export const BOT_MESSAGE_METADATA = "uudam-bot-message";
+export const BOT_MESSAGE_METADATA = "lorentz-bot-message";
 
 
 async function postToMessenger(
@@ -92,7 +97,7 @@ function graphMessagesEndpoint(token: string) {
       createHmac("sha256", env.metaAppSecret).update(token).digest("hex"),
     );
   }
-  return `https://graph.facebook.com/v19.0/me/messages?${params.toString()}`;
+  return `https://graph.facebook.com/${graphVersion()}/me/messages?${params.toString()}`;
 }
 
 function graphCommentEndpoint(commentId: string, token: string) {
@@ -103,7 +108,7 @@ function graphCommentEndpoint(commentId: string, token: string) {
       createHmac("sha256", env.metaAppSecret).update(token).digest("hex"),
     );
   }
-  return `https://graph.facebook.com/v19.0/${commentId}/comments?${params.toString()}`;
+  return `https://graph.facebook.com/${graphVersion()}/${commentId}/comments?${params.toString()}`;
 }
 
 export async function sendTextMessage(

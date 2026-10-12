@@ -1,6 +1,6 @@
 import { prisma } from "../../prismaClient.js";
 import { cached } from "../../utils/cache.js";
-import { getSettings } from "../../chatbot/settings.js";
+import { getSettings } from "../../../src/chatbot/settings.js";
 import { publicInventory } from "../../utils/stockLevel.js";
 
 export const getFood = async (req, res) => {

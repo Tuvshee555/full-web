@@ -10,8 +10,8 @@
     "api": "node server/index.js",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
-    "test:chatbot": "node --test server/chatbot/tests/*.test.js",
-    "qa:chatbot": "node scripts/chatbot-qa.mjs",
+    "test:chatbot": "node scripts/run-chatbot-tests.mjs",
+    "qa:chatbot": "node --import tsx scripts/chatbot-qa.mjs",
     "db:local": "node scripts/local-db.mjs",
     "db:migrate": "prisma migrate deploy",
     "db:studio": "prisma studio",
@@ -88,6 +88,7 @@
     "eslint-config-next": "15.1.7",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   },
   "allowScripts": {

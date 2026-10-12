@@ -1,73 +1,36 @@
 /**
- * Short-lived "which trip did you mean?" state.
+ * Short-lived "which product did you mean?" state.
  *
  * When the bot asks a disambiguation question ("Таны асууж байгаа аялал 2-3
  * өөр хувилбартай байна: …"), the candidates it OFFERED must scope the
  * customer's next answer. Without this state the follow-up was matched
- * against the whole catalog plus recent turns — a distinctive trip name from
+ * against the whole catalog plus recent turns — a distinctive product name from
  * an older, unrelated turn could hijack the match and the bot would answer
- * about a trip it never offered (observed live: "шууд нислэгтэй" after a
- * two-<city>-trips clarification was answered with the <city> combo from
+ * about a product it never offered (observed live: "шууд нислэгтэй" after a
+ * two-<city>-products clarification was answered with the <city> combo from
  * a stale turn).
  *
  * Redis-backed with in-memory fallback, mirroring photoOnlyState.ts.
  */
 
-import { sharedMap } from "./processState";
-import { withRedis } from "./redisState";
-
+import { readConversationState, mergeConversationState } from "./conversationState";
 export type ClarificationState = {
-  candidateTripIds: string[];
+  candidateProductIds: string[];
   createdAt: number;
 };
 
 // Hours, not minutes. This was 10 minutes, but Messenger customers routinely
-// answer "which of these trips?" much later: one tapped their choice 35 minutes
+// answer "which of these products?" much later: one tapped their choice 35 minutes
 // after the question, the bot had already forgotten what it offered and re-asked
 // the same list. Stale state is harmless — an answer that fits none of the
-// offered trips drops it (see routeFastPathText) — so a long window costs nothing.
+// offered products drops it (see routeFastPathText) — so a long window costs nothing.
 const TTL_MS = 6 * 60 * 60 * 1000;
-const REDIS_TTL_SEC = 6 * 60 * 60;
-const memStore = sharedMap<string, ClarificationState>("clarification_state.mem");
-
-function storeKey(senderId: string) {
-  return `clarification_state:${senderId}`;
+export async function getClarificationState(senderId: string): Promise<ClarificationState | null> {
+ const state=(await readConversationState(senderId)).clarification as ClarificationState | null;
+ if(!state || Date.now()-state.createdAt>TTL_MS) return null;
+ return state;
 }
-
-export async function getClarificationState(
-  senderId: string,
-): Promise<ClarificationState | null> {
-  const redisResult = await withRedis("clarification_state.get", async (r) => {
-    const raw = await r.get(storeKey(senderId));
-    return raw ? (JSON.parse(raw) as ClarificationState) : null;
-  });
-  const state = redisResult ?? memStore.get(senderId) ?? null;
-  if (!state) return null;
-  if (Date.now() - state.createdAt > TTL_MS) {
-    memStore.delete(senderId);
-    return null;
-  }
-  return state;
+export async function setClarificationState(senderId:string,candidateProductIds:string[]):Promise<void> {
+ await mergeConversationState(senderId,{clarification:{candidateProductIds:candidateProductIds.slice(0,8),createdAt:Date.now()}});
 }
-
-export async function setClarificationState(
-  senderId: string,
-  candidateTripIds: string[],
-): Promise<void> {
-  const state: ClarificationState = {
-    candidateTripIds: candidateTripIds.slice(0, 8),
-    createdAt: Date.now(),
-  };
-  const applied = await withRedis("clarification_state.set", async (r) => {
-    await r.set(storeKey(senderId), JSON.stringify(state), "EX", REDIS_TTL_SEC);
-    return true;
-  });
-  if (!applied) memStore.set(senderId, state);
-}
-
-export async function clearClarificationState(senderId: string): Promise<void> {
-  await withRedis("clarification_state.clear", async (r) => {
-    await r.del(storeKey(senderId));
-  });
-  memStore.delete(senderId);
-}
+export async function clearClarificationState(senderId:string):Promise<void> { await mergeConversationState(senderId,{clarification:null}); }

@@ -16,7 +16,7 @@ export function TestChat() {
     e.preventDefault(); if (!text.trim()) return;
     setBusy(true); setNotice("");
     try {
-      const { data } = await api.post("/admin/chat/test", { conversationId: id, text, locale, clientMessageId: crypto.randomUUID() });
+      const { data } = await api.post("/chatbot/admin/test", { conversationId: id, text, locale, clientMessageId: crypto.randomUUID() });
       setId(data.conversationId); setMessages(data.messages); setText("");
       if (data.paused) setNotice(t("chatbot.test_paused"));
     } catch { setNotice(t("chatbot.error")); }
@@ -24,7 +24,7 @@ export function TestChat() {
   };
   const reset = async () => {
     setBusy(true);
-    try { if (id) await api.delete(`/admin/chat/test/${id}`); setId(undefined); setMessages([]); setNotice(""); }
+    try { if (id) await api.delete(`/chatbot/admin/test/${id}`); setId(undefined); setMessages([]); setNotice(""); }
     catch { setNotice(t("chatbot.error")); }
     finally { setBusy(false); }
   };

@@ -9,9 +9,9 @@
  *
  * IMPORTANT usage contract (see webhook fast-path dispatch): matchers must try
  * the RAW current message first and only fall back to this contextual text
- * when the raw message alone cannot resolve a trip. Matching over the
- * concatenated turns first lets a trip mentioned three turns ago outscore the
- * trip the customer is asking about right now.
+ * when the raw message alone cannot resolve a product. Matching over the
+ * concatenated turns first lets a product mentioned three turns ago outscore the
+ * product the customer is asking about right now.
  */
 
 import { joinContextAndTurn } from "./customerTurn";
@@ -30,7 +30,7 @@ export function isLikelyContextDependentText(text: string) {
   const normalized = normalizeContextText(text);
   if (!normalized) return false;
   // Bug (found 2026-07-22 replaying real traffic): a customer typed just
-  // "hi" two days after asking about a trip, and got that trip's price/dates
+  // "hi" two days after asking about a product, and got that product's price/dates
   // re-served instead of a greeting — the words.length<=2 rule below treats
   // EVERY short message as a follow-up reference, with no exception for an
   // actual greeting, which carries no question to resolve via context at
@@ -39,21 +39,21 @@ export function isLikelyContextDependentText(text: string) {
   // like "5" or "<city>" context-dependent/self-resolving).
   if (isKnownGreetingPhrase(text)) return false;
   // Same reasoning for a bare thank-you: it asks nothing, so it must not borrow
-  // the previous turns' trips (a real "Баярлалаа" got a <city> trip list).
+  // the previous turns' products (a real "Баярлалаа" got a <city> product list).
   if (isThanksOnly(text)) return false;
-  // "10р сарын аялал байна уу" asks the whole catalog about a month. Asked a
+  // "10р сарын бүтээгдэхүүн байна уу" asks the whole catalog about a month. Asked a
   // second time, it was read as a follow-up to the previous list and answered
-  // with that list's trips — November trips included — instead of October's.
-  if (isFreshMonthCatalogQuestion(normalized)) return false;
+  // with that list's products — November products included — instead of October's.
+  
   const words = normalized.split(/\s+/).filter(Boolean);
   if (words.length <= 2) return true;
-  // "11-13хүн байна", "бид 4 хүн": a group size for the trip on screen.
+  // "11-13хүн байна", "бид 4 хүн": a group size for the product on screen.
   if (/^\s*(?:бид\s*|bid\s*)?\d{1,3}(?:\s*[-–]\s*\d{1,3})?\s*(?:хүн|hun)/i.test(text)) return true;
   if (!hasReferentialHint(text)) return false;
   if (normalized.length <= 24) return true;
 
   // A hint word alone isn't enough on longer messages: if the message also
-  // carries its own content words (a trip name, a city), it stands alone and
+  // carries its own content words (a product name, a city), it stands alone and
   // must NOT be diluted with old turns.
   const contentWords = words.filter(
     (word) =>
@@ -61,25 +61,16 @@ export function isLikelyContextDependentText(text: string) {
       !REFERENTIAL_HINTS.includes(word) &&
       !NON_CONTENT_WORDS.includes(word) &&
       // A conditional verb ("явбал", "гарвал", "ирвэл", "yavbal") is never a
-      // place: "1 сарын 25-нд явбал хэд вэ" under a trip card asks about THAT
-      // trip, and was cut off from it and silenced as no-data.
+      // place: "1 сарын 25-нд явбал хэд вэ" under a product card asks about THAT
+      // product, and was cut off from it and silenced as no-data.
       !CONDITIONAL_VERB.test(word),
   );
   return contentWords.length === 0;
 }
 
-const POINTING_WORD = /(?:^|\s)(?:нь|ni|тэр|ter|энэ|ene)(?:\s|$)/;
 
 /** Mongolian conditional verb form ("-бал/-вал/-бол/-вол"), Cyrillic or Latin-typed. */
 const CONDITIONAL_VERB = /^[\p{L}]{2,}(?:[бв][аоэө]л|[bv][aoe]l)$/u;
-
-function isFreshMonthCatalogQuestion(normalized: string): boolean {
-  return (
-    /(?:^|\s)\d{1,2}\s*(?:р\s*)?(?:сар|sar)/.test(normalized) &&
-    /(?:^|\s)(?:аял|aylal|ayalal)/.test(normalized) &&
-    !POINTING_WORD.test(normalized)
-  );
-}
 
 /** Words that point back at something already on screen ("тэр", "үнэ", "нь"). */
 export function hasReferentialHint(text: string): boolean {
@@ -142,8 +133,8 @@ const NON_CONTENT_WORDS = [
   "unee", "unii", "unetei", "heden", "niit", "hezee", "ognoo", "suudal", "huuhed", "huuhdiin",
   "nyrai", "hutulbur", "dahiad", "dahin", "aylal", "ayalal", "aylaliin", "baina", "bgaa", "yavah",
   "sariin", "sarin", "sard", "sarda", "udur", "ognoond",
-  "аялал",
-  "аяллын",
+  "бүтээгдэхүүн",
+  "бүтээгдэхүүний",
   "зураг",
   "хөтөлбөр",
   "program",
@@ -177,8 +168,8 @@ const NON_CONTENT_WORDS = [
   "child",
   "infant",
   "adult",
-  // Question words, not trip names: "хамгийн сүүлийн аялал нь хэдэн
-  // сарын хэдэнд гарах вэ" right after a trip card asks about THAT trip.
+  // Question words, not product names: "хамгийн сүүлийн бүтээгдэхүүн нь хэдэн
+  // сарын хэдэнд гарах вэ" right after a product card asks about THAT product.
   "хамгийн",
   "сүүлийн",
   "сүүлд",
@@ -200,8 +191,8 @@ function isGenericAssistantFollowup(text: string) {
     normalized.includes("алийг хэлж") ||
     normalized.includes("аль аяллыг") ||
     normalized.includes("нэг тодруулаад") ||
-    // The model asking "which city/trip are you interested in?" has not
-    // settled on a trip — its examples must not become the customer's pick.
+    // The model asking "which city/product are you interested in?" has not
+    // settled on a product — its examples must not become the customer's pick.
     /ямар\s+(?:\S+\s+)?(?:аял|хот|чиглэл)\S*\s+(?:\S+\s+){0,3}(?:сонирхож|авахыг|явахыг)/.test(normalized)
   );
 }
@@ -223,10 +214,10 @@ function firstAssistantOption(text: string): string | null {
     if (!cleaned || cleaned.length < 4) continue;
     if (!/^[•*\-]|\d+[.)]/.test(line.trim())) continue;
     const normalized = normalizeContextText(cleaned);
-    // "Label: 6,490,000₮" is a price detail of the card, never a trip name
-    // (a list line reads "<trip> — <details>"). The solo-traveller line
-    // "Ганцаараа явбал: …₮" was taken as the trip, and "Хөтөлбөр үзэх" under
-    // that card got an AI summary instead of the trip's PDF.
+    // "Label: 6,490,000₮" is a price detail of the card, never a product name
+    // (a list line reads "<product> — <details>"). The solo-traveller line
+    // "Ганцаараа явбал: …₮" was taken as the product, and "Хөтөлбөр үзэх" under
+    // that card got an AI summary instead of the product's PDF.
     if (/^[^—]{0,40}:\s*[\d][\d.,\s]*₮/.test(cleaned)) continue;
     if (
       normalized.startsWith("том хүн") ||
@@ -257,8 +248,8 @@ function likelyRefersToPreviousAssistantOption(text: string) {
 }
 
 // "[1 зураг илгээсэн]" / "[Хэрэглэгч зураг илгээсэн]": history placeholders for
-// attachment-only rows. They name no trip, so they must never stand in as the
-// "previous reply" — after a photo send, every follow-up lost its trip.
+// attachment-only rows. They name no product, so they must never stand in as the
+// "previous reply" — after a photo send, every follow-up lost its product.
 function isAttachmentPlaceholder(text: string) {
   return /^\[[^\]]*илгээсэн\]$/i.test(text.trim());
 }
@@ -285,12 +276,12 @@ export function buildContextualUserText(
   if (!isLikelyContextDependentText(userText)) return userText;
   const previousAssistantReply = lastAssistantReply(history);
   // The customer's current turn is marked (see customerTurn.ts): the context
-  // before it only identifies the trip, and must never be read as the question.
+  // before it only identifies the product, and must never be read as the question.
   if (previousAssistantReply && isFirstOptionFollowup(userText)) {
     const firstOption = firstAssistantOption(previousAssistantReply);
     if (firstOption) return joinContextAndTurn(firstOption, userText);
   }
-  // "Хөтөлбөр үзэх" under a "which trip?" list names no trip: taking the
+  // "Хөтөлбөр үзэх" under a "which product?" list names no product: taking the
   // list's first line was a guess (a real customer got the wrong programme).
   if (
     previousAssistantReply &&
@@ -312,41 +303,41 @@ export function buildContextualUserText(
   return joinContextAndTurn(recentUserTurns.join("\n"), userText);
 }
 
-type TripResolution<TTrip> =
-  | { status: "verified"; trip: TTrip }
-  | { status: "ambiguous"; candidates: TTrip[] }
+type ProductResolution<TProduct> =
+  | { status: "verified"; product: TProduct }
+  | { status: "ambiguous"; candidates: TProduct[] }
   | { status: string };
 
-type TripResolver<TTrip> = (text: string) => TripResolution<TTrip>;
+type ProductResolver<TProduct> = (text: string) => ProductResolution<TProduct>;
 
 /**
- * Which text should the deterministic trip matchers see?
+ * Which text should the deterministic product matchers see?
  *
- * Priority: (1) the current message alone resolves a trip → use it;
+ * Priority: (1) the current message alone resolves a product → use it;
  * (2) the current message is ambiguous and the contextual blob verifies one
  * OF THOSE candidates → use the context (legit narrowing: "<хот>" earlier +
  * "шууд нислэгтэй нь" now); a contextual winner OUTSIDE the candidates is a
- * stale unrelated trip hijacking the match and is rejected; (3) the current
+ * stale unrelated product hijacking the match and is rejected; (3) the current
  * message is ambiguous otherwise → clarify from what the customer JUST said;
  * (4) the current message resolves nothing → fall back to the contextual blob.
  *
- * Matching over the concatenated turns first (the old behavior) let a trip
- * mentioned three turns ago outscore the trip the customer is asking about
- * right now — confident, well-formatted, wrong-trip answers.
+ * Matching over the concatenated turns first (the old behavior) let a product
+ * mentioned three turns ago outscore the product the customer is asking about
+ * right now — confident, well-formatted, wrong-product answers.
  */
-export function pickFastPathMatchText<TTrip extends { id: string }>(
+export function pickFastPathMatchText<TProduct extends { id: string }>(
   text: string,
   contextualUserText: string,
-  resolve: TripResolver<TTrip>,
+  resolve: ProductResolver<TProduct>,
 ): string {
   if (contextualUserText === text) return text;
   const direct = resolve(text);
   if (direct.status === "verified") return text;
   const contextual = resolve(contextualUserText);
   if (direct.status === "ambiguous" && "candidates" in direct) {
-    if (contextual.status === "verified" && "trip" in contextual) {
-      const candidateIds = new Set(direct.candidates.map((trip) => trip.id));
-      if (candidateIds.has(contextual.trip.id)) return contextualUserText;
+    if (contextual.status === "verified" && "product" in contextual) {
+      const candidateIds = new Set(direct.candidates.map((product) => product.id));
+      if (candidateIds.has(contextual.product.id)) return contextualUserText;
     }
     return text;
   }

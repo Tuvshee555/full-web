@@ -1,5 +1,5 @@
 import { prisma } from "../../prismaClient.js";
-import { getSettings } from "../../chatbot/settings.js";
+import { getSettings } from "../../../src/chatbot/settings.js";
 import { publicInventory } from "../../utils/stockLevel.js";
 
 export const getFoodById = async (req, res) => {

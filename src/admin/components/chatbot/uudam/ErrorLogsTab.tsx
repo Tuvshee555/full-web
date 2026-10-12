@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Badge, Button, Card, EmptyState, Icons, Input, useToast } from "@/components/ui";
+import { Alert, Badge, Button, Card, EmptyState, Icons, Input, useToast } from "./ui";
 import { LoadingPanel, SectionHeading, StatCard, TabHeader } from "./AdminShared";
-import { formatTime } from "@/lib/adminUtils";
+import { formatTime } from "@/chatbot/adminUtils";
 
 type LogLevel = "error" | "warn" | "info";
 
 type ErrorLogRow = {
-  id: number;
+  id: string;
   created_at: string;
   level: LogLevel;
   event: string;
@@ -61,7 +61,7 @@ export function ErrorLogsTab({
       if (level) params.set("level", level);
       if (event) params.set("event", event);
       if (search) params.set("search", search);
-      const res = await apiFetch(`/api/admin/error-logs?${params.toString()}`);
+      const res = await apiFetch(`/api/chatbot/admin/error-logs?${params.toString()}`);
       const data = await res.json();
       setConfigured(data?.configured !== false);
       setRetentionDays(typeof data?.retentionDays === "number" ? data.retentionDays : 7);
@@ -164,8 +164,8 @@ export function ErrorLogsTab({
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <StatCard label="Алдаа" value={errorCount} tone={errorCount ? "text-danger" : undefined} />
-            <StatCard label="Анхааруулга" value={warnCount} tone={warnCount ? "text-warning" : undefined} />
+            <StatCard label="Алдаа" value={errorCount} tone={errorCount ? "text-terracotta" : undefined} />
+            <StatCard label="Анхааруулга" value={warnCount} tone={warnCount ? "text-terracotta" : undefined} />
             <StatCard label="Өөр төрөл" value={summary.length} />
           </div>
 
@@ -187,17 +187,17 @@ export function ErrorLogsTab({
                     key={`${item.event}:${item.level}`}
                     type="button"
                     onClick={() => setEvent(item.event === event ? "" : item.event)}
-                    className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+                    className={`flex w-full items-center justify-between gap-3  border px-3 py-2 text-left text-sm transition-colors ${
                       item.event === event
-                        ? "border-brand-border bg-brand-soft/50"
-                        : "border-line bg-surface-sunken hover:border-brand-border"
+                        ? "border-ink/20 bg-sand"
+                        : "border-ink/10 bg-paper hover:border-ink/20"
                     }`}
                   >
                     <span className="flex min-w-0 items-center gap-2">
                       <Badge tone={LEVEL_TONE[item.level]}>{LEVEL_LABEL[item.level]}</Badge>
                       <span className="truncate font-mono text-xs text-ink">{item.event}</span>
                     </span>
-                    <span className="shrink-0 text-xs text-ink-muted">
+                    <span className="shrink-0 text-xs text-taupe">
                       <span className="font-semibold tabular-nums text-ink">{item.count}</span>
                       {" · "}
                       {formatTime(item.last_at)}
@@ -218,7 +218,7 @@ export function ErrorLogsTab({
                 {rows.map((row) => (
                   <details
                     key={row.id}
-                    className="rounded-lg border border-line bg-surface-sunken p-3 text-sm"
+                    className=" border border-ink/10 bg-paper p-3 text-sm"
                   >
                     <summary className="flex cursor-pointer list-none items-start justify-between gap-3">
                       <span className="min-w-0">
@@ -227,16 +227,16 @@ export function ErrorLogsTab({
                           <span className="truncate font-mono text-xs text-ink">{row.event}</span>
                         </span>
                         {row.message && (
-                          <span className="mt-1 block truncate text-xs text-ink-muted">
+                          <span className="mt-1 block truncate text-xs text-taupe">
                             {row.message}
                           </span>
                         )}
                       </span>
-                      <span className="shrink-0 text-xs text-ink-subtle">
+                      <span className="shrink-0 text-xs text-taupe">
                         {formatTime(row.created_at)}
                       </span>
                     </summary>
-                    <div className="mt-2 space-y-1.5 border-t border-line pt-2 text-xs text-ink-muted">
+                    <div className="mt-2 space-y-1.5 border-t border-ink/10 pt-2 text-xs text-taupe">
                       {row.message && <p className="whitespace-pre-wrap break-words">{row.message}</p>}
                       {row.request_id && (
                         <p>
@@ -248,7 +248,7 @@ export function ErrorLogsTab({
                           хэрэглэгч: <span className="font-mono">{row.sender_hash}</span>
                         </p>
                       )}
-                      <pre className="max-h-64 overflow-auto rounded bg-surface p-2 text-[11px] leading-relaxed text-ink">
+                      <pre className="max-h-64 overflow-auto  bg-white p-2 text-[11px] leading-relaxed text-ink">
                         {JSON.stringify(row.fields, null, 2)}
                       </pre>
                     </div>

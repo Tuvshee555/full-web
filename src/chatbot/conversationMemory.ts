@@ -1,12 +1,12 @@
-import { waitUntil } from "@vercel/functions";
+import { background } from "../../server/utils/background.js";
 import { askOpenAI } from "./openaiProvider";
 import {
   dbGetCustomerMemory,
   dbGetHistorySince,
   dbUpsertCustomerMemory,
   type HistoryRow,
-} from "./travelDb";
-import { getCustomerDocumentMemoryText } from "./customerDocuments";
+} from "./memoryDb";
+
 import { classifyError, logWarn, recordCounter } from "./observability";
 
 const EMPTY_MEMORY = "";
@@ -63,19 +63,19 @@ export function buildCustomerMemoryPrompt(input: {
 }) {
   const existing = input.existingMemory.trim() || "No durable memory yet.";
   return [
-    "You maintain long-term memory for a Mongolian travel agency chatbot.",
+    "You maintain long-term memory for a Mongolian and English eyebrow shop chatbot.",
     "",
     "Update the customer's durable memory using ONLY the existing memory and the new transcript.",
     "Return the complete updated memory, not a diff.",
     "",
-    "Memory must be structured and useful before future replies. Preserve every important fact, preference, decision, unresolved issue, product/trip discussed, objection, contact detail, and changed mind.",
+    "Memory must be structured and useful before future replies. Preserve every important fact, preference, decision, unresolved issue, product discussed, objection, contact detail, and changed mind.",
     "If the customer contradicts or changes a previous preference/decision, keep the newest understanding and remove or mark the older one as outdated.",
     "Do not invent facts. Do not include generic chatbot behavior. Do not store trivial greetings, jokes, or repeated wording unless it changes intent.",
-    "Keep details specific enough to resolve references like 'the one we talked about yesterday', 'same as before', 'next week', or 'that trip'.",
+    "Keep details specific enough to resolve references like 'the one we talked about yesterday', 'same as before', 'next week', or 'that product'.",
     "Use concise bullets under these headings:",
     "Customer identity/contact",
     "Preferences and constraints",
-    "Trips/products discussed",
+    "Products discussed",
     "Decisions and current status",
     "Unresolved questions/follow-ups",
     "Important context notes",
@@ -93,9 +93,9 @@ export function buildCustomerMemoryPrompt(input: {
 export async function getCustomerMemoryText(senderId: string): Promise<string> {
   const memory = await dbGetCustomerMemory(senderId);
   const base = normalizeCustomerMemoryText(memory?.memory_text || EMPTY_MEMORY);
-  const attachmentMemory = await getCustomerDocumentMemoryText(senderId).catch(() => "");
+
   return normalizeCustomerMemoryText(
-    [base, attachmentMemory].filter((part) => part.trim()).join("\n\n"),
+    base,
   );
 }
 
@@ -118,7 +118,7 @@ export function scheduleCustomerMemoryUpdate(input: {
 }): void {
   const work = updateCustomerMemoryAfterTurn(input);
   try {
-    waitUntil(work);
+    background(work);
   } catch {
     // Not running on Vercel (tests, local node) — detached execution is fine.
     void work;

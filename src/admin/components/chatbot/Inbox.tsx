@@ -5,7 +5,7 @@ import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 import { ChatThread } from "@/components/chatbot/ChatThread";
 import { button, input, type Conversation } from "./types";
 
-export function Inbox({ selectedId, onSelect }: { selectedId?: string; onSelect: (id: string) => void }) {
+export function Inbox({ selectedId, onSelect, search = "", onSearch }: { selectedId?: string; onSelect: (id: string) => void; search?: string; onSearch?: (value: string) => void }) {
   const { t } = useI18n();
   const [rows, setRows] = useState<Conversation[]>([]);
   const [thread, setThread] = useState<Conversation>();
@@ -16,9 +16,9 @@ export function Inbox({ selectedId, onSelect }: { selectedId?: string; onSelect:
   const [busy, setBusy] = useState(false);
   const pending = useRef<{ text: string; id: string } | null>(null);
   const refresh = useCallback(async () => {
-    const { data } = await api.get(`/admin/chat/conversations?page=${page}`);
+    const { data } = await api.get(`/chatbot/admin/conversations?page=${page}`);
     setRows(data.rows); setTotal(data.total);
-    if (selectedId) { const { data } = await api.get(`/admin/chat/conversations/${selectedId}`); setThread(data); }
+    if (selectedId) { const { data } = await api.get(`/chatbot/admin/conversations/${selectedId}`); setThread(data); }
   }, [page, selectedId]);
   useEffect(() => {
     let stopped = false;
@@ -32,14 +32,14 @@ export function Inbox({ selectedId, onSelect }: { selectedId?: string; onSelect:
   }, [refresh, t]);
   const toggle = async () => {
     if (!thread) return; setBusy(true);
-    try { await api.patch(`/admin/chat/conversations/${thread.id}`, { paused: !thread.paused }); await refresh(); }
+    try { await api.patch(`/chatbot/admin/conversations/${thread.id}`, { paused: !thread.paused }); await refresh(); }
     catch { setError(t("chatbot.error")); }
     finally { setBusy(false); }
   };
   const send = async (e: React.FormEvent) => {
     e.preventDefault(); if (!thread || !text.trim()) return; setBusy(true);
     if (pending.current?.text !== text) pending.current = { text, id: crypto.randomUUID() };
-    try { await api.post(`/admin/chat/conversations/${thread.id}/messages`, { text, clientMessageId: pending.current.id }); setText(""); pending.current = null; await refresh(); }
+    try { await api.post(`/chatbot/admin/conversations/${thread.id}/messages`, { text, clientMessageId: pending.current.id }); setText(""); pending.current = null; await refresh(); }
     catch { setError(t("chatbot.error")); }
     finally { setBusy(false); }
   };
@@ -47,8 +47,9 @@ export function Inbox({ selectedId, onSelect }: { selectedId?: string; onSelect:
     {error && <p role="alert" className="mb-3 text-sm text-terracotta">{error}</p>}
     <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
       <div className="border border-ink/10 bg-white">
+        {onSearch && <input aria-label={t("chatbot.search")} placeholder={t("chatbot.search")} value={search} onChange={(e) => onSearch(e.target.value)} className={input} />}
         {!rows.length && <p className="p-4 text-sm text-taupe">{t("chatbot.no_conversations")}</p>}
-        {rows.map((c) => <button key={c.id} onClick={() => { setThread(undefined); onSelect(c.id); }} className={`block w-full border-b border-ink/10 p-4 text-left ${selectedId === c.id ? "bg-sand" : "hover:bg-paper"}`}>
+        {rows.filter((c) => !search || `${c.channel} ${c.messages[0]?.text || ""}`.toLowerCase().includes(search.toLowerCase())).map((c) => <button key={c.id} onClick={() => { setThread(undefined); onSelect(c.id); }} className={`block w-full border-b border-ink/10 p-4 text-left ${selectedId === c.id ? "bg-sand" : "hover:bg-paper"}`}>
           <span className="flex justify-between text-xs uppercase tracking-wide"><span>{c.channel}</span>{c.unread > 0 && <span className="text-terracotta">{c.unread} {t("chatbot.unread")}</span>}</span>
           <p className="mt-2 line-clamp-2 text-sm">{c.messages[0]?.text || "—"}</p>
           {c.needsHuman && <p className="mt-2 text-xs text-terracotta">{t("chatbot.needs_human")}</p>}

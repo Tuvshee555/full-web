@@ -21,16 +21,16 @@
  */
 
 import { askOpenAI } from "./openaiProvider";
-import { buildTemporalPromptContext } from "./travelDates";
+import { buildTemporalPromptContext } from "./temporalContext";
 import { isLikelyContextDependentText, normalizeContextText } from "./contextualText";
-import { isGenericConfirmationText } from "./travelFastPathsSearch";
+import { isGenericConfirmationText } from "./textNorm";
 import { classifyError, logWarn, recordCounter } from "./observability";
 
 type ReasoningHistoryMessage = { role: "user" | "assistant"; text: string };
 
 const MAX_HISTORY_TURNS = 12;
 const MAX_HISTORY_LINE_CHARS = 300;
-const MAX_TRIP_INDEX_LINES = 80;
+const MAX_PRODUCT_INDEX_LINES = 80;
 const MAX_ANALYSIS_CHARS = 1_600;
 const REASONING_TIMEOUT_MS = 12_000;
 const REASONING_MAX_OUTPUT_TOKENS = 400;
@@ -49,23 +49,23 @@ export function shouldAnalyzeBeforeReply(userText: string): boolean {
   );
 }
 
-/** Compact one-line-per-trip index so vague references can be resolved to a real trip name. */
-export function buildTripIndexLines(
-  trips: Array<{ route_name?: string | null; category?: string | null; duration_text?: string | null }>,
+/** Compact one-line-per-product index so vague references can be resolved to a real product name. */
+export function buildProductIndexLines(
+  products: Array<{ foodName?: string | null; category?: string | null; ingredients?: string | null }>,
 ): string[] {
   const lines: string[] = [];
-  for (const trip of trips) {
-    const name = (trip.route_name || "").trim();
+  for (const product of products) {
+    const name = (product.foodName || "").trim();
     if (!name) continue;
     const extras = [
-      trip.category,
-      isGenericConfirmationText(trip.duration_text) ? "" : trip.duration_text,
+      product.category,
+      isGenericConfirmationText(product.ingredients) ? "" : product.ingredients,
     ]
       .map((value) => (value || "").trim())
       .filter(Boolean)
       .join(", ");
     lines.push(extras ? `- ${name} (${extras})` : `- ${name}`);
-    if (lines.length >= MAX_TRIP_INDEX_LINES) break;
+    if (lines.length >= MAX_PRODUCT_INDEX_LINES) break;
   }
   return lines;
 }
@@ -84,16 +84,16 @@ export function buildReasoningPrompt(input: {
   customerMemory: string;
   history: ReasoningHistoryMessage[];
   userText: string;
-  tripIndexLines: string[];
+  productIndexLines: string[];
 }): string {
   const lines: string[] = [];
   lines.push(
-    "You are the private planning step for a Mongolian travel agency chatbot. Analyze the conversation BEFORE the reply is written. Output a short analysis only — NOT a customer reply.",
+    "You are the private planning step for a Mongolian and English shop chatbot. Analyze the conversation BEFORE the reply is written. Output a short analysis only — NOT a customer reply.",
   );
   lines.push("");
   lines.push("Rules:");
-  lines.push("- Base the analysis ONLY on the memory, conversation, and current message below. Never invent trips, prices, dates, or facts.");
-  lines.push("- If the current message references something earlier ('тэр', 'энэ', 'өчигдөр ярьсан', 'same as before', 'дахиад', 'нөгөөх'), name exactly what it refers to, using the known trip names when one matches.");
+  lines.push("- Base the analysis ONLY on the memory, conversation, and current message below. Never invent products, prices, dates, or facts.");
+  lines.push("- If the current message references something earlier ('тэр', 'энэ', 'өчигдөр ярьсан', 'same as before', 'дахиад', 'нөгөөх'), name exactly what it refers to, using the known product names when one matches.");
   lines.push("- If the customer changed their mind versus an earlier preference or decision, the newest message wins — state what changed.");
   lines.push("- Note what has ALREADY been explained to this customer so the reply does not repeat it word-for-word.");
   lines.push("- If the detail the customer needs is not in memory or conversation, say the reply must come from the business Context or REFER — never suggest guessing.");
@@ -109,9 +109,9 @@ export function buildReasoningPrompt(input: {
   lines.push("Time context:");
   lines.push(buildTemporalPromptContext(input.userText));
   lines.push("");
-  if (input.tripIndexLines.length > 0) {
-    lines.push("Known trips (names only, for resolving references):");
-    lines.push(...input.tripIndexLines);
+  if (input.productIndexLines.length > 0) {
+    lines.push("Known products (names only, for resolving references):");
+    lines.push(...input.productIndexLines);
     lines.push("");
   }
   lines.push("Persistent customer memory:");
@@ -147,7 +147,7 @@ export async function analyzeBeforeReply(input: {
   customerMemory: string;
   history: ReasoningHistoryMessage[];
   userText: string;
-  tripIndexLines: string[];
+  productIndexLines: string[];
   requestId?: string;
   correlationId?: string;
   source?: string;
@@ -159,7 +159,7 @@ export async function analyzeBeforeReply(input: {
       customerMemory: input.customerMemory,
       history: input.history,
       userText: input.userText,
-      tripIndexLines: input.tripIndexLines,
+      productIndexLines: input.productIndexLines,
     });
     const result = await askOpenAI(prompt, {
       requestId: input.requestId,

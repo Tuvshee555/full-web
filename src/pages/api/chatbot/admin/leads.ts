@@ -1,73 +1,23 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { requireAdminAccess } from "../../../lib/adminAccess";
-import {
-  countNewLeads,
-  getLeadStats,
-  listLeads,
-  markLeadSeen,
-  updateLeadStatus,
-} from "../../../lib/travelOps";
-import type { LeadCrmStatus } from "../../../lib/travelOps";
-import { beginRequestTrace, finishRequestTrace } from "../../../lib/observability";
-
-const VALID_CRM_STATUSES: LeadCrmStatus[] = ["new_lead", "contacted", "booked", "no_answer"];
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const trace = beginRequestTrace({
-    route: "api.admin.leads",
-    method: req.method,
-    url: req.url,
-    headers: req.headers,
-    setHeader: (name, value) => res.setHeader(name, value),
-  });
-
-  try {
-    const allowed = await requireAdminAccess(req, res, "api.admin.leads");
-    if (!allowed) return;
-
-    if (req.method === "GET") {
-      // ?stats=1 returns dashboard aggregates alongside the lead list.
-      if (req.query.stats) {
-        const [leads, newCount, stats] = await Promise.all([
-          listLeads(80),
-          countNewLeads(),
-          getLeadStats(),
-        ]);
-        return res
-          .status(200)
-          .json({ ok: true, leads, new_count: newCount, stats });
-      }
-      const [leads, newCount] = await Promise.all([
-        listLeads(80),
-        countNewLeads(),
-      ]);
-      return res.status(200).json({ ok: true, leads, new_count: newCount });
-    }
-
-    if (req.method === "PATCH") {
-      const { id, lead_status } = req.body || {};
-      const leadId = Number(id);
-      if (!Number.isInteger(leadId) || leadId <= 0) {
-        return res.status(400).json({ error: "valid id is required" });
-      }
-
-      // If lead_status provided, update CRM status; otherwise just mark seen
-      if (lead_status !== undefined) {
-        if (!(VALID_CRM_STATUSES as string[]).includes(String(lead_status))) {
-          return res.status(400).json({ error: "invalid lead_status" });
-        }
-        const updated = await updateLeadStatus(leadId, lead_status as LeadCrmStatus);
-        if (!updated) return res.status(404).json({ error: "lead_not_found" });
-        return res.status(200).json({ ok: true });
-      }
-
-      const updated = await markLeadSeen(leadId);
-      if (!updated) return res.status(404).json({ error: "lead_not_found" });
-      return res.status(200).json({ ok: true });
-    }
-
-    return res.status(405).end();
-  } finally {
-    finishRequestTrace(trace, res.statusCode || 500);
+import { apiRoute, first } from "../../../../chatbot/api";
+import { requireAdminAccess } from "../../../../chatbot/adminAccess";
+import { prisma } from "../../../../chatbot/prisma";
+const VALID_CRM_STATUSES = ["new", "contacted", "done"];
+export default apiRoute(async (req, res) => {
+  if (!(await requireAdminAccess(req, res, "api.chatbot.admin.leads"))) return;
+  if (req.method === "GET") {
+    const page = Math.max(1, Math.min(10000, Number(first(req.query.page)) || 1));
+    const where = { conversation: { channel: { not: "test" } } };
+    const [rows, total, newCount] = await Promise.all([prisma.chatLead.findMany({ where, orderBy: { createdAt: "desc" }, skip: (page - 1) * 50, take: 50 }), prisma.chatLead.count({ where }), prisma.chatLead.count({ where: { ...where, status: "new" } })]);
+    return res.json({ ok: true, rows, total, page, new_count: newCount });
   }
-}
+  if (req.method === "PATCH") {
+    const id = req.body?.id;
+    const status = req.body?.status || req.body?.lead_status;
+    if (typeof id !== "string" || !VALID_CRM_STATUSES.includes(status)) return res.status(400).json({ error: "invalid lead_status" });
+    const existing = await prisma.chatLead.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: "lead_not_found" });
+    const row = await prisma.chatLead.update({ where: { id }, data: { status } });
+    return res.json(row);
+  }
+  return res.status(405).end();
+});

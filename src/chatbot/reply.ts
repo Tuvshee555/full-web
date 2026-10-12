@@ -1,384 +1,42 @@
-import type { TravelTrip } from "./travelTypes";
-import { parseDepartureDateText } from "./travelDates";
-import { mentionedOfferHotel, quotablePrices, tripBookingFacts, tripSupportsDate } from "./tripFacts";
-
-const WEBSITE_URL = "";
-const WEBSITE_REPLY =
-  "Төлбөрийн заавар, дансны мэдээллийг чат дээр баталгаажуулахгүй. Тухайн оператороос албан ёсоор баталгаажуулж авна уу.";
-
-/**
- * REFER protocol — the model's machine-readable "I don't have this data"
- * signal. Callers should create/alert a staff handoff and acknowledge that
- * handoff to the customer without exposing the token or inventing an answer.
- * "SILENT" is kept as a legacy alias.
- *
- * Lives here (env-free reply helpers) rather than in conversation.ts so tests
- * and callers can use it without dragging in the DB/env import chain.
- */
+import type { CatalogueContext } from "./types";
+import type { ProductAnswerPlan } from "./productAnswerPlan";
+import { money } from "./productPriceBlock";
+import { unsafeClaim } from "./productFacts";
 export function isReferReply(text: string): boolean {
-  const firstLine = (text || "").trim().split("\n")[0]?.trim().toUpperCase() ?? "";
-  return firstLine === "REFER" || firstLine === "SILENT" || /^(REFER|SILENT)\b/.test(firstLine);
+ const firstLine=(text||"").trim().split("\n")[0]?.trim().toUpperCase()||"";
+ return firstLine==="REFER"||firstLine==="SILENT"||/^(REFER|SILENT)\b/.test(firstLine);
 }
-
-/**
- * Machine token (like REFER) returned by the program builder when a customer
- * asks specifically for pictures and the trip has no photos or brochure.
- * Never shown to anyone: the no-data silence patterns match it, so both the
- * webhook and the demo suppress the reply and record the handoff.
- */
-export const TRIP_MEDIA_UNAVAILABLE_SILENT = "NOTRIPMEDIA";
-
-export const NO_DATA_HANDOFF_REPLY =
-  "Энэ асуултыг манай аяллын зөвлөхөд дамжууллаа. Мэдээллийг шалгаад танд энд хариу өгнө 🙏";
-
-/**
- * Asked when a customer wants a price / programme / information but names no
- * trip ("Үнэ", "Хөтөлбөр", "Хэд хоногийн аялал хэдэн төг вээ"). Staff hand-off
- * (and a paused bot) is for questions the bot truly cannot answer; this one it
- * can, by asking the same thing a person would.
- */
-export const WHICH_TRIP_CLARIFY_REPLY =
-  "Аль аяллын талаар асууж байна вэ? 😊 Чиглэл (жишээ нь хотын нэр) эсвэл аяллын нэрээ бичвэл үнэ, хөтөлбөр, гарах өдрийг нь шууд хэлье.";
-
-export const AI_OUTAGE_HANDOFF_REPLY =
-  "Таны асуултыг аяллын зөвлөхөд дамжууллаа. Мэдээллийг шалгаад танд энд хариу өгнө 🙏";
-
-export function buildHandoffAcknowledgement(options: { aiOutage?: boolean } = {}) {
-  return options.aiOutage ? AI_OUTAGE_HANDOFF_REPLY : NO_DATA_HANDOFF_REPLY;
+export type ReplyPlan={intent:string;productPlan?:ProductAnswerPlan|null;hasOrderCredentials?:boolean;orderStatus?:string|null;handoffAcknowledged?:boolean};
+export function contactFallback(context:CatalogueContext):string {
+ const contact=[context.store.contact.phone,context.store.contact.email].filter(Boolean).join(" · ");
+ return (context.locale==="en"?"I cannot confirm that detail right now. Our team can help: ":"Одоогоор тэр мэдээллийг баталгаажуулж чадсангүй. Манай ажилтнаас тодруулна уу: ")+contact;
 }
-
-const PAYMENT_LEAK_PATTERNS: RegExp[] = [
-  /\/register/i,
-  /регистер\s*хуудас/i,
-  /register\s*page/i,
-  /данс\s*(?:руу\s*)?шилжүүл/i,
-  /данс(?:аар|ны\s*дугаар)/i,
-  /qpay\s*(?:эсвэл|болон|-?р\s*төл|-?аар\s*төл)/i,
-  /(?:qpay|кюпэй).{0,30}(?:төл|шилжүүл)/i,
-  /төлбөрийг\s*(?:qpay|кюпэй|данс)/i,
-];
-
-function containsLeakedPaymentInstruction(text: string) {
-  if (!text) return false;
-  if (WEBSITE_URL && text.includes(WEBSITE_URL)) return false;
-  return PAYMENT_LEAK_PATTERNS.some((pattern) => pattern.test(text));
+const STATUSES:Record<string,[string,string]>={PENDING:["Баталгаажуулалт хүлээж байна","Awaiting confirmation"],WAITING_PAYMENT:["Төлбөр хүлээж байна","Awaiting payment"],COD_PENDING:["Баталгаажуулалт хүлээж байна","Awaiting confirmation"],PAID:["Төлбөр төлөгдсөн","Paid"],DELIVERING:["Хүргэлтэд гарсан","On the way"],DELIVERED:["Хүргэгдсэн","Delivered"],CANCELLED:["Цуцлагдсан","Cancelled"]};
+export function composeReply(plan:ReplyPlan,context:CatalogueContext):{text:string;needsHuman:boolean} {
+ const say=(mn:string,en:string)=>context.locale==="en"?en:mn;
+ if(plan.productPlan)return {text:plan.productPlan.reply,needsHuman:plan.productPlan.status==="handoff"};
+ let text="";let needsHuman=false;
+ switch(plan.intent){
+ case "greeting":text=context.locale==="en"?context.settings.greetingEn:context.settings.greetingMn;break;
+ case "thanks":text=say("Зүгээр ээ. Өөр асуух зүйл байвал бичээрэй.","You're welcome. Let me know if you have another question.");break;
+ case "delivery":{
+ const faq=context.brand.faq.find((item)=>/delivery|хүргэлт/i.test(item.q));
+ text=say(`Хүргэлтийн төлбөр: ${money(context.deliveryFee)}.`,`Delivery fee: ${money(context.deliveryFee)}.`)+(faq?"\n"+faq.a:"");break;}
+ case "payment":text=say("Картаар төлөх боломжгүй. Зөвхөн QPay эсвэл банкны шилжүүлгээр төлнө. Бүтээгдэхүүнээ сагсанд нэмээд захиалгаа баталгаажуулна.","Cards are not accepted. Pay with QPay or bank transfer. Add products to your cart, then complete checkout.")+`\n${context.site}/${context.locale}/cart\n${context.site}/${context.locale}/checkout`;break;
+ case "bank":text=say("Банкны шилжүүлэг:","Bank transfer:")+`\n${context.store.bank.name}\n${context.store.bank.holder}\n${context.store.bank.account}\n`+say("Гүйлгээний утгад захиалгын дугаараа бичнэ үү.","Use your order number as the payment reference.");break;
+ case "order":text=!plan.hasOrderCredentials?say("Захиалгын дугаар болон тухайн захиалгад бүртгэсэн утасны дугаараа хамт бичнэ үү.","Please provide your order number and the phone number registered on that order."):plan.orderStatus&&STATUSES[plan.orderStatus]?say("Захиалгын төлөв: ","Order status: ")+STATUSES[plan.orderStatus][context.locale==="en"?1:0]:say("Захиалгын дугаар, утасны мэдээллийг баталгаажуулж чадсангүй. Хоёуланг нь шалгаад дахин бичнэ үү.","I could not verify the order number and phone number. Please check both and try again.");break;
+ case "returns":{const faq=context.brand.faq.find((item)=>/return|буцаа/i.test(item.q));text=faq?.a||contactFallback(context);needsHuman=!faq;break;}
+ case "about":text=context.brand.about.join("\n");break;
+ case "contact":text=[context.store.contact.phone,context.store.contact.email].filter(Boolean).join(" · ");break;
+ case "medical":text=say("Үс ургалт, хугацаа, эмчилгээний үр дүнг батлах мэдээлэл байхгүй. Энэ талаар манай ажилтнаас тодруулж болно.","We have no verified growth timeframe or medical result to promise. Our team can help with this question.");needsHuman=true;break;
+ case "human":needsHuman=true;text=plan.handoffAcknowledged?say("Таны хүсэлтийг ажилтанд өмнө нь хадгалсан. Би бусад асуултад тань тусалж болно.","Your request is saved for our team. I can still help with your other questions."):(context.locale==="en"?context.settings.handoffEn:context.settings.handoffMn);break;
+ case "knowledge":{const knowledge=context.locale==="en"?context.settings.extraKnowledgeEn:context.settings.extraKnowledgeMn;text=knowledge&&!unsafeClaim(knowledge)&&!/₮|\bMNT\b|stock|нөөц|хямдрал|discount|price|үнэ/i.test(knowledge)?knowledge:contactFallback(context);break;}
+ case "clarify":text=say("Аль бүтээгдэхүүн бэ? Нэр эсвэл төрлийг нь бичнэ үү.","Which product do you mean? Please share its name or type.");break;
+ case "outside":text=say("Тэр бүтээгдэхүүн одоогийн каталогт байхгүй байна. Манай хөмсөгний бүтээгдэхүүнээс сонгоход тусалж болно.","That product is not listed in our current catalogue. I can help you choose from our eyebrow products.");break;
+ default:text=say("Би Lorentz-ийн онлайн туслах. Бүтээгдэхүүн, үнэ, хүргэлт, захиалгын талаар тусалж болно.","I'm Lorentz's online assistant. I can help with products, prices, delivery and orders.");
+ }
+ return {text:text||contactFallback(context),needsHuman};
 }
-
-/**
- * Payment instructions (bank transfer, QPay) never go out in chat. Only the
- * lines that carry them are removed: replacing the whole reply turned a trip
- * list for "мэдээлэл явуулаад өгөөрэй" into a payment warning because one line
- * mentioned paying "дансаар". When the payment lines were the answer (little
- * else left), the reply is the standard warning.
- */
-export function enforceWebsiteForPayment(text: string) {
-  if (!containsLeakedPaymentInstruction(text)) return text;
-  const kept = text
-    .split("\n")
-    .filter((line) => !containsLeakedPaymentInstruction(line))
-    .join("\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-  if (containsLeakedPaymentInstruction(kept) || kept.length < text.trim().length * 0.5) return WEBSITE_REPLY;
-  return kept;
-}
-
-export function reconcilePhotoAttachmentReply(text: string, hasAttachedMedia: boolean) {
-  if (!hasAttachedMedia) return text;
-  return text.replace(
-    /\n\nОдоогоор энэ аяллын нэмэлт зураг системд ороогүй байна\. 🙌/g,
-    "\n\nЗургийг хавсаргалаа.",
-  );
-}
-
-const NO_DATA_REPLY_PATTERNS: RegExp[] = [
-  /^NOTRIPMEDIA\b/,
-  /\u0433\u0430\u0440\u0430\u0445\s+\u0430\u044f\u043b\u0430\u043b\s+\u0430\u043b\u0433\u0430\s+\u0431\u0430\u0439\u043d\u0430/i,
-  /\u043e\u0434\u043e\u043e\u0433\u0438\u0439\u043d\s+\u043c\u044d\u0434\u044d\u044d\u043b\u044d\u043b\u0434\s+\u0430\u043b\u0433\u0430\s+\u0431\u0430\u0439\u043d\u0430/i,
-  /\u043c\u044d\u0434\u044d\u044d\u043b\u044d\u043b\s+\u0431\u0430\u0439\u0445\u0433\u04af\u0439\s+\u0431\u0430\u0439\u043d\u0430/i,
-  /\u0442\u043e\u0445\u0438\u0440\u043e\u0445\s+\u04af\u043d\u0438\u0439\u043d\s+\u043c\u044d\u0434\u044d\u044d\u043b\u044d\u043b\s+\u043e\u043b\u0434\u0441\u043e\u043d\u0433\u04af\u0439/i,
-  /(?:аялал|чиглэлд).{0,80}тодорхой олдсонгүй/i,
-  /үнийн мэдээлэл (?:олдсонгүй|одоогоор тодорхойгүй)/i,
-  /мэдээлэл(?:\s+одоогоор)?\s+тодорхойгүй байна/i,
-  /үнэ\s+тодорхойгүй/i,
-  /зөвлөхөөр.{0,40}баталгаажуул(?:ах|на)\s*(?:хэрэгтэй|шаардлагатай|уу)/i,
-  /баталгаажуулах шаардлагатай/i,
-  /мэдээлэл одоогоор тодорхойгүй/i,
-  // NOTE deliberately absent: "зураг системд ороогүй". That phrase was the
-  // harmless no-photos FOOTNOTE appended to complete, correct program answers
-  // (name, dates, prices, itinerary) — matching it here ghosted customers on
-  // 18 of 25 active trips that simply lack photos. Missing pictures are not
-  // missing data; only genuine no-answer replies belong in this list.
-  /хүний ажилтантай холбож өгье/i,
-  // The model stating it lacks the answer instead of outputting REFER. The owner's
-  // rule is silence when the answer is unknown, so these are never sent.
-  /мэдээлэлд\s+байхгүй/i,
-  /мэдэхгүй байна/i,
-  /туслах боломжгүй/i,
-];
-
-// The phone-number ask on its own ("Утасны дугаараа үлдээвэл … залгана 🙌")
-// answers nothing — a replayed real question about return seats got only this.
-const PHONE_ASK_ONLY = /^(?:утасны дугаараа үлдээвэл[^.!?]*?(?:залгана|холбогдоно)[^\p{L}]*)$/iu;
-
-export function shouldSilenceNoDataReply(text: string): boolean {
-  const normalized = (text || "").replace(/\s+/g, " ").trim();
-  if (!normalized) return true;
-  if (PHONE_ASK_ONLY.test(normalized)) return true;
-  return NO_DATA_REPLY_PATTERNS.some((pattern) => pattern.test(normalized));
-}
-
-// Booking terms the model must never make up: each topic is allowed in a reply
-// only when the catalog Context it was given talks about it.
-const BOOKING_TERM_TOPICS: Array<{ reply: RegExp; context: RegExp }> = [
-  { reply: /урьдчилгаа/i, context: /урьдчилгаа/i },
-  { reply: /цуцл|буцаалт|буцаан олгол/i, context: /цуцл|буцаалт|буцаан олгол/i },
-  { reply: /бичиг баримт|паспорт/i, context: /бичиг баримт|паспорт/i },
-  { reply: /(?:^|[^\p{L}])виз/iu, context: /(?:^|[^\p{L}])виз/iu },
-  { reply: /бүрэн\s+төл/i, context: /бүрэн\s+төл|төлбөрийн нөхцөл/i },
-];
-
-/**
- * The prompt already says to answer deposits, documents, visas and
- * cancellation only from a trip's 'Захиалгын нөхцөл'. The model still wrote
- * "pay in full before the trip; contract, passport, visa" for a customer when
- * no such terms existed. A reply that states a term the Context never
- * mentions becomes REFER: staff answer it, the bot does not invent policy.
- */
-export function guardInventedBookingTerms(
-  reply: string,
-  promptUserText: string,
-  candidateTrips: TravelTrip[] = [],
-): string {
-  const start = promptUserText.indexOf("Context:");
-  const tail = start >= 0 ? promptUserText.slice(start) : promptUserText;
-  const end = tail.search(/\n(?:Persistent customer memory|Private pre-answer analysis|Conversation so far|User):/);
-  const catalogContext = end >= 0 ? tail.slice(0, end) : tail;
-  const relevantContext = candidateTrips.length > 0
-    ? candidateTrips.map(tripBookingFacts).join("\n")
-    : catalogContext;
-  const invented = BOOKING_TERM_TOPICS.some(
-    (topic) => topic.reply.test(reply) && !topic.context.test(relevantContext),
-  );
-  return invented ? "REFER" : reply;
-}
-
-// A tugrik figure in a reply: "3,490,000₮", "3.490.000 ₮", "3490000 төгрөг".
-// No trailing \b: "₮" is not a "word" character to JS regex, so \b right
-// after it never matches when followed by punctuation or end-of-string
-// (which is most of the time) — it silently matched nothing at all.
-const TUGRIK_AMOUNT_RE = /(\d{1,3}(?:[.,]\d{3}){1,4}|\d{4,})\s*(?:₮|төгрөг|tugrik|mnt)(?![\p{L}])/giu;
-
-/**
- * Reads every ₮ amount out of an AI reply and confirms each one is a real,
- * quotable price on one of the trips the reply is actually about. A price
- * the model invented, misremembered, or copied from the wrong departure date
- * (the base fare instead of that date's price-group fare) fails this check —
- * REFER instead of a wrong number reaching the customer. Deliberately code
- * only, no second model call: a checker that can itself hallucinate is not a
- * safety net.
- *
- * `candidateTrips` should be the trip(s) the reply is grounded in — the
- * resolved/relevant trip(s) for this turn, not the whole catalog, so a price
- * that is real on some OTHER trip does not accidentally pass. When nothing
- * resolved a specific trip (a broad "list your trips under 2 million"
- * question, say), there is no single trip to check against — same as the
- * wrong-trip guard, this stays out rather than silencing a legitimate broad
- * answer it has no way to verify.
- */
-export function guardUnverifiedPrices(
-  reply: string,
-  candidateTrips: TravelTrip[],
-  now = new Date(),
-): string {
-  if (candidateTrips.length === 0) return reply;
-  const lines = reply.split(/\r?\n/);
-  const allReplyDates = parseDepartureDateText(reply, now);
-  let activeDates = allReplyDates.length === 1 ? allReplyDates : [];
-  const activeHotels = new Map<string, string>();
-  for (const line of lines) {
-    const lineDates = parseDepartureDateText(line, now);
-    if (lineDates.length > 0) activeDates = lineDates;
-    for (const trip of candidateTrips) {
-      const hotel = mentionedOfferHotel(trip, line, now);
-      if (hotel) activeHotels.set(trip.id, hotel);
-    }
-    const amounts = [...line.matchAll(TUGRIK_AMOUNT_RE)]
-      .map((match) => Number(match[1].replace(/[.,]/g, "")))
-      .filter((amount) => Number.isFinite(amount) && amount >= 1_000);
-    if (amounts.length === 0) continue;
-    for (const amount of amounts) {
-      const supported = candidateTrips.some((trip) => {
-        const mentionedHotel = mentionedOfferHotel(trip, line, now);
-        const hotel = mentionedHotel || activeHotels.get(trip.id) || null;
-        if (activeDates.length === 0) return quotablePrices(trip, undefined, now, hotel).has(amount);
-        return activeDates.some((date) => quotablePrices(trip, date, now, hotel).has(amount));
-      });
-      if (!supported) return "REFER";
-    }
-  }
-  return reply;
-}
-
-// A reply claiming a date is this trip's departure or availability.
-const DATE_CLAIM_WORDS = /гарна|гарах|гардаг|идэвхтэй|боломжтой|суудал|нээлттэй|захиалга/i;
-
-/**
- * Every explicit date in an AI reply (not "маргааш"/"өнөөдөр" — only ones
- * precise enough to be wrong, "10 сарын 8", "2026-12-03") must be a real
- * departure date of one of the trips this turn resolved to. Catches the
- * model stating a date the trip does not actually run on — same shape and
- * same reasoning as guardUnverifiedPrices: a checker with no model call of
- * its own, so it cannot itself hallucinate a pass.
- *
- * `candidateTrips` must be the resolved trip(s) for this turn. Dates repeated
- * from the customer's question are still checked because "yes, that date"
- * is a factual confirmation.
- */
-export function guardUnverifiedDates(
-  reply: string,
-  candidateTrips: TravelTrip[],
-  _customerText?: string,
-  now = new Date(),
-): string {
-  if (candidateTrips.length === 0) return reply;
-  if (!DATE_CLAIM_WORDS.test(reply)) return reply;
-  for (const line of reply.split(/\r?\n/)) {
-    const dates = parseDepartureDateText(line, now);
-    if (dates.length === 0) continue;
-    // A truthful denial may repeat a date that is absent from the schedule.
-    if (/байхгүй|алга|гарахгүй|хуваарьгүй/i.test(line)) continue;
-    for (const date of dates) {
-      if (!candidateTrips.some((trip) => tripSupportsDate(trip, date, now) === "match")) return "REFER";
-    }
-  }
-  return reply;
-}
-
-// A customer's own text claim ("5 сая шилжүүлсэн", "screenshot явуулсан",
-// "миний төлбөр орсон уу?") is not proof of payment — the bot has no bank/QPay
-// access and can only see what the customer typed. The model is prompted not
-// to confirm from this, but a money-trust claim needs a code-level backstop
-// too: this pattern set matches the customer message, not the reply, so it
-// only fires when the conversation is actually about a payment claim.
-const PAYMENT_CLAIM_PATTERNS: RegExp[] = [
-  /шилжүүл(?:сэн|лээ|эв)/i,
-  /төл(?:сөн|лөө|бөр).{0,20}(?:орсон|хийсэн|хийлээ)/i,
-  /баримт/i,
-  /screenshot|скриншот/i,
-  /миний төлбөр орсон уу/i,
-  /баталгаажуул/i,
-  /данс руу шилжүүл/i,
-];
-
-// The reply text asserting confirmation — this is what must never leave the
-// bot for a text-only payment claim, regardless of what the customer typed.
-const PAYMENT_CONFIRMATION_CLAIM_PATTERNS: RegExp[] = [
-  /захиалг(?:а|ыг).{0,20}баталгаажс?/i,
-  /төлбөр(?:ийг)?.{0,20}хүлээн авлаа/i,
-  /баталгаажуулж байна/i,
-  /баталгаажсан байна/i,
-  /зөв байх ёстой/i,
-];
-
-export const PAYMENT_VERIFICATION_DEFERRAL_REPLY =
-  "Төлбөр, захиалгын баталгаажуулалтыг манай аяллын зөвлөх шалгаж баталгаажуулдаг. Зөвлөх тантай удахгүй холбогдож шалгаад мэдэгдэх болно 🙏";
-
-// Stricter than PAYMENT_CLAIM_PATTERNS above — that set includes a bare
-// /баримт/i, which also matches innocent questions like "бичиг баримт
-// хэрэгтэй юу?" (visa document question). Fine for its original job (only
-// fires if the REPLY separately also claims confirmation — a rare
-// coincidence), but too broad to gate fast-path routing on: it would make a
-// document question get told "only the consultant can verify payments"
-// instead of answered. This set requires an unambiguous money-transfer or
-// payment-proof signal.
-// Mongolian marks a completed action with the infix -чих- ("төлчихлөө",
-// "шилжүүлчихлээ", "гүйлгээ хийчихлээ"), which is how customers actually write
-// this — so every "done" verb stem takes an optional чих before its ending.
-//
-// MN_WORD_TAIL stops a stem from matching deeper into an unrelated word. Without
-// it /төл(?:өв)/ matches inside "төлөвлөгөө" (itinerary) and "төлөвлөж байна"
-// ("I'm planning a trip"), so asking for the itinerary was answered with "only a
-// consultant can verify your payment".
-const MN_WORD_TAIL = "(?![а-яёөү])";
-const STRONG_PAYMENT_CLAIM_PATTERNS: RegExp[] = [
-  new RegExp(`шилжүүл(?:чих)?(?:сэн|лээ|эв)${MN_WORD_TAIL}`, "i"),
-  new RegExp(`төл(?:чих)?(?:сөн|лөө|өв)${MN_WORD_TAIL}`, "i"),
-  /төл(?:сөн|лөө|бөр).{0,20}(?:орсон|хий(?:чих)?(?:сэн|лээ))/i,
-  /\d[\d\s,.]{4,}.{0,30}(?:төл(?:чих)?(?:сөн|лөө|өв)|шилжүүл|баталгаажуул)/i,
-  /screenshot|скриншот/i,
-  /миний төлбөр орсон уу/i,
-  /данс руу шилжүүл/i,
-  /(?:төлбөр|захиалг(?:а|ыг)).{0,15}баталгаажуул/i,
-  // A money noun followed by a completed transfer verb: "гүйлгээ хийчихлээ",
-  // "мөнгө явуулсан", "урьдчилгаагаа өглөө", "дансанд хийчихсэн". The verb has
-  // to carry a past/completive ending, which is what keeps ordinary questions
-  // out — "яаж төлбөрөө хийх вэ?" and "урьдчилгаа хэд төлөх вэ?" ask how to pay
-  // and must still be answered normally.
-  new RegExp(
-    `(?:төлбөр|мөнг|урьдчилгаа|гүйлгээ|данс)\\S*(?:\\s+\\S+){0,2}\\s+` +
-      `(?:хий|өг|явуул|илгээ|тушаа|оруул)(?:чих)?(?:сэн|сан|лээ|лаа|лөө|лоо)${MN_WORD_TAIL}`,
-    "i",
-  ),
-  // The same claims typed in Latin letters: "Uridchilgaa 30% tulluu" got the
-  // trip's seat status back instead of the payment acknowledgement (2026-10-06).
-  /(?:^|[^a-z])(?:t[uo]l(?:chi[hx])?(?:luu|loo|sun|son)|shilj[uü]+l(?:chi[hx])?(?:sen|lee|luu))(?![a-z])/i,
-  /(?:tulbur|mungu|mongo|uridchilgaa|guilgee|dans)\S*(?:\s+\S+){0,2}\s+(?:hii|ug|yavuul|ywuul|ilgee)(?:chi[hx])?(?:sen|san|lee|laa|luu|loo)(?![a-z])/i,
-];
-
-/**
- * True when the customer's OWN message is itself a payment/booking
- * confirmation claim ("5 сая шилжүүлсэн", "screenshot явуулсан"). Callers use
- * this to short-circuit trip/date/price fast-paths BEFORE they run — those
- * fast-paths are blind text/number matchers and were hijacking payment claims
- * (e.g. "5 сая шилжүүлсэн" matched a trip alias containing "5 өдөр", "8 сая"
- * matched August availability) into an unrelated trip reply instead of
- * acknowledging the payment claim at all.
- */
-export function hasPaymentClaimIntent(userText: string): boolean {
-  return STRONG_PAYMENT_CLAIM_PATTERNS.some((pattern) => pattern.test(userText));
-}
-
-/**
- * "за дансаа", "дансны дугаараа явуулаач": the customer is ready to pay and
- * wants the bank account. Account details are never given in chat (see
- * WEBSITE_REPLY) — the model answered a real one with "your account and
- * profile" nonsense (2026-09-12). Staff send the account; this only has to
- * say so and alert them.
- */
-const BANK_ACCOUNT_REQUEST_PATTERN =
-  /(?:^|[^\p{L}])(?:данс(?:(?:аа|ыг)(?!\p{L})|ны\s*(?:дугаар|мэдээлэл)\S*|\s+(?:явуул|өг|хэлээ|бичээ|руу))|dans(?:(?:aa|iig)(?!\p{L})|nii|\s+(?:ywuul|yavuul|ug|ruu|ru\b)))/iu;
-
-export function hasBankAccountRequest(userText: string): boolean {
-  const text = (userText || "").trim();
-  return text.length <= 80 && BANK_ACCOUNT_REQUEST_PATTERN.test(text) && !hasPaymentClaimIntent(text);
-}
-
-export const BANK_ACCOUNT_REQUEST_REPLY =
-  "Төлбөрийн дансны мэдээллийг манай аяллын зөвлөх танд албан ёсоор илгээнэ 🙌 Түр хүлээнэ үү.";
-
-/**
- * Backstops the prompt rule: no matter what the model wrote, a text-only
- * payment claim must never come back as a confirmed booking/payment. Only
- * runs when the customer's OWN message is a payment claim — normal trip
- * questions that happen to mention "баталгаажуулах" in another sense are
- * unaffected because the reply-side pattern also has to match.
- */
-export function enforcePaymentNeverSelfConfirmed(userText: string, replyText: string) {
-  const claimsPayment = PAYMENT_CLAIM_PATTERNS.some((pattern) => pattern.test(userText));
-  if (!claimsPayment) return replyText;
-  const confirmsInReply = PAYMENT_CONFIRMATION_CLAIM_PATTERNS.some((pattern) =>
-    pattern.test(replyText),
-  );
-  if (!confirmsInReply) return replyText;
-  return PAYMENT_VERIFICATION_DEFERRAL_REPLY;
-}
-
-// The AI prompt shows the model a fill-in-the-blank example ('[Чиглэл]
-// чиглэлд 3 өөр аялал байна...') so it can copy the sentence shape. The model
-// occasionally echoes the literal bracket placeholder instead of substituting
-// the real destination name — this strips the token so a leaked "[Чиглэл]"
-// never reaches a customer even if the prompt instruction is ignored.
 function stripLeakedPlaceholders(text: string): string {
   return text.replace(/\[Чиглэл\]\s*/gi, "");
 }
@@ -435,8 +93,8 @@ function isGreetingBlock(text: string) {
 
 export function sanitizeAssistantReply(text: string) {
   const withoutInternalVocabulary = text
-    .replace(/\bContext-(?:д|т)/gi, "манай аяллын мэдээлэлд")
-    .replace(/\bContext\b/gi, "аяллын мэдээлэл");
+    .replace(/\bContext-(?:д|т)/gi, "манай бүтээгдэхүүний мэдээлэлд")
+    .replace(/\bContext\b/gi, "бүтээгдэхүүний мэдээлэл");
   const cleaned = normalizeWhitespace(stripScoldingRepeatPhrases(stripControlTokens(stripMarkdown(stripLeakedPlaceholders(withoutInternalVocabulary)))));
   if (!cleaned) return "Энэ мэдээлэл одоогоор тодорхойгүй байна. Хүний ажилтантай холбож өгье.";
 
@@ -445,30 +103,28 @@ export function sanitizeAssistantReply(text: string) {
   // is kept intact when sent to Messenger.
   const blocks = cleaned.split(/\n\n+/);
   const dedupedBlocks: string[] = [];
-  const seenLines = new Set<string>();
+  const seenBlocks = new Set<string>();
 
   for (const block of blocks) {
-    // Within each block, deduplicate individual lines (not sentences) so
-    // the emoji-prefixed detail lines are each preserved separately.
+    // Lines are deduplicated within their own paragraph only. Uudam lesson: a price line repeated
+    // under a DIFFERENT departure heading was a real fact about that departure, and deleting it
+    // dropped real fares. Lorentz has the same shape: "Хар хүрэн — захиалах боломжтой" under a second
+    // product is a fact about that product. A whole paragraph repeated verbatim is still dropped.
     const lines = block.split("\n");
     const uniqueLines: string[] = [];
-    // A price line repeated under a DIFFERENT departure heading is a real
-    // fact about that departure, not the model repeating itself: "• Нярай:
-    // 390,000₮" under a second date section was being deleted, so the later
-    // sections showed only the adult fare. Price lines are deduplicated
-    // within their own block only; everything else across the whole reply.
-    const seenPriceLinesInBlock = new Set<string>();
+    const seenLinesInBlock = new Set<string>();
     for (const line of lines) {
       const norm = normalizeForCompare(line);
       if (!norm) continue;
-      const isPriceLine = /\d[\d,.\s]*₮/.test(line);
-      const seen = isPriceLine ? seenPriceLinesInBlock : seenLines;
-      if (seen.has(norm)) continue;
-      seen.add(norm);
+      if (seenLinesInBlock.has(norm)) continue;
+      seenLinesInBlock.add(norm);
       uniqueLines.push(line.trim());
     }
-    if (uniqueLines.length) {
-      dedupedBlocks.push(uniqueLines.join("\n"));
+    const paragraph = uniqueLines.join("\n");
+    const paragraphKey = normalizeForCompare(paragraph);
+    if (paragraph && !seenBlocks.has(paragraphKey)) {
+      seenBlocks.add(paragraphKey);
+      dedupedBlocks.push(paragraph);
     }
   }
 
@@ -483,90 +139,3 @@ export function stripRepeatedGreeting(replyText: string, hasPriorAssistantReply:
   return blocks.slice(1).join("\n\n").trim();
 }
 
-const BUTTONS_LINE_PATTERN = /\nBUTTONS:\s*(.+)$/;
-
-export function extractButtons(text: string): { text: string; buttons: string[] } {
-  const match = text.match(BUTTONS_LINE_PATTERN);
-  if (!match) return { text, buttons: [] };
-  const cleanText = text.slice(0, match.index).trim();
-  const buttons = match[1]
-    .split("|")
-    .map((b) => b.trim())
-    .filter((b) => b.length > 0 && b.length <= 60)
-    // The prompt promises up to 10 buttons (one per trip in disambiguation
-    // lists); slicing to 3 silently cut those taps. Messenger allows 13.
-    .slice(0, 10);
-  return { text: cleanText, buttons };
-}
-
-export function isDuplicateReply(
-  previousReply: string | undefined,
-  nextReply: string,
-) {
-  if (!previousReply) return false;
-  return normalizeForCompare(previousReply) === normalizeForCompare(nextReply);
-}
-
-function isGenericTripClarifier(text: string) {
-  const normalized = normalizeForCompare(text);
-  return (
-    normalized.includes("ямар аялалд сонирхож байна вэ") ||
-    normalized.includes("тодорхой мэдээлэл өгвөл илүү сайн туслах боломжтой") ||
-    normalized.includes("сонирхож байгаа аяллынхаа нэрийг бичиж үлдээнэ үү")
-  );
-}
-
-function isLowSignalFollowUp(text: string) {
-  const normalized = normalizeForCompare(text);
-  if (!normalized) return true;
-  if (normalized.length <= 18) return true;
-  if (/^\d{6,8}$/.test(normalized)) return true;
-  return (
-    normalized.includes("kkk") ||
-    normalized.includes("haha") ||
-    normalized.includes("hehe") ||
-    normalized.includes("би бна") ||
-    normalized.includes("mun bna") ||
-    normalized.includes("мөн bna") ||
-    normalized.includes("мөн байна") ||
-    normalized.includes("say utsaar") ||
-    normalized.includes("утсаар") ||
-    normalized.includes("ярьсан") ||
-    // Word-boundary matches: substring "за"/"ok" wrongly fired on "Захиалах"
-    // ("за…") and romanized "Tokio" ("…ok…"), muting real trip questions.
-    /(^|\s)за($|\s)/.test(normalized) ||
-    /(^|\s)ok($|\s)/.test(normalized)
-  );
-}
-
-function hasRecentStructuredTripReply(recentAssistantReplies: string[]) {
-  return recentAssistantReplies.some(
-    (reply) =>
-      reply.includes("✈️") &&
-      (reply.includes("💰") || reply.includes("📅") || reply.includes("өдөр")),
-  );
-}
-
-export function rewriteRepeatedGenericClarifier(input: {
-  userText: string;
-  replyText: string;
-  recentAssistantReplies: string[];
-}) {
-  const { userText, replyText, recentAssistantReplies } = input;
-  if (!isGenericTripClarifier(replyText)) return replyText;
-
-  const alreadyAskedRecently = recentAssistantReplies.some((reply) =>
-    isGenericTripClarifier(reply),
-  );
-  if (!alreadyAskedRecently) return replyText;
-
-  if (hasRecentStructuredTripReply(recentAssistantReplies)) {
-    return "Ойлголоо 😊 Дээрх аяллын талаар үнэ, хугацаа, гарах өдөр, эсвэл хүүхдийн үнээс аль нь хэрэгтэйгээ бичээрэй.";
-  }
-
-  if (isLowSignalFollowUp(userText)) {
-    return "Ойлголоо 😊 Сонирхож байгаа аяллынхаа нэрийг нэг бичээрэй, эсвэл үнэ, өдөр, гарах огнооноос аль нь хэрэгтэйгээ хэлээрэй.";
-  }
-
-  return "Аль аяллын талаар мэдээлэл авах вэ? Аяллын нэрээ нэг бичээрэй. 😊";
-}

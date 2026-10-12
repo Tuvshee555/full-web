@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { minimizeAnalyticsEntry, normalizeQuestion, redactAnalyticsText } from "../src/lib/analyticsMinimization";
+import { minimizeAnalyticsEntry, normalizeQuestion, redactAnalyticsText } from "../../src/chatbot/analyticsMinimization";
 
 test("trip names, topics, prices, and departure dates survive minimization", () => {
   const text = "Вэлмор аялал 2,690,000₮, 2026-10-03 гарах уу? Виз, хүүхдийн үнэ?";

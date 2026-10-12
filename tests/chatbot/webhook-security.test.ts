@@ -6,7 +6,7 @@ import {
   PayloadTooLargeError,
   readRawBodyLimited,
   verifyMetaSignature,
-} from "../src/lib/webhookSecurity";
+} from "../../src/chatbot/webhookSecurity";
 
 function sha256Signature(payload: string, secret: string) {
   return `sha256=${crypto.createHmac("sha256", secret).update(payload).digest("hex")}`;

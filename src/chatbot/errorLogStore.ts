@@ -12,8 +12,8 @@
  * observability loggers itself (that would loop back into itself).
  */
 
-import { waitUntil } from "@vercel/functions";
-import { isNeonConfigured, queryNeon } from "./neonDb";
+import { prisma } from "./prisma";
+import { background } from "../../server/utils/background.js";
 import { shouldPersistLog } from "./observability";
 
 export const ERROR_LOG_RETENTION_DAYS = 7;
@@ -60,7 +60,7 @@ export function sanitizeForPostgres(text: string): string {
 }
 
 export type StoredErrorLog = {
-  id: number;
+  id: string;
   created_at: string;
   level: string;
   event: string;
@@ -121,50 +121,6 @@ export function prepareLogRow(record: PersistableLogRecord): Prepared | null {
   };
 }
 
-let schemaReady: Promise<boolean> | null = null;
-
-function ensureSchema(): Promise<boolean> {
-  if (schemaReady) return schemaReady;
-  schemaReady = (async () => {
-    try {
-      const created = await queryNeon(`
-        CREATE TABLE IF NOT EXISTS travel_error_logs (
-          id             BIGSERIAL PRIMARY KEY,
-          created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          level          TEXT NOT NULL,
-          event          TEXT NOT NULL,
-          message        TEXT NOT NULL DEFAULT '',
-          request_id     TEXT NOT NULL DEFAULT '',
-          correlation_id TEXT NOT NULL DEFAULT '',
-          sender_hash    TEXT NOT NULL DEFAULT '',
-          fields         JSONB NOT NULL DEFAULT '{}'::jsonb
-        )
-      `);
-      if (!created) return false;
-      await queryNeon(
-        `CREATE INDEX IF NOT EXISTS idx_travel_error_logs_created ON travel_error_logs (created_at DESC)`,
-      );
-      await queryNeon(
-        `CREATE INDEX IF NOT EXISTS idx_travel_error_logs_event ON travel_error_logs (event, created_at DESC)`,
-      );
-      return true;
-    } catch (error) {
-      console.warn(
-        JSON.stringify({
-          level: "warn",
-          event: "error_log_store.schema_failed",
-          message: error instanceof Error ? error.message : String(error),
-        }),
-      );
-      return false;
-    }
-  })().then((ok) => {
-    if (!ok) schemaReady = null; // retry on the next log instead of failing forever
-    return ok;
-  });
-  return schemaReady;
-}
-
 // Per-instance flood guard: a hot error loop must not turn into a write storm.
 let windowStartedAt = 0;
 let windowCount = 0;
@@ -188,88 +144,38 @@ function admitInsert(now: number): { admit: boolean; droppedToReport: number } {
 }
 
 async function insertRow(row: Prepared): Promise<void> {
-  await queryNeon(
-    `INSERT INTO travel_error_logs
-       (level, event, message, request_id, correlation_id, sender_hash, fields)
-     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)`,
-    [row.level, row.event, row.message, row.requestId, row.correlationId, row.senderHash, row.fields],
-  );
+  const fields = JSON.parse(row.fields);
+  await prisma.chatErrorLog.create({ data: {
+    code: row.event, source: String(fields.source || row.requestId || "chatbot").slice(0, 100),
+    conversationId: typeof fields.conversationId === "string" ? fields.conversationId : null,
+    level: row.level, details: { ...fields, message: row.message, requestId: row.requestId, correlationId: row.correlationId, senderHash: row.senderHash },
+  } });
 }
 
 async function writeLog(record: PersistableLogRecord): Promise<void> {
   try {
     const row = prepareLogRow(record);
-    if (!row) return;
-    if (!isNeonConfigured()) return;
+    if (!row || !process.env.DATABASE_URL) return;
     const now = Date.now();
     const { admit, droppedToReport } = admitInsert(now);
-    if (!(await ensureSchema())) return;
-    if (droppedToReport > 0) {
-      await insertRow({
-        level: "warn",
-        event: "error_log_store.flood_dropped",
-        message: `${droppedToReport} log records were dropped in the previous minute (flood guard).`,
-        requestId: "",
-        correlationId: "",
-        senderHash: "",
-        fields: JSON.stringify({ dropped: droppedToReport, perMinuteLimit: MAX_INSERTS_PER_MINUTE }),
-      });
-    }
+    if (droppedToReport > 0) await insertRow({ level: "warn", event: "error_log_store.flood_dropped", message: "Flood guard dropped log records", requestId: "", correlationId: "", senderHash: "", fields: JSON.stringify({ dropped: droppedToReport }) });
     if (admit) await insertRow(row);
-    if (now - lastPruneAt >= PRUNE_INTERVAL_MS) {
-      lastPruneAt = now;
-      await pruneErrorLogs();
-    }
-  } catch (error) {
-    console.warn(
-      JSON.stringify({
-        level: "warn",
-        event: "error_log_store.write_failed",
-        message: error instanceof Error ? error.message : String(error),
-      }),
-    );
-  }
+    if (now - lastPruneAt >= PRUNE_INTERVAL_MS) { lastPruneAt = now; await pruneErrorLogs(); }
+  } catch { console.warn(JSON.stringify({ level: "warn", event: "error_log_store.write_failed" })); }
 }
 
-/**
- * Called by observability.logEvent for every record. Returns immediately; the
- * write finishes in the background (kept alive past the response by waitUntil
- * on Vercel, a detached promise elsewhere).
- */
 export function persistLogRecord(record: PersistableLogRecord): void {
-  if (!shouldPersistLog(record.level, record.event)) return;
-  const work = writeLog(record);
-  try {
-    waitUntil(work);
-  } catch {
-    void work;
-  }
+  if (shouldPersistLog(record.level, record.event)) background(writeLog(record));
 }
 
-/** Deletes rows past the retention window, then trims to the row ceiling. */
 export async function pruneErrorLogs(): Promise<{ expired: number; overflow: number }> {
-  if (!isNeonConfigured()) return { expired: 0, overflow: 0 };
-  if (!(await ensureSchema())) return { expired: 0, overflow: 0 };
-  const expired = await queryNeon(
-    `DELETE FROM travel_error_logs WHERE created_at < NOW() - ($1::int * INTERVAL '1 day')`,
-    [ERROR_LOG_RETENTION_DAYS],
-  );
-  const overflow = await queryNeon(
-    `DELETE FROM travel_error_logs
-     WHERE id <= (SELECT id FROM travel_error_logs ORDER BY id DESC OFFSET $1 LIMIT 1)`,
-    [ERROR_LOG_MAX_ROWS],
-  );
-  return { expired: expired?.rowCount ?? 0, overflow: overflow?.rowCount ?? 0 };
+  const expired = await prisma.chatErrorLog.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - ERROR_LOG_RETENTION_DAYS * 86400000) } } });
+  const excess = await prisma.chatErrorLog.findMany({ orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: ERROR_LOG_MAX_ROWS, take: 1000, select: { id: true } });
+  const overflow = excess.length ? await prisma.chatErrorLog.deleteMany({ where: { id: { in: excess.map(row => row.id) } } }) : { count: 0 };
+  return { expired: expired.count, overflow: overflow.count };
 }
 
-export type ErrorLogQuery = {
-  hours?: number;
-  level?: "error" | "warn" | "info";
-  event?: string;
-  search?: string;
-  limit?: number;
-};
-
+export type ErrorLogQuery = { hours?: number; level?: "error" | "warn" | "info"; event?: string; search?: string; limit?: number };
 function clampInt(value: unknown, fallback: number, min: number, max: number) {
   const n = typeof value === "number" ? Math.trunc(value) : Number.NaN;
   if (!Number.isFinite(n)) return fallback;
@@ -277,61 +183,21 @@ function clampInt(value: unknown, fallback: number, min: number, max: number) {
 }
 
 export async function listErrorLogs(query: ErrorLogQuery = {}): Promise<StoredErrorLog[]> {
-  if (!isNeonConfigured() || !(await ensureSchema())) return [];
   const hours = clampInt(query.hours, 24, 1, ERROR_LOG_RETENTION_DAYS * 24);
   const limit = clampInt(query.limit, 200, 1, 500);
-  const params: unknown[] = [hours];
-  const where = [`created_at >= NOW() - ($1::int * INTERVAL '1 hour')`];
-  if (query.level) {
-    params.push(query.level);
-    where.push(`level = $${params.length}`);
-  }
-  if (query.event) {
-    params.push(query.event);
-    where.push(`event = $${params.length}`);
-  }
-  if (query.search?.trim()) {
-    params.push(`%${query.search.trim().slice(0, 100)}%`);
-    where.push(
-      `(message ILIKE $${params.length} OR event ILIKE $${params.length} OR fields::text ILIKE $${params.length})`,
-    );
-  }
-  params.push(limit);
-  const result = await queryNeon<StoredErrorLog>(
-    `SELECT id::int AS id, created_at, level, event, message, request_id, correlation_id, sender_hash, fields
-       FROM travel_error_logs
-      WHERE ${where.join(" AND ")}
-      ORDER BY created_at DESC, id DESC
-      LIMIT $${params.length}`,
-    params,
-  );
-  return (result?.rows ?? []).map((row) => ({
-    ...row,
-    created_at: new Date(row.created_at).toISOString(),
-  }));
+  const rows = await prisma.chatErrorLog.findMany({ where: {
+    createdAt: { gte: new Date(Date.now() - hours * 3600000) },
+    ...(query.level ? { level: query.level } : {}), ...(query.event ? { code: query.event } : {}),
+    ...(query.search?.trim() ? { OR: [{ code: { contains: query.search.trim().slice(0, 100), mode: "insensitive" as const } }, { source: { contains: query.search.trim().slice(0, 100), mode: "insensitive" as const } }] } : {}),
+  }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: limit });
+  return rows.map(row => { const fields = row.details as Record<string, unknown>; return {
+    id: row.id, created_at: row.createdAt.toISOString(), level: row.level, event: row.code,
+    message: asText(fields.message), request_id: asText(fields.requestId), correlation_id: asText(fields.correlationId), sender_hash: asText(fields.senderHash), fields,
+  }; });
 }
-
-export type ErrorLogSummaryRow = {
-  event: string;
-  level: string;
-  count: number;
-  last_at: string;
-};
-
+export type ErrorLogSummaryRow = { event: string; level: string; count: number; last_at: string };
 export async function summarizeErrorLogs(hours = 24): Promise<ErrorLogSummaryRow[]> {
-  if (!isNeonConfigured() || !(await ensureSchema())) return [];
   const window = clampInt(hours, 24, 1, ERROR_LOG_RETENTION_DAYS * 24);
-  const result = await queryNeon<ErrorLogSummaryRow>(
-    `SELECT event, level, COUNT(*)::int AS count, MAX(created_at) AS last_at
-       FROM travel_error_logs
-      WHERE created_at >= NOW() - ($1::int * INTERVAL '1 hour')
-      GROUP BY event, level
-      ORDER BY count DESC, last_at DESC
-      LIMIT 60`,
-    [window],
-  );
-  return (result?.rows ?? []).map((row) => ({
-    ...row,
-    last_at: new Date(row.last_at).toISOString(),
-  }));
+  const rows = await prisma.chatErrorLog.groupBy({ by: ["code", "level"], where: { createdAt: { gte: new Date(Date.now() - window * 3600000) } }, _count: true, _max: { createdAt: true }, orderBy: { _count: { code: "desc" } }, take: 60 });
+  return rows.map(row => ({ event: row.code, level: row.level, count: row._count, last_at: row._max.createdAt?.toISOString() || "" }));
 }

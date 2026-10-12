@@ -1,5 +1,7 @@
 import { createHash, randomUUID } from "crypto";
 import { sharedMap } from "./processState";
+import { background } from "../../server/utils/background.js";
+import { getChatbotContext } from "./runtimeContext";
 
 type Primitive = string | number | boolean | null;
 type LogValue = Primitive | LogValue[] | { [key: string]: LogValue };
@@ -33,16 +35,15 @@ export type ErrorClassification = {
 };
 
 const REDACT_KEY_PATTERN =
-  /(authorization|cookie|password|secret|api[_-]?key|access[_-]?token|refresh[_-]?token|id[_-]?token|token_page|page_token|admin_secret|meta_app_secret)/i;
+  /(authorization|cookie|password|secret|api[_-]?key|access[_-]?token|refresh[_-]?token|id[_-]?token|token_page|page_token|admin_secret|meta_app_secret|phone|address|customerText|bodySnippet|prompt|rawBody)/i;
 const REDACT_EXCEPTIONS = new Set(["allowadminsecretquery"]);
 const MAX_LOG_DEPTH = 4;
 const MAX_ARRAY_ITEMS = 40;
 const MAX_OBJECT_KEYS = 60;
 const MAX_STRING_LEN = 500;
 const GAUGE_ALERT_THRESHOLD = 50_000;
-const SERVICE_NAME = "uudam-travel-chat-bot";
+const SERVICE_NAME = "lorentz-chatbot";
 const SINK_MAX_QUEUE = 1000;
-const SINK_FLUSH_INTERVAL_MS = 2000;
 
 type SinkItem = {
   target: SinkTarget;
@@ -85,7 +86,6 @@ const startupDiagnosticsFlags = (
 const sinkQueue: SinkItem[] = [];
 
 let sinkFlushActive = false;
-let sinkFlushTimerStarted = false;
 let sinkDroppedCount = 0;
 
 function toConsoleMethod(level: "debug" | "info" | "warn" | "error") {
@@ -163,8 +163,9 @@ function sanitizeLogValue(
   if (value == null) return null;
   if (typeof value === "number" || typeof value === "boolean") return value;
   if (typeof value === "string") {
-    if (value.length <= MAX_STRING_LEN) return value;
-    return `${value.slice(0, MAX_STRING_LEN)}...[truncated]`;
+    const redacted = value.replace(/(access_token=)[^&\s"'\\]+/gi, "$1[redacted]").replace(/(bearer\s+)[A-Za-z0-9._~+/=-]{8,}/gi, "$1[redacted]").replace(/sk-[A-Za-z0-9_-]{8,}/g, "[redacted]");
+    if (redacted.length <= MAX_STRING_LEN) return redacted;
+    return `${redacted.slice(0, MAX_STRING_LEN)}...[truncated]`;
   }
 
   if (typeof value === "bigint") return Number(value);
@@ -235,20 +236,7 @@ function sinkHeaders() {
   return headers;
 }
 
-function startSinkFlushTimerIfNeeded() {
-  if (sinkFlushTimerStarted) return;
-  if (!OBSERVABILITY_LOG_SINK_URL && !OBSERVABILITY_ERROR_SINK_URL) return;
-  sinkFlushTimerStarted = true;
-  const interval = setInterval(() => {
-    void flushSink("interval");
-  }, SINK_FLUSH_INTERVAL_MS);
-  if (typeof (interval as NodeJS.Timeout).unref === "function") {
-    (interval as NodeJS.Timeout).unref();
-  }
-}
-
 function queueSinkRecord(record: Record<string, LogValue>) {
-  startSinkFlushTimerIfNeeded();
   const target: SinkTarget = record.level === "error" ? "error" : "log";
   const sinkUrl = sinkUrlForTarget(target);
   if (!sinkUrl) return;
@@ -265,8 +253,8 @@ function queueSinkRecord(record: Record<string, LogValue>) {
   sinkQueue.push({ target, record });
   setGauge("observability.sink_queue_depth", sinkQueue.length, {});
 
-  if (sinkQueue.length >= OBSERVABILITY_SINK_BATCH_SIZE) {
-    void flushSink("threshold");
+  if (sinkQueue.length) {
+    background(flushSink("threshold"));
   }
 }
 
@@ -356,7 +344,7 @@ async function flushSink(reason: "interval" | "threshold" | "manual") {
     sinkFlushActive = false;
     setGauge("observability.sink_queue_depth", sinkQueue.length, {});
     if (sinkQueue.length) {
-      void flushSink("manual");
+      await flushSink("manual");
     }
   }
 }
@@ -370,7 +358,7 @@ export const PERSISTED_INFO_EVENTS: ReadonlySet<string> = new Set([
   "webhook.operator_echo_pause",
   "webhook.staff_takeover_detected",
   "webhook.ai_refer",
-  "webhook.ai_wrong_trip_reply_suppressed",
+  "webhook.ai_wrong_product_reply_suppressed",
 ]);
 
 // Never persisted: the DB layer's own failures (storing them needs the DB that
@@ -387,19 +375,19 @@ export function shouldPersistLog(level: unknown, event: unknown): boolean {
 const ERROR_LOG_DB_ENABLED = booleanEnv("ERROR_LOG_DB_ENABLED", true);
 
 /**
- * Copies error/warn records into the self-cleaning travel_error_logs table
+ * Copies error/warn records into the self-cleaning ChatErrorLog table
  * (errorLogStore.ts). Loaded lazily so this module stays dependency-free, and
  * skipped entirely when no database is configured (tests, local dev).
  */
 function persistToDatabase(record: Record<string, LogValue>) {
   if (!ERROR_LOG_DB_ENABLED) return;
   if (!shouldPersistLog(record.level, record.event)) return;
-  if (!optionalEnv("NEON_DATABASE_URL") && !optionalEnv("DATABASE_URL")) return;
-  void import("./errorLogStore")
+  if (!optionalEnv("DATABASE_URL")) return;
+  background(import("./errorLogStore")
     .then((store) => store.persistLogRecord(record))
     .catch(() => {
       // Logging must never break the caller.
-    });
+    }));
 }
 
 export function logEvent(
@@ -416,8 +404,10 @@ export function logEvent(
     service: SERVICE_NAME,
     event,
     ...safeFields,
+    ...(getChatbotContext() ? { conversationId: getChatbotContext()!.conversationId } : {}),
   };
   toConsoleMethod(level)(JSON.stringify(record));
+  if (getChatbotContext()?.channel === "test") return;
   queueSinkRecord(record as Record<string, LogValue>);
   persistToDatabase(record as Record<string, LogValue>);
 }

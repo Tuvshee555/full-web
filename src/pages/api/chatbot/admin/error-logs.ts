@@ -1,54 +1,16 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { requireAdminAccess } from "../../../lib/adminAccess";
-import {
-  ERROR_LOG_RETENTION_DAYS,
-  listErrorLogs,
-  summarizeErrorLogs,
-  type ErrorLogQuery,
-} from "../../../lib/errorLogStore";
-import { isNeonConfigured } from "../../../lib/neonDb";
-
-function first(value: string | string[] | undefined): string {
-  return (Array.isArray(value) ? value[0] : value) || "";
-}
-
-/**
- * Read-only view of the self-cleaning error log (see errorLogStore.ts).
- *   GET ?hours=24&level=error|warn|info&event=<name>&search=<text>&limit=200
- */
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const allowed = await requireAdminAccess(req, res, "api.admin.error_logs");
-  if (!allowed) return;
+import { apiRoute, first } from "../../../../chatbot/api";
+import { requireAdminAccess } from "../../../../chatbot/adminAccess";
+import { prisma } from "../../../../chatbot/prisma";
+export default apiRoute(async (req, res) => {
+  if (!(await requireAdminAccess(req, res, "api.chatbot.admin.error_logs"))) return;
   if (req.method !== "GET") return res.status(405).end();
-
-  if (!isNeonConfigured()) {
-    return res.status(200).json({
-      ok: true,
-      configured: false,
-      retentionDays: ERROR_LOG_RETENTION_DAYS,
-      summary: [],
-      rows: [],
-    });
-  }
-
+  const hours = Math.max(1, Math.min(168, Number(first(req.query.hours)) || 24));
   const level = first(req.query.level);
-  const query: ErrorLogQuery = {
-    hours: Number(first(req.query.hours)) || undefined,
-    limit: Number(first(req.query.limit)) || undefined,
-    level: level === "error" || level === "warn" || level === "info" ? level : undefined,
-    event: first(req.query.event) || undefined,
-    search: first(req.query.search) || undefined,
-  };
-
-  const [summary, rows] = await Promise.all([
-    summarizeErrorLogs(query.hours),
-    listErrorLogs(query),
-  ]);
-  return res.status(200).json({
-    ok: true,
-    configured: true,
-    retentionDays: ERROR_LOG_RETENTION_DAYS,
-    summary,
-    rows,
-  });
-}
+  const event = first(req.query.event);
+  const where = { createdAt: { gte: new Date(Date.now() - hours * 3_600_000) }, ...(["error", "warn", "info"].includes(level) ? { level } : {}), ...(event ? { code: event } : {}) };
+  const rows = await prisma.chatErrorLog.findMany({ where, orderBy: { createdAt: "desc" }, take: Math.max(1, Math.min(200, Number(first(req.query.limit)) || 100)) });
+  const summary = await prisma.chatErrorLog.groupBy({ by: ["code", "level"], where, _count: true });
+  return res.json({ ok: true, configured: true, retentionDays: 7,
+    rows: rows.map((r) => ({ id: r.id, created_at: r.createdAt, level: r.level, event: r.code, message: r.source, fields: r.details, request_id: "", correlation_id: "", sender_hash: "" })),
+    summary: summary.map((r) => ({ event: r.code, level: r.level, count: r._count, last_at: "" })) });
+});

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test, { beforeEach, afterEach } from "node:test";
-import { isMetaOutboundDisabled } from "../src/lib/metaOutboundKillSwitch";
+import { isMetaOutboundDisabled } from "../../src/chatbot/metaOutboundKillSwitch";
 
 const ORIGINAL_ENV = { ...process.env };
 

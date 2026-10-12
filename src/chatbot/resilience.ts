@@ -110,8 +110,8 @@ function sleepForAttempt(baseDelayMs: number, attemptIndex: number) {
 }
 
 // Bounded so the worst case (every retry waiting) still fits the webhook's
-// 60-second function budget.
-const MAX_RETRY_AFTER_MS = 8_000;
+// 30-second function budget, leaving time for persistence and delivery.
+const MAX_RETRY_AFTER_MS = 1_000;
 
 /** Retry-After as milliseconds: `retry-after-ms`, `retry-after` (seconds), or OpenAI's `x-ratelimit-reset-*` ("6s", "450ms"). */
 export function parseRetryAfterMs(headers: Headers): number | null {
@@ -138,6 +138,7 @@ export async function fetchWithRetry(
   options: RetryOptions,
 ) {
   const startedAt = Date.now();
+  const deadline = startedAt + Math.min(20_000, options.timeoutMs * Math.max(1, options.maxRetries + 1) + 1000);
   const maxAttempts = Math.max(1, options.maxRetries + 1);
   const metricPrefix = options.metricPrefix || "upstream";
 
@@ -146,13 +147,18 @@ export async function fetchWithRetry(
   while (attempt < maxAttempts) {
     attempt += 1;
     const attemptStartedAt = Date.now();
+    const remaining = deadline - attemptStartedAt;
+    if (remaining <= 0) throw new TimeoutError(options.upstream, Date.now() - startedAt);
     const controller = new AbortController();
-    const timeoutHandle = beginTimer(options.timeoutMs, controller, options.upstream);
+    const timeoutHandle = beginTimer(Math.min(options.timeoutMs, remaining), controller, options.upstream);
     try {
-      const response = await fetch(url, {
+      const upstreamResponse = await fetch(url, {
         ...init,
         signal: controller.signal,
       });
+      // Read under the same abort deadline: receiving headers is not completion.
+      const bytes = await upstreamResponse.arrayBuffer();
+      const response = new Response(bytes.byteLength ? bytes : null, { status: upstreamResponse.status, statusText: upstreamResponse.statusText, headers: upstreamResponse.headers });
       clearTimeout(timeoutHandle);
       const durationMs = Date.now() - attemptStartedAt;
       recordHistogram(`${metricPrefix}.latency_ms`, durationMs, {

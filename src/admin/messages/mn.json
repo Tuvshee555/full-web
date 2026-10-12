@@ -337,6 +337,12 @@
     "delivery_sending": "Илгээж байна",
     "delivery_failed": "Илгээхэд алдаа гарлаа",
     "delivery_suppressed": "Илгээх тохиргоо унтраалттай",
-    "delivery_uncertain": "Илгээгдсэн эсэх нь тодорхойгүй"
+    "delivery_uncertain": "Илгээгдсэн эсэх нь тодорхойгүй",
+    "greeting": "Мэндчилгээ",
+    "analytics": "Статистик",
+    "search": "Хайх",
+    "total_contacts": "Нийт харилцан яриа",
+    "total_leads": "Нийт хүсэлт",
+    "leads_by_day": "Өдрийн хүсэлтүүд"
   }
 }

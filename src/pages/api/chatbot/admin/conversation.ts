@@ -1,18 +1,12 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { requireAdminAccess } from "../../../lib/adminAccess";
-import { getFullHistory } from "../../../lib/conversation";
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const allowed = await requireAdminAccess(req, res, "api.admin.conversation");
-  if (!allowed) return;
-
+import { apiRoute, first, publicMessages } from "../../../../chatbot/api";
+import { requireAdminAccess } from "../../../../chatbot/adminAccess";
+import { prisma } from "../../../../chatbot/prisma";
+export default apiRoute(async (req, res) => {
+  if (!(await requireAdminAccess(req, res, "api.chatbot.admin.conversation"))) return;
   if (req.method !== "GET") return res.status(405).end();
-
-  const { sender_id } = req.query;
-  if (typeof sender_id !== "string" || !sender_id.trim()) {
-    return res.status(400).json({ error: "sender_id required" });
-  }
-
-  const messages = await getFullHistory(sender_id.trim());
-  return res.status(200).json({ ok: true, messages });
-}
+  const id = first(req.query.sender_id) || first(req.query.id);
+  if (!id) return res.status(400).json({ error: "sender_id required" });
+  const c = await prisma.chatConversation.findUnique({ where: { id } });
+  if (!c) return res.status(404).end();
+  return res.json({ ok: true, ...c, messages: await publicMessages(c.id) });
+});

@@ -15,7 +15,7 @@ function graphMessagesEndpoint(igUserId: string, token: string) {
       createHmac("sha256", env.metaAppSecret).update(token).digest("hex"),
     );
   }
-  return `https://graph.facebook.com/v19.0/${igUserId}/messages?${params.toString()}`;
+  return `https://graph.facebook.com/${process.env.META_GRAPH_VERSION || "v23.0"}/${igUserId}/messages?${params.toString()}`;
 }
 
 export async function sendTextMessage(

@@ -4,9 +4,9 @@ import { applyTestEnv } from "./helpers/env";
 
 test("Messenger Cloudinary image delivery keeps poster-sized readable images", async () => {
   applyTestEnv();
-  const envModule = await import("../src/lib/env");
+  const envModule = await import("../../src/chatbot/env");
   envModule.resetEnvCacheForTests();
-  const { toMessengerImageUrl } = await import("../src/lib/messenger");
+  const { toMessengerImageUrl } = await import("../../src/chatbot/messenger");
 
   const url = "https://res.cloudinary.com/demo/image/upload/v123/uudam-travel-trips/poster.png";
 
@@ -28,9 +28,9 @@ test("the delivery transform never downscales a real poster", async () => {
   // single-page poster in the live catalog is ~5160px. Guard both axes so a
   // future "tidy up the cap" edit cannot reintroduce the downscale.
   applyTestEnv();
-  const envModule = await import("../src/lib/env");
+  const envModule = await import("../../src/chatbot/env");
   envModule.resetEnvCacheForTests();
-  const { toMessengerImageUrl } = await import("../src/lib/messenger");
+  const { toMessengerImageUrl } = await import("../../src/chatbot/messenger");
 
   const sent = toMessengerImageUrl(
     "https://res.cloudinary.com/demo/image/upload/v1/uudam-travel-trips/tall.jpg",

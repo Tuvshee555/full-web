@@ -44,7 +44,7 @@ export function minimizeAnalyticsEntry(input: { platform: string; senderId: stri
   const text = redactAnalyticsText(input.text).slice(0, 500);
   return {
     platform: input.platform,
-    senderId: hashIdentifier(JSON.stringify(["travel_messages", input.platform, input.senderId])),
+    senderId: hashIdentifier(JSON.stringify(["chat_messages", input.platform, input.senderId])),
     text,
     norm: normalizeQuestion(text).slice(0, 500),
   };

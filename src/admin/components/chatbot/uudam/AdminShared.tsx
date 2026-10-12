@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
-import { Button, Card, Icons, Spinner, cx } from "@/components/ui";
-import type { StructuredRow } from "@/lib/adminTypes";
+import { Button, Card, Spinner, cx } from "./ui";
+type StructuredRow = Record<string, string>;
 
 /** Full-panel loading placeholder for a tab's initial data fetch. */
 export function LoadingPanel() {
   return (
     <div className="flex items-center justify-center py-16">
-      <Spinner className="text-brand" />
+      <Spinner className="text-terracotta" />
     </div>
   );
 }
@@ -28,14 +28,14 @@ export function TabHeader({
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex min-w-0 items-start gap-3">
         {icon && (
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center  bg-sand text-terracotta">
             {icon}
           </div>
         )}
         <div className="min-w-0">
-          <h1 className="text-lg font-bold tracking-tight text-ink">{title}</h1>
+          <h1 className="store-heading text-3xl text-ink">{title}</h1>
           {description && (
-            <p className="mt-0.5 max-w-2xl text-sm text-ink-muted">{description}</p>
+            <p className="mt-0.5 max-w-2xl text-sm text-taupe">{description}</p>
           )}
         </div>
       </div>
@@ -58,7 +58,7 @@ export function StatCard({
 }) {
   return (
     <Card className="p-3.5">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-subtle">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-taupe">
         {label}
       </p>
       <p
@@ -87,7 +87,7 @@ export function SectionHeading({
       <div className="min-w-0">
         <h2 className="text-base font-semibold text-ink">{title}</h2>
         {description && (
-          <p className="mt-0.5 text-sm text-ink-muted">{description}</p>
+          <p className="mt-0.5 text-sm text-taupe">{description}</p>
         )}
       </div>
       {action}
@@ -120,31 +120,31 @@ export function StructuredEditor({
     onChange([...rows, blank]);
   }
   return (
-    <div className="rounded-lg border border-line bg-surface-sunken p-3">
+    <div className=" border border-ink/10 bg-paper p-3">
       <div className="flex items-center justify-between gap-2">
         <h4 className="text-sm font-semibold text-ink">{title}</h4>
         <Button size="sm" variant="secondary" onClick={add}>
-          <Icons.plus size={15} />
+          
           {addLabel}
         </Button>
       </div>
       <div className="mt-2 space-y-2">
         {rows.length === 0 && (
-          <p className="text-xs text-ink-subtle">Хоосон байна.</p>
+          <p className="text-xs text-taupe">Хоосон байна.</p>
         )}
         {rows.map((row, index) => (
           <div
             key={index}
-            className="rounded-md border border-line bg-surface p-2.5"
+            className=" border border-ink/10 bg-white p-2.5"
           >
             <div className="grid gap-2 sm:grid-cols-2">
               {fields.map((field) => (
                 <label key={field.key} className="block">
-                  <span className="text-xs font-medium text-ink-muted">
+                  <span className="text-xs font-medium text-taupe">
                     {field.label}
                   </span>
                   <input
-                    className="mt-1 h-9 w-full rounded-md border border-line-strong bg-surface px-2.5 text-sm text-ink transition-colors focus:border-brand"
+                    className="mt-1 h-9 w-full  border border-ink/20 bg-white px-2.5 text-sm text-ink transition-colors focus:border-ink"
                     value={row[field.key] || ""}
                     onChange={(e) => update(index, field.key, e.target.value)}
                   />
@@ -156,9 +156,9 @@ export function StructuredEditor({
                 size="sm"
                 variant="ghost"
                 onClick={() => remove(index)}
-                className="text-danger"
+                className="text-terracotta"
               >
-                <Icons.trash size={15} />
+                
                 Устгах
               </Button>
             </div>

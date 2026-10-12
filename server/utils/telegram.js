@@ -4,7 +4,7 @@ export async function sendTelegramMessage(text) {
 
   if (!token || !chatId) {
     console.log("Telegram env missing");
-    return;
+    return false;
   }
 
   try {
@@ -21,9 +21,12 @@ export async function sendTelegramMessage(text) {
 
     if (!res.ok) {
       console.log("Telegram send failed:", res.status);
+      return false;
     }
+    return true;
   } catch (err) {
     console.log("Telegram send failed:", err?.name || "NETWORK_ERROR");
+    return false;
   }
 }
 

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { latestStaffReplyAt, type ThreadMessage } from "../src/lib/staffTakeover";
+import { latestStaffReplyAt, type ThreadMessage } from "../../src/chatbot/staffTakeover";
 
 const PAGE = "page-1";
 const now = new Date("2099-05-10T12:00:00Z");

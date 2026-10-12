@@ -8,7 +8,7 @@ import {
   isKnownGreetingPhrase,
   isWithinGetStartedQuietWindow,
   MID_CONVERSATION_GREETING_REPLY,
-} from "../src/lib/greetingPhrases";
+} from "../../src/chatbot/greetingPhrases";
 
 test("isKnownGreetingPhrase matches bare greetings (the mid-conversation greeting gate)", () => {
   for (const greeting of ["hi", "Hi", "HELLO", "hey", "сайн уу", "Сайн байна уу", "сайнуу", "мэнд", "привет", "hi!", "сайн уу 👋"]) {

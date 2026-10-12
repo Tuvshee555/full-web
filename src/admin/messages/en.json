@@ -337,6 +337,12 @@
     "delivery_sending": "Sending",
     "delivery_failed": "Send failed",
     "delivery_suppressed": "Sending disabled",
-    "delivery_uncertain": "Delivery uncertain"
+    "delivery_uncertain": "Delivery uncertain",
+    "greeting": "Greeting",
+    "analytics": "Analytics",
+    "search": "Search",
+    "total_contacts": "Conversations",
+    "total_leads": "Leads",
+    "leads_by_day": "Leads by day"
   }
 }

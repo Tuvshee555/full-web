@@ -43,9 +43,6 @@
     "server",
     "scripts",
     "_src",
-    "src/chatbot",
-    "src/pages/api/chatbot",
-    "src/admin/components/chatbot/uudam",
-    "tests/chatbot"
+    "tests/chatbot/uudam-pending"
   ]
 }

@@ -23,7 +23,7 @@ export function ShopChatWidget() {
   const pending = useRef<{ text: string; id: string } | null>(null);
   const initialization = useRef<Promise<{ session: Session; messages: ChatMessage[]; paused: boolean }> | null>(null);
   const request = useCallback(async (path: string, init?: RequestInit) => {
-    const res = await fetch(`${API_BASE_URL}/chat${path}`, { ...init, cache: "no-store", signal: AbortSignal.timeout(25_000) });
+    const res = await fetch(`${API_BASE_URL}/chatbot/public${path}`, { ...init, cache: "no-store", signal: AbortSignal.timeout(25_000) });
     if (!res.ok) throw Object.assign(new Error("CHAT_ERROR"), { status: res.status });
     return res.json();
   }, []);

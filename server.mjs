@@ -33,6 +33,8 @@ await nextApp.prepare();
 
 const server = express();
 server.disable("x-powered-by");
+// Pages API routes need the original URL, before Express strips /api.
+server.all("/api/chatbot/*", (req, res) => handle(req, res));
 server.use("/api", api);
 server.all("*", (req, res) => handle(req, res));
 

@@ -1,21 +1,3 @@
-/**
- * Has a staff member replied to this customer from the Page inbox?
- *
- * Meta is meant to tell the webhook through `message_echoes`, but that
- * subscription has never been on for this app (the page tokens lack
- * pages_manage_metadata), so the bot kept answering over staff: one customer
- * got the trip card three times between a staff member's own messages
- * (2026-10-06). The Conversations API IS readable with the page token, so the
- * bot looks at the thread itself before replying.
- *
- * Every Page-sent message comes back "from" the Page — staff, this bot, Meta's
- * welcome/instant replies and inbox notices alike. Only staff typing in the
- * Pages / Business Suite app carries `source:mobile`; the rest are
- * `source:web`. Checked against every thread of 2026-10-05..09: staff wrote in
- * 64 of 69, always `source:mobile`, while `source:web` page messages were the
- * bot or Meta's automations ("Hi …! Please let us know how we can help…").
- */
-
 export type ThreadMessage = {
   from?: { id?: string };
   message?: string;
@@ -52,7 +34,7 @@ export async function fetchThreadMessages(input: {
   senderId: string;
   timeoutMs: number;
 }): Promise<ThreadMessage[] | null> {
-  const url = `https://graph.facebook.com/v19.0/me/conversations?platform=messenger&user_id=${encodeURIComponent(input.senderId)}`
+  const url = `https://graph.facebook.com/${process.env.META_GRAPH_VERSION || "v23.0"}/me/conversations?platform=messenger&user_id=${encodeURIComponent(input.senderId)}`
     + `&fields=messages.limit(25){from,message,created_time,tags}&access_token=${encodeURIComponent(input.token)}`;
   try {
     const response = await fetch(url, { signal: AbortSignal.timeout(input.timeoutMs) });
