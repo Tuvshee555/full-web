@@ -59,7 +59,7 @@ export function Inbox({ selectedId, onSelect }: { selectedId?: string; onSelect:
       <div className="min-w-0 border border-ink/10 bg-white p-4">
         {!thread ? <p className="text-sm text-taupe">{t("chatbot.choose_conversation")}</p> : <>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><span className="text-xs uppercase tracking-wide">{thread.channel} · {thread.locale}</span><button onClick={toggle} disabled={busy} className={button}>{t(thread.paused ? "chatbot.give_back" : "chatbot.take_over")}</button></div>
-          <div className="h-[400px] overflow-y-auto bg-paper p-3"><ChatThread messages={thread.messages} /></div>
+          <div className="h-[400px] overflow-y-auto bg-paper p-3"><ChatThread messages={thread.messages} deliveryLabel={(status) => t(`chatbot.delivery_${status}`)} /></div>
           <form onSubmit={send} className="mt-4 flex gap-3"><textarea aria-label={t("chatbot.human_reply")} rows={2} maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} className={input} placeholder={t("chatbot.human_reply")} /><button disabled={busy || !text.trim()} className={button}>{t("chatbot.send")}</button></form>
         </>}
       </div>

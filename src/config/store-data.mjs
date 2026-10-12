@@ -1,6 +1,7 @@
 // One place for the storefront's name and fixed copy. Change the brand here
 // and the header, footer, checkout and product "vendor" line all follow.
-import { DEFAULT_DELIVERY_FEE as DELIVERY_FEE } from "../data/deliveryFee.mjs";
+import { storefrontDeliveryFee } from "../data/deliveryFee.mjs";
+const DELIVERY_FEE = storefrontDeliveryFee();
 export const STORE = {
     name: "Lorentz",
     // Shown in the thin bar above the header (rotates if there is more than one)

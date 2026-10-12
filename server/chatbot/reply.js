@@ -3,6 +3,7 @@ import { stockLevel, stockLabel } from "../utils/stockLevel.js";
 export const money = (value) => `${Number(value).toLocaleString("en-US", { maximumFractionDigits: 2 })}₮`;
 const localized = (locale, mn, en) => locale === "en" ? en : mn;
 export const unsafeClaim = (text) => /100\s*%|(?:guarantee|regrow|cure)\b|баталгаатай.*үр\s*дүн|\d+\s*(?:хоног|өдөр|days?|weeks?).*(?:ург|grow)|(?:ург|grow).*\d+\s*(?:хоног|өдөр|days?|weeks?)/i.test(text);
+const safeProductText = (text) => text && !unsafeClaim(text) && !/₮|\bMNT\b|almost\s+gone|sold\s*out|дуусаж\s+байна|дууссан/iu.test(text);
 
 /** The only product price/stock formatter. The verifier invokes this same function. */
 export function formatProductLine(product, context) {
@@ -52,18 +53,18 @@ export function renderReply(plan, context) {
         const content = { ...context.content.default, ...context.content[p.id] };
         if (plan.intents.includes("recommend")) {
           const description = content.tagline || p.ingredients;
-          if (description && !unsafeClaim(description)) parts.push(description);
+          if (safeProductText(description)) parts.push(description);
         }
         if (plan.intents.includes("ingredients")) {
           const text = content.fullIngredients || p.ingredients;
-          parts.push(text && !unsafeClaim(text) ? say("Найрлага: ", "Ingredients: ") + text : unknown());
+          parts.push(safeProductText(text) ? say("Найрлага: ", "Ingredients: ") + text : unknown());
           for (const ingredient of content.keyIngredients || []) {
             const text = `${ingredient.name}: ${ingredient.text}`;
-            if (!unsafeClaim(text)) parts.push(text);
+            if (safeProductText(text)) parts.push(text);
           }
         }
         if (plan.intents.includes("howTo")) {
-          const steps = content.howTo?.filter((s) => !unsafeClaim(s));
+          const steps = content.howTo?.filter(safeProductText);
           parts.push(steps?.length ? say("Хэрэглэх заавар:\n", "How to use:\n") + steps.map((s) => `• ${s}`).join("\n") : unknown());
         }
         if (plan.intents.includes("productFaq")) {
@@ -82,7 +83,7 @@ export function renderReply(plan, context) {
       const faq = context.brand.faq.find((f) => /delivery|хүргэлт/i.test(f.q));
       if (faq) parts.push(faq.a);
     } else if (intent === "payment") {
-      parts.push(say("QPay эсвэл банкны шилжүүлгээр төлнө. Бүтээгдэхүүнээ сагсанд нэмээд захиалгаа баталгаажуулна.", "Pay with QPay or bank transfer. Add products to your cart, then complete checkout."));
+      parts.push(say("Зөвхөн QPay эсвэл банкны шилжүүлгээр төлнө. Бүтээгдэхүүнээ сагсанд нэмээд захиалгаа баталгаажуулна.", "Pay with QPay or bank transfer only. Add products to your cart, then complete checkout."));
       parts.push(`${context.site}/${locale}/cart\n${context.site}/${locale}/checkout`);
     } else if (intent === "bank") {
       const bank = context.store.bank;

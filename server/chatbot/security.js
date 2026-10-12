@@ -39,7 +39,8 @@ export async function privateOrderStatus(db, orderNumber, phone) {
   const normalized = normalizePhone(phone);
   if (!orderNumber || !/^\d{8}$/.test(normalized)) return null;
   // Fetch only the credential and status of this one order, never a user's orders.
-  const order = await db.foodOrder.findUnique({ where: { orderNumber }, select: { phone: true, status: true } });
+  const cleanNumber = String(orderNumber).trim().replace(/^#+/, "");
+  const order = await db.foodOrder.findUnique({ where: { orderNumber: cleanNumber }, select: { phone: true, status: true } });
   if (!order || !equalSecret(normalizePhone(order.phone), normalized)) return null;
   return order.status;
 }

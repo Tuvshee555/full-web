@@ -1,13 +1,14 @@
 export type DeliveryZone = "UB" | "RURAL";
 
-export { DEFAULT_DELIVERY_FEE as DELIVERY_FEE } from "./deliveryFee.mjs";
+import { storefrontDeliveryFee } from "./deliveryFee.mjs";
+export const DELIVERY_FEE = storefrontDeliveryFee();
 
 export const DELIVERY_ZONE_OPTIONS: {
   value: DeliveryZone;
   label: string;
 }[] = [
-  { value: "UB", label: "Улаанбаатар (9,000₮)" },
-  { value: "RURAL", label: "Орон нутаг (9,000₮)" },
+  { value: "UB", label: `Улаанбаатар (${DELIVERY_FEE.toLocaleString("en-US")}₮)` },
+  { value: "RURAL", label: `Орон нутаг (${DELIVERY_FEE.toLocaleString("en-US")}₮)` },
 ];
 
 export const ULAANBAATAR_DISTRICTS = [

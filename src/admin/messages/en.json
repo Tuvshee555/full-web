@@ -332,6 +332,11 @@
     "done": "Done",
     "open": "Open",
     "no_leads": "No leads yet.",
-    "no_errors": "No errors recorded."
+    "no_errors": "No errors recorded.",
+    "delivery_sent": "Sent",
+    "delivery_sending": "Sending",
+    "delivery_failed": "Send failed",
+    "delivery_suppressed": "Sending disabled",
+    "delivery_uncertain": "Delivery uncertain"
   }
 }

@@ -1,5 +1,7 @@
+import { deliveryFee } from "./server/utils/deliveryFee.js";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  env: { NEXT_PUBLIC_DELIVERY_FEE: String(deliveryFee()) },
   reactStrictMode: true,
   images: {
     remotePatterns: [

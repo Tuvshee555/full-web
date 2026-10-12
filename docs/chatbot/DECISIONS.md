@@ -9,3 +9,7 @@
 - Untracked sizes never receive urgency. Product badges require all sizes to be tracked and low/sold out, avoiding product-wide urgency when an unlimited size exists. Exact counts are hidden unless enabled.
 - Admin extra knowledge and localized copy are trusted owner input, but cannot override catalogue prices/stock, order privacy or the no-medical-claims rule.
 - Human replies are explicitly administrative; the automated verifier gates bot output. Meta outgoing delivery checks kill switches immediately before network requests.
+- The storefront's public delivery fee is resolved by `next.config.mjs` from the same server helper used by order creation and the bot. Only the numeric fee is bundled; changing deployment environment fees requires a rebuild.
+- Source descriptions, ingredients, usage and FAQ answers are quoted verbatim. Catalogue names and variant labels are never translated or invented. The surrounding reply and stock wording use the customer's language.
+- Replies longer than the shared channel budget fall back to staff, preserving complete facts and links rather than truncating them. An interrupted inbound-only turn can safely resume on retry.
+- Inventory inspection found that missing/unknown sizes bypassed reservations. Order creation now rejects those variants before reserving stock. Existing products and tables were not renamed.

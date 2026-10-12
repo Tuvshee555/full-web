@@ -21,12 +21,14 @@ export async function saveHandoff(conversation, text, details = {}) {
   const name = details.name || contact.name || state.name || null;
   const phone = normalizePhone(details.phone || contact.phone || state.phone) || null;
   const lead = await prisma.$transaction(async (tx) => {
-    const current = await tx.chatConversation.findUniqueOrThrow({ where: { id: conversation.id }, select: { state: true } });
     const existing = await tx.chatLead.findFirst({ where: { conversationId: conversation.id, status: { not: "done" } }, orderBy: { createdAt: "desc" } });
     const lead = existing
       ? await tx.chatLead.update({ where: { id: existing.id }, data: { name, phone } })
       : await tx.chatLead.create({ data: { conversationId: conversation.id, name, phone, question: text.slice(0, 2000) } });
-    await tx.chatConversation.update({ where: { id: conversation.id }, data: { paused: true, needsHuman: true, state: { ...current.state, ...(name ? { name } : {}), ...(phone ? { phone } : {}) } } });
+    const contactPatch = JSON.stringify({ ...(name ? { name } : {}), ...(phone ? { phone } : {}) });
+    // Merge against the current row atomically, preserving concurrent admin takeover state.
+    const changed = await tx.$executeRaw`UPDATE "ChatConversation" SET "paused" = true, "needsHuman" = true, "state" = "state" || ${contactPatch}::jsonb, "updatedAt" = NOW() WHERE "id" = ${conversation.id} AND "leaseOwner" = ${conversation.leaseOwner}`;
+    if (changed !== 1) throw chatError("CONVERSATION_BUSY", 409);
     return { lead, notify: !existing || existing.phone !== phone || existing.name !== name };
   });
   if (lead.notify && conversation.channel !== "test") {
@@ -65,7 +67,7 @@ export async function handleCustomerMessage({ conversationId, text, clientMessag
       if (conversation.needsHuman) await saveHandoff(conversation, text);
       return { conversationId, reply: null, paused: true };
     }
-    const context = await readContext(settings, locale);
+    let context = await readContext(settings, locale);
     locale = detectLanguage(stripProductNames(text, context.products.map((p) => p.foodName)), conversation.locale);
     context.locale = locale;
     context.brand = BRAND_COPY[locale];
@@ -78,8 +80,8 @@ export async function handleCustomerMessage({ conversationId, text, clientMessag
       if (handoffRequested(text) || medicalQuestion(text)) turn = { intents: [handoffRequested(text) ? "handoff" : "medical"], productIds: [], ...contactDetails(text), locale, model: "rules", usage: 0 };
       else turn = await understandTurn({ text, history, state: conversation.state || {}, context });
       locale = turn.locale;
-      context.locale = locale;
-      context.brand = BRAND_COPY[locale];
+      // Understanding can wait on the provider. Render facts from a new DB/settings snapshot afterwards.
+      context = await readContext(await getSettings(), locale);
       // Never carry a phone over to a different order number.
       const state = conversation.state || {};
       const orderNumber = turn.orderNumber || state.pendingOrderNumber || "";
@@ -95,7 +97,10 @@ export async function handleCustomerMessage({ conversationId, text, clientMessag
         nextState.pendingOrderNumber = hasOrderCredentials ? "" : orderNumber;
         nextState.pendingOrderPhone = hasOrderCredentials ? "" : phone;
       } else { nextState.pendingOrderNumber = ""; nextState.pendingOrderPhone = ""; }
-      await prisma.chatConversation.update({ where: { id: conversationId }, data: { locale, state: nextState } });
+      delete nextState.humanTakeoverAt;
+      const statePatch = JSON.stringify(nextState);
+      const changed = await prisma.$executeRaw`UPDATE "ChatConversation" SET "locale" = ${locale}, "state" = "state" || ${statePatch}::jsonb, "updatedAt" = NOW() WHERE "id" = ${conversationId} AND "leaseOwner" = ${leaseOwner}`;
+      if (changed !== 1) throw chatError("CONVERSATION_BUSY", 409);
       conversation.state = nextState;
       if (reply.needsHuman) await saveHandoff(conversation, text, turn);
     } catch (error) {
@@ -106,6 +111,7 @@ export async function handleCustomerMessage({ conversationId, text, clientMessag
     // Recheck kill switch/takeover after the provider wait, before publishing.
     const currentSettings = await getSettings();
     const currentConversation = await prisma.chatConversation.findUniqueOrThrow({ where: { id: conversationId } });
+    if (currentConversation.leaseOwner !== leaseOwner) throw chatError("CONVERSATION_BUSY", 409);
     if (!currentSettings.enabled || (currentConversation.paused && !reply.needsHuman) || new Date(currentConversation.state?.humanTakeoverAt || 0).getTime() >= started) return { conversationId, reply: null, paused: true };
     const saved = await prisma.chatMessage.create({ data: { conversationId, role: "assistant", text: reply.text, clientMessageId: `reply:${clientMessageId}`,
       metadata: { intents: plan?.intents || ["fallback"], productIds: plan?.productIds || [], model: turn?.model || "fallback", tokens: turn?.usage || 0, durationMs: Date.now() - started, verified: Boolean(plan), hasOrderCredentials: plan?.hasOrderCredentials || false, handoff: reply.needsHuman } } });

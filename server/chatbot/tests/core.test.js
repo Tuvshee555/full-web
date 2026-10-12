@@ -30,6 +30,8 @@ test("product FAQ answers are exact source evidence and cannot introduce competi
   assert.ok(renderReply(faqPlan, c).text.includes("Test factual answer"));
   assert.ok(verifyReply(renderReply(faqPlan, c).text, faqPlan, c));
   assert.equal(renderReply({ ...faqPlan, faqIndexes: [1] }, c).needsHuman, true);
+  const priceInDescription = { ...c, products: [{ ...c.products[0], ingredients: "Test conflicting price 777₮" }] };
+  assert.equal(renderReply({ intents: ["ingredients"], productIds: ["fake-a"] }, priceInDescription).needsHuman, true);
 });
 test("order privacy requires both credentials and returns status only", async () => {
   let queries = 0;
@@ -39,6 +41,7 @@ test("order privacy requires both credentials and returns status only", async ()
   assert.equal(await privateOrderStatus(db, "TEST-ORDER", ""), null);
   assert.equal(await privateOrderStatus(db, "TEST-ORDER", "+976 00000001"), "PAID");
   assert.equal(queries, 2);
+  assert.equal(await privateOrderStatus(db, "#TEST-ORDER", "00000001"), "PAID");
   const nonexistent = { foodOrder: { findUnique: async () => null } };
   assert.equal(await privateOrderStatus(nonexistent, "TEST-ORDER", "00000001"), null);
 });

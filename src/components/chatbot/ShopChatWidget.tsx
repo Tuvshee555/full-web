@@ -21,6 +21,7 @@ export function ShopChatWidget() {
   const [error, setError] = useState("");
   const bottom = useRef<HTMLDivElement>(null);
   const pending = useRef<{ text: string; id: string } | null>(null);
+  const initialization = useRef<Promise<{ session: Session; messages: ChatMessage[]; paused: boolean }> | null>(null);
   const request = useCallback(async (path: string, init?: RequestInit) => {
     const res = await fetch(`${API_BASE_URL}/chat${path}`, { ...init, cache: "no-store", signal: AbortSignal.timeout(25_000) });
     if (!res.ok) throw Object.assign(new Error("CHAT_ERROR"), { status: res.status });
@@ -30,9 +31,7 @@ export function ShopChatWidget() {
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    async function initialize() {
-      setBusy(true);
-      try {
+    async function restoreSession() {
         let stored: Session | null = null;
         try {
           const raw = localStorage.getItem(STORAGE);
@@ -42,17 +41,25 @@ export function ShopChatWidget() {
         if (stored) {
           try {
             const data = await request(`/conversations/${stored.conversationId}`, { headers: { "X-Chat-Token": stored.token } });
-            if (!cancelled) { setSession(stored); setMessages(data.messages); setPaused(data.paused); setError(""); }
-            return;
+            return { session: stored, messages: data.messages, paused: data.paused };
           } catch (err) { if ((err as { status?: number }).status !== 404) throw err; }
         }
         const data = await request("/conversations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ locale }) });
-        if (cancelled) return;
         const value = { conversationId: data.conversationId, token: data.token };
-        setSession(value); setMessages(data.messages); setPaused(data.paused); setError("");
         try { localStorage.setItem(STORAGE, JSON.stringify(value)); } catch { /* session stays in memory */ }
-      } catch { if (!cancelled) setError(t("chatbot.unavailable")); }
-      finally { if (!cancelled) setBusy(false); }
+        return { session: value, messages: data.messages, paused: data.paused };
+    }
+    async function initialize() {
+      setBusy(true);
+      // Share creation across Strict Mode's effect replay and rapid open/close.
+      if (!initialization.current) initialization.current = restoreSession();
+      try {
+        const data = await initialization.current;
+        if (!cancelled) { setBusy(false); setSession(data.session); setMessages(data.messages); setPaused(data.paused); setError(""); }
+      } catch {
+        initialization.current = null;
+        if (!cancelled) { setBusy(false); setError(t("chatbot.unavailable")); }
+      }
     }
     if (!session) void initialize();
     return () => { cancelled = true; };
@@ -89,7 +96,7 @@ export function ShopChatWidget() {
   };
 
   return <div className="fixed bottom-[calc(90px+env(safe-area-inset-bottom))] right-4 z-[90] text-ink md:bottom-6">
-    {open && <section aria-label={t("chatbot.title")} className="mb-3 flex h-[min(560px,calc(100dvh-180px))] w-[min(380px,calc(100vw-32px))] flex-col border border-ink/20 bg-paper">
+    {open && <section id="shop-chat-panel" aria-label={t("chatbot.title")} className="mb-3 flex h-[min(560px,calc(100dvh-180px))] w-[min(380px,calc(100vw-32px))] flex-col border border-ink/20 bg-paper">
       <header className="flex items-center justify-between border-b border-ink/15 px-4 py-3">
         <h2 className="text-base font-medium">{t("chatbot.title")}</h2>
         <button type="button" onClick={() => setOpen(false)} aria-label={t("chatbot.close")} className="p-2"><X size={18} /></button>
@@ -104,6 +111,6 @@ export function ShopChatWidget() {
       </form>
       {busy && <p role="status" className="px-4 pb-2 text-xs">{t("chatbot.waiting")}</p>}
     </section>}
-    <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-label={t("chatbot.open")} className="ml-auto flex h-12 items-center gap-2 border border-ink bg-espresso px-4 text-paper"><MessageCircle size={20} strokeWidth={1.5} /><span className="text-sm">{t("chatbot.button")}</span></button>
+    <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-controls="shop-chat-panel" aria-label={t("chatbot.open")} className="ml-auto flex h-12 items-center gap-2 border border-ink bg-espresso px-4 text-paper"><MessageCircle size={20} strokeWidth={1.5} /><span className="text-sm">{t("chatbot.button")}</span></button>
   </div>;
 }

@@ -18,6 +18,9 @@ try {
     assert.equal(response.status, 200);
   }
   assert.equal(await prisma.chatMessage.count({ where: { conversationId: session.conversationId, role: "customer" } }), 1, "Duplicate POST is idempotent");
+  const assistant = await prisma.chatMessage.findUnique({ where: { conversationId_clientMessageId: { conversationId: session.conversationId, clientMessageId: `reply:${id}` } } });
+  assert.ok(assistant?.metadata?.verified, "The runtime must produce a verified bot answer, not just a fallback");
+  assert.equal(assistant.metadata.model, process.env.OPENAI_MODEL || "gpt-4o");
   await prisma.chatConversation.update({ where: { id: session.conversationId }, data: { paused: true } });
   await prisma.chatMessage.create({ data: { conversationId: session.conversationId, role: "human", text: "Test human reply" } });
   response = await fetch(url, { headers });

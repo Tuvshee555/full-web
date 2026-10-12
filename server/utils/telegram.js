@@ -11,6 +11,7 @@ export async function sendTelegramMessage(text) {
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(6000),
       body: JSON.stringify({
         chat_id: chatId,
         text,
@@ -19,11 +20,10 @@ export async function sendTelegramMessage(text) {
     });
 
     if (!res.ok) {
-      const errText = await res.text();
-      console.log("Telegram send failed:", errText);
+      console.log("Telegram send failed:", res.status);
     }
   } catch (err) {
-    console.log("Telegram error:", err);
+    console.log("Telegram send failed:", err?.name || "NETWORK_ERROR");
   }
 }
 
