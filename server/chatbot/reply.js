@@ -42,7 +42,7 @@ export function renderReply(plan, context) {
   let needsHuman = false;
   const parts = [];
   const unknown = () => { needsHuman = true; return contactFallback(context); };
-  const productIntents = ["catalogue", "price", "sizes", "availability", "ingredients", "howTo", "recommend"];
+  const productIntents = ["catalogue", "price", "sizes", "availability", "ingredients", "howTo", "productFaq", "recommend"];
   if (plan.intents.some((i) => productIntents.includes(i))) {
     if (!products.length) parts.push(unknown());
     else {
@@ -50,13 +50,25 @@ export function renderReply(plan, context) {
       for (const p of products) {
         parts.push(formatProductLine(p, context));
         const content = { ...context.content.default, ...context.content[p.id] };
+        if (plan.intents.includes("recommend")) {
+          const description = content.tagline || p.ingredients;
+          if (description && !unsafeClaim(description)) parts.push(description);
+        }
         if (plan.intents.includes("ingredients")) {
           const text = content.fullIngredients || p.ingredients;
           parts.push(text && !unsafeClaim(text) ? say("Найрлага: ", "Ingredients: ") + text : unknown());
+          for (const ingredient of content.keyIngredients || []) {
+            const text = `${ingredient.name}: ${ingredient.text}`;
+            if (!unsafeClaim(text)) parts.push(text);
+          }
         }
         if (plan.intents.includes("howTo")) {
           const steps = content.howTo?.filter((s) => !unsafeClaim(s));
           parts.push(steps?.length ? say("Хэрэглэх заавар:\n", "How to use:\n") + steps.map((s) => `• ${s}`).join("\n") : unknown());
+        }
+        if (plan.intents.includes("productFaq")) {
+          const answers = (plan.faqIndexes || []).map((index) => content.faq?.[index]?.a).filter((answer) => answer && !unsafeClaim(answer) && !/₮|\bMNT\b|stock|нөөц|хямдрал|discount/i.test(answer));
+          parts.push(answers.length ? answers.join("\n") : unknown());
         }
       }
     }
@@ -95,7 +107,10 @@ export function renderReply(plan, context) {
     } else parts.push(unknown());
   }
   if (needsHuman) parts.push(locale === "en" ? settings.handoffEn : settings.handoffMn);
-  return { text: [...new Set(parts.filter(Boolean))].join("\n\n"), needsHuman };
+  const text = [...new Set(parts.filter(Boolean))].join("\n\n");
+  // Keep the complete verified answer within every channel's text budget; never cut a fact or link.
+  if (text.length > 1800) return { text: contactFallback(context) + "\n\n" + (locale === "en" ? settings.handoffEn : settings.handoffMn), needsHuman: true };
+  return { text, needsHuman };
 }
 
 export function verifyReply(text, plan, context) {

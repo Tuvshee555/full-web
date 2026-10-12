@@ -19,3 +19,10 @@ test("public counts respect owner setting and admin retains editing data", () =>
   assert.equal(publicInventory(p, settings, true).sizes[0].stock, 2);
   assert.equal(publicInventory(p, { ...settings, showExactStock: true }).sizes[0].stock, 2);
 });
+test("an omitted or invented variant cannot bypass sold-out stock", async () => {
+  process.env.DATABASE_URL ||= "postgresql://test:test@localhost:5432/test";
+  const { applyStockDecrements } = await import("../../utils/stock.js");
+  const tx = { foodSize: { findMany: async () => [{ id: "fake-size", label: "Test size", stock: 0 }], updateMany: async () => ({ count: 0 }) } };
+  for (const size of [undefined, "Test invented size"]) await assert.rejects(applyStockDecrements(tx, [{ foodId: "fake-product", quantity: 1, size }]), { code: "INVALID_SIZE" });
+  await assert.rejects(applyStockDecrements(tx, [{ foodId: "fake-product", quantity: 1, size: "Test size" }]), { code: "OUT_OF_STOCK" });
+});

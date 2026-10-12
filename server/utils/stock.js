@@ -16,14 +16,17 @@ import { prisma } from "../prismaClient.js";
  */
 export async function applyStockDecrements(tx, items) {
   for (const item of items) {
-    if (!item.size) continue; // no size chosen → not a tracked variant
-
-    const sizeRow = await tx.foodSize.findFirst({
-      where: { foodId: item.foodId, label: item.size },
-      select: { id: true, stock: true },
+    const sizes = await tx.foodSize.findMany({
+      where: { foodId: item.foodId },
+      select: { id: true, stock: true, label: true },
     });
-
-    // Unknown size, or unlimited (stock null) → nothing to reserve.
+    const sizeRow = sizes.find((size) => size.label === item.size);
+    // Omitting or inventing a variant must never bypass tracked inventory.
+    if (sizes.length && !sizeRow) {
+      const err = new Error("INVALID_SIZE");
+      err.code = "INVALID_SIZE";
+      throw err;
+    }
     if (!sizeRow || sizeRow.stock == null) continue;
 
     // Atomic compare-and-decrement: only succeeds if enough stock remains,

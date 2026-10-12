@@ -202,6 +202,7 @@ export const createFoodOrder = async (req, res) => {
         });
       });
     } catch (createErr) {
+      if (createErr?.code === "INVALID_SIZE") return res.status(400).json({ message: "Please select a valid product size." });
       // Not enough stock for a chosen size.
       if (createErr?.code === "OUT_OF_STOCK") {
         return res.status(409).json({

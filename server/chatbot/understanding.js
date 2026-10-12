@@ -1,8 +1,15 @@
 import { understandingCatalogue } from "./catalogue.js";
 import { chatError } from "./security.js";
 
-export const INTENTS = ["catalogue", "price", "sizes", "availability", "ingredients", "howTo", "recommend", "delivery", "payment", "bank", "order", "returns", "about", "contact", "greeting", "thanks", "handoff", "medical", "knowledge", "unknown"];
+export const INTENTS = ["catalogue", "price", "sizes", "availability", "ingredients", "howTo", "productFaq", "recommend", "delivery", "payment", "bank", "order", "returns", "about", "contact", "greeting", "thanks", "handoff", "medical", "knowledge", "unknown"];
 export const normalize = (text) => String(text).normalize("NFKC").toLowerCase().replace(/[\u200B-\u200F\u2060-\u206F]/g, "").replace(/\s+/g, " ").trim();
+export function stripProductNames(text, names) {
+  let result = text;
+  for (const name of [...names].sort((a, b) => b.length - a.length)) {
+    if (name) result = result.replace(new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), " ");
+  }
+  return result;
+}
 export function detectLanguage(text, previous = "mn") {
   if (/[а-яөүё]/i.test(text)) return "mn";
   if (/\b(sain|sainuu|sainu|baina|bnu|une|unetei|hed|hedi|hemjee|hurgelt|tulbur|zahialga|zahial|humsug|homsog|buteegdehuun|baigaa|bgaa|hun|holbo|orts|bayarlalaa|duussan|tureh|heregleh|dan[s]?|dansnii|avah|uguh|uurchluh|yaj|boloh|yu|belen)\b/i.test(text)) return "mn";
@@ -21,9 +28,10 @@ const schema = {
   properties: {
     intents: { type: "array", items: { type: "string", enum: INTENTS } },
     productIds: { type: "array", items: { type: "string" } },
+    faqIndexes: { type: "array", items: { type: "integer" } },
     locale: { type: "string", enum: ["mn", "en"] },
     orderNumber: { type: "string" }, phone: { type: "string" }, name: { type: "string" },
-  }, required: ["intents", "productIds", "locale", "orderNumber", "phone", "name"],
+  }, required: ["intents", "productIds", "faqIndexes", "locale", "orderNumber", "phone", "name"],
 };
 
 export async function understandTurn({ text, history, state, context }) {
@@ -41,6 +49,7 @@ export async function understandTurn({ text, history, state, context }) {
           "Resolve follow-ups and typos using history and selectedProductIds. Read INTENT from CURRENT turn, not product names or previous replies.",
           "Use only catalogue product IDs. Unknown named products => unknown (do not substitute). General product/price/size/stock questions => relevant real products, up to three; catalogue/all => all.",
           "Thin/sparse brows questions => recommend existing options without any growth promise. Missing product usage/ingredient facts will be handled by the renderer.",
+          "If the product content FAQ explicitly answers the question, select productFaq and the zero-based matching FAQ indexes. Otherwise faqIndexes must be empty. Product prices, sizes and stock always use their dedicated intents.",
           "Human request, complaints or payment problems => handoff. Growth guarantees, medical outcomes or safety questions => medical. Off-topic or unsupported facts => unknown.",
           "QPay or payment methods => payment; bank account details => bank; delivery fee/time => delivery; how to purchase => payment. Orders require customer-supplied order number AND matching phone, never fetch yourself.",
           "Cyrillic Mongolian and Latin-typed Mongolian => mn. English => en. Copy names/phones/order numbers ONLY if supplied in the current turn, otherwise empty strings.",
@@ -62,12 +71,14 @@ export async function understandTurn({ text, history, state, context }) {
   if (!Array.isArray(turn.intents) || !turn.intents.length || turn.intents.some((i) => !INTENTS.includes(i)) || !Array.isArray(turn.productIds)) throw chatError("OPENAI_INVALID_TURN");
   const ids = new Set(context.products.map((p) => p.id));
   if (turn.productIds.some((id) => !ids.has(id))) throw chatError("OPENAI_UNKNOWN_PRODUCT");
+  if (!Array.isArray(turn.faqIndexes) || turn.faqIndexes.some((n) => !Number.isInteger(n) || n < 0 || n > 100)) throw chatError("OPENAI_INVALID_FAQ");
+  turn.faqIndexes = turn.faqIndexes.slice(0, 3);
   // Model extraction can never manufacture credentials or lead identity.
   for (const key of ["orderNumber", "phone", "name"]) {
     if (typeof turn[key] !== "string" || (turn[key] && !normalize(text).includes(normalize(turn[key])))) turn[key] = "";
   }
   turn.productIds = [...new Set(turn.productIds)].slice(0, turn.intents.includes("catalogue") ? 50 : 3);
-  turn.locale = detectLanguage(text, turn.locale);
+  turn.locale = detectLanguage(stripProductNames(text, context.products.map((p) => p.foodName)), turn.locale);
   if (handoffRequested(text)) turn.intents = ["handoff"];
   else if (medicalQuestion(text)) turn.intents = ["medical"];
   return { ...turn, model, usage: result.usage?.total_tokens || 0 };

@@ -4,7 +4,8 @@ import { background } from "../utils/background.js";
 import { sendTelegramMessage } from "../utils/telegram.js";
 import { getSettings } from "./settings.js";
 import { readContext } from "./catalogue.js";
-import { detectLanguage, understandTurn, handoffRequested, medicalQuestion } from "./understanding.js";
+import { detectLanguage, stripProductNames, understandTurn, handoffRequested, medicalQuestion } from "./understanding.js";
+import { BRAND_COPY } from "../../src/config/store-data.mjs";
 import { renderReply, verifyReply, contactFallback } from "./reply.js";
 import { chatError, logError, rateLimit, normalizePhone, privateOrderStatus } from "./security.js";
 
@@ -50,19 +51,24 @@ export async function handleCustomerMessage({ conversationId, text, clientMessag
     let conversation = await prisma.chatConversation.findUniqueOrThrow({ where: { id: conversationId } });
     const duplicate = await prisma.chatMessage.findUnique({ where: { conversationId_clientMessageId: { conversationId, clientMessageId } } });
     if (duplicate) {
+      if (duplicate.text !== text) throw chatError("MESSAGE_ID_REUSED", 409);
       const reply = await prisma.chatMessage.findUnique({ where: { conversationId_clientMessageId: { conversationId, clientMessageId: `reply:${clientMessageId}` } } });
-      return { conversationId, reply, paused: conversation.paused, duplicate: true };
+      if (reply || conversation.paused) return { conversationId, reply, paused: conversation.paused, duplicate: true };
+      // Resume a turn whose function died after saving inbound but before saving the reply.
     }
     const settings = await getSettings();
     let locale = detectLanguage(text, conversation.locale);
-    const userMessage = await prisma.chatMessage.create({ data: { conversationId, role: "customer", text, clientMessageId } });
-    conversation = await prisma.chatConversation.update({ where: { id: conversationId }, data: { locale, unread: { increment: 1 } } });
+    const userMessage = duplicate || await prisma.chatMessage.create({ data: { conversationId, role: "customer", text, clientMessageId } });
+    conversation = await prisma.chatConversation.update({ where: { id: conversationId }, data: { locale, ...(!duplicate ? { unread: { increment: 1 } } : {}) } });
     // Takeover and global off save inbound messages, but produce no automated reply.
     if (conversation.paused || !settings.enabled) {
       if (conversation.needsHuman) await saveHandoff(conversation, text);
       return { conversationId, reply: null, paused: true };
     }
     const context = await readContext(settings, locale);
+    locale = detectLanguage(stripProductNames(text, context.products.map((p) => p.foodName)), conversation.locale);
+    context.locale = locale;
+    context.brand = BRAND_COPY[locale];
     let plan;
     let reply;
     let turn;
@@ -73,13 +79,14 @@ export async function handleCustomerMessage({ conversationId, text, clientMessag
       else turn = await understandTurn({ text, history, state: conversation.state || {}, context });
       locale = turn.locale;
       context.locale = locale;
+      context.brand = BRAND_COPY[locale];
       // Never carry a phone over to a different order number.
       const state = conversation.state || {};
       const orderNumber = turn.orderNumber || state.pendingOrderNumber || "";
       const phone = turn.phone || (turn.orderNumber && turn.orderNumber !== state.pendingOrderNumber ? "" : state.pendingOrderPhone) || "";
       const hasOrderCredentials = Boolean(orderNumber && phone);
       const orderStatus = turn.intents.includes("order") && hasOrderCredentials ? await privateOrderStatus(prisma, orderNumber, phone) : null;
-      plan = { intents: turn.intents, productIds: turn.productIds, hasOrderCredentials, orderStatus };
+      plan = { intents: turn.intents, productIds: turn.productIds, faqIndexes: turn.faqIndexes || [], hasOrderCredentials, orderStatus };
       reply = renderReply(plan, context);
       if (!verifyReply(reply.text, plan, context)) throw chatError("REPLY_VERIFICATION_FAILED");
       const nextState = { ...state, selectedProductIds: turn.productIds.length ? turn.productIds : state.selectedProductIds || [] };
@@ -101,7 +108,7 @@ export async function handleCustomerMessage({ conversationId, text, clientMessag
     const currentConversation = await prisma.chatConversation.findUniqueOrThrow({ where: { id: conversationId } });
     if (!currentSettings.enabled || (currentConversation.paused && !reply.needsHuman) || new Date(currentConversation.state?.humanTakeoverAt || 0).getTime() >= started) return { conversationId, reply: null, paused: true };
     const saved = await prisma.chatMessage.create({ data: { conversationId, role: "assistant", text: reply.text, clientMessageId: `reply:${clientMessageId}`,
-      metadata: { intents: plan?.intents || ["fallback"], productIds: plan?.productIds || [], model: turn?.model || "fallback", tokens: turn?.usage || 0, durationMs: Date.now() - started, verified: Boolean(plan), hasOrderCredentials: plan?.hasOrderCredentials || false } } });
+      metadata: { intents: plan?.intents || ["fallback"], productIds: plan?.productIds || [], model: turn?.model || "fallback", tokens: turn?.usage || 0, durationMs: Date.now() - started, verified: Boolean(plan), hasOrderCredentials: plan?.hasOrderCredentials || false, handoff: reply.needsHuman } } });
     await prisma.chatConversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } });
     return { conversationId, reply: saved, paused: currentConversation.paused };
   } catch (error) {
