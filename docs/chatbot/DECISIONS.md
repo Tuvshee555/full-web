@@ -20,3 +20,17 @@
 - The later task expressly requests the single Uudam reply logic map. That file alone was read as task input; no linked notes or other external/shared memory was accessed.
 - Uudam source HEAD and clean status are recorded in UUDAM_IMPORT.json. Source files are copied without executing source services or connecting to its database.
 - Only administrative takeover sets paused. A request for help flags needsHuman and creates one lead/alert while subsequent bot turns continue.
+
+- Direct source inspection found product understanding's original default is gpt-4.1, while its shared reply provider defaults to gpt-4o-mini and retries some errors with that cheaper model. The no-downgrade rule takes priority: Lorentz uses gpt-4.1 by default and never retries with a cheaper model. The ignored local model override was updated to gpt-4.1 for equivalent QA.
+- Colour-failure reproduction against the original engine, in a test-channel conversation deleted by exact ID: the model returned unknown with no product IDs, no exception, and the renderer marked this response verified before automatic handoff paused it. Original understanding evidence omitted FoodSize variants. The fix requires grounding product/variant matching, not only changing catch logging.
+- Imported runtime timers are removed. Observability flushes through background(); request context suppresses external sinks and operational alerts for QA. Persistent webhook claims use additive leaseOwner, leaseUntil and payload fields.
+- Migration 20261012010000_chatbot_port_receipts adds receipt fields and ChatErrorLog level/details only; it was applied successfully.
+- The existing Express chatbot endpoints issue method-preserving redirects for cached clients. All implementations live under the Pages chatbot routes and call the same ported handler.
+
+## Port round 2: completion decisions (Claude, 2026-10-12)
+
+- The conversation logic is a pure `runCustomerTurn()` (turn.ts) with injected understanding, reply and order-lookup functions; `handler.ts` only persists. The same function serves the website, admin test chat, demo and Meta, and the tests run it without a database.
+- The deterministic product answer stays first for prices, variants, stock, usage and discounts (Uudam's structured answer). The AI writer handles recommendations, comparisons, open questions, unknown products and chit-chat. Its output is verified, and on rejection the deterministic fallback is sent, never silence.
+- The model's own "medical" label is not trusted on its own: it labelled "how often do I apply it" as medical. Growth and safety questions are matched deterministically and answered without promises.
+- Untracked stock (`stock = null`) is reported as "available to order", never with a count or urgency.
+- Not-yet-converted Uudam test suites are parked in `tests/chatbot/uudam-pending/` rather than deleted or left failing the build.
