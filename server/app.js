@@ -17,6 +17,7 @@ import { expireUnpaidOrders } from "./jobs/expireOrders.js";
 import { cleanupGuestUsers } from "./jobs/cleanupGuests.js";
 import { reviewRouter } from "./routers/review.router.js";
 import { connectPrismaWithRetry } from "./utils/prisma.js";
+import { publicChatRouter } from "./chatbot/routes.js";
 
 // Optional hardening/perf middleware, loaded defensively so the server still
 // boots if the deps aren't installed yet (run `npm install` to enable them).
@@ -70,14 +71,14 @@ app.use(
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Chat-Token"],
   })
 );
 
 app.options("*", cors());
 
 app.use(express.json({
-  limit: "10mb",
+  limit: "4mb",
   verify: (req, res, buf) => {
     req.rawBody = buf;
   },
@@ -99,6 +100,7 @@ app.use("/stats", statRouter);
 app.use("/email", emailRouter);
 app.use("/upload", uploadRouter);
 app.use("/review", reviewRouter);
+app.use("/chat", publicChatRouter);
 
 app.use((err, req, res, next) => {
   console.error("GLOBAL ERROR:", err);

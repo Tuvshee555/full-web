@@ -8,6 +8,7 @@ import TopLoader from "./header/TopLoader";
 import { AnnouncementBar, StoreHeader } from "./store/StoreHeader";
 import { StoreFooter } from "./store/StoreFooter";
 import { CartDrawer } from "./store/CartDrawer";
+import { ShopChatWidget } from "./chatbot/ShopChatWidget";
 
 export default function AppShellClient({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -45,6 +46,7 @@ export default function AppShellClient({ children }: { children: ReactNode }) {
 
       <CartDrawer open={cartOpen} onClose={closeCart} />
       <Email open={accountOpen} onOpenChange={setAccountOpen} />
+      <ShopChatWidget />
     </>
   );
 }
