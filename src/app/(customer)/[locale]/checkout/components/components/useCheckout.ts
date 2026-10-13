@@ -27,6 +27,10 @@ export type DeliveryFormData = {
 
 const REQUIRED: (keyof DeliveryFormData)[] = ["phonenumber", "firstName", "lastName", "city", "district", "khoroo", "address"];
 
+/** Delivery details remembered on this device after an order, so returning customers don't retype them. */
+const SAVED_DETAILS_KEY = "checkoutDetails";
+const SAVED_FIELDS = ["deliveryZone", "firstName", "lastName", "phonenumber", "city", "district", "khoroo", "address"] as const;
+
 const newKey = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
 /** Shopify-style guest checkout: get a real server-issued guest JWT on demand. */
@@ -54,10 +58,12 @@ export function useCheckout(cart: StoreCartItem[]) {
   const { locale, t } = useI18n();
   const st = (k: string) => t(`store.${k}`);
 
+  // No district preselected: a silent default (the first one is Багануур,
+  // far outside the city) sends parcels to the wrong place
   const [form, setForm] = useState<DeliveryFormData>({
     deliveryZone: "UB",
     city: "Улаанбаатар",
-    district: ULAANBAATAR_DISTRICTS[0],
+    district: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("QPAY");
@@ -68,6 +74,32 @@ export function useCheckout(cart: StoreCartItem[]) {
   const productTotal = useMemo(() => cart.reduce((s, i) => s + Number(i.food?.price ?? 0) * (Number(i.quantity) || 0), 0), [cart]);
   const deliveryFee = DELIVERY_FEE;
   const total = productTotal + deliveryFee;
+
+  // Clear a field's error as soon as it has a value again (re-checked on submit)
+  useEffect(() => {
+    setErrors((prev) => {
+      const keys = Object.keys(prev).filter((k) => String(form[k as keyof DeliveryFormData] ?? "").trim());
+      if (!keys.length) return prev;
+      const next = { ...prev };
+      keys.forEach((k) => delete next[k]);
+      return next;
+    });
+  }, [form]);
+
+  // Prefill from the last order placed on this device (guests have no profile to load)
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SAVED_DETAILS_KEY) ?? "null");
+      if (!saved || typeof saved !== "object") return;
+      setForm((prev) => {
+        const next = { ...prev };
+        for (const k of SAVED_FIELDS) if (typeof saved[k] === "string" && saved[k]) (next as Record<string, string>)[k] = saved[k];
+        if (next.deliveryZone !== "UB" && next.deliveryZone !== "RURAL") next.deliveryZone = "UB";
+        if (next.deliveryZone === "UB" && next.district && !ULAANBAATAR_DISTRICTS.includes(next.district)) next.district = "";
+        return next;
+      });
+    } catch {}
+  }, []);
 
   // Prefill from the saved profile (logged-in or returning guest)
   const loaded = useRef(false);
@@ -155,6 +187,10 @@ export function useCheckout(cart: StoreCartItem[]) {
 
       try {
         localStorage.setItem("lastOrderId", orderId);
+        localStorage.setItem(
+          SAVED_DETAILS_KEY,
+          JSON.stringify(Object.fromEntries(SAVED_FIELDS.map((k) => [k, form[k] ?? ""])))
+        );
       } catch {}
       clearCart();
 

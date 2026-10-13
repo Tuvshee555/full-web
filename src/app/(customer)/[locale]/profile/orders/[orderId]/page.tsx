@@ -10,11 +10,16 @@ import { useAuth } from "@/app/(customer)/[locale]/provider/AuthProvider";
 import { useI18n } from "@/components/i18n/ClientI18nProvider";
 import { useStoreT } from "@/components/store/lib/useStoreT";
 import { OrderSummary } from "@/components/store/order/OrderStatusShell";
+import { BankDetails } from "@/components/store/order/BankDetails";
+import { STORE } from "@/config/store";
 import { formatDate } from "@/components/store/lib/product";
 import { OrderStatusBadge } from "../components/OrderStatusBadge";
 import { QPayPaymentBlock } from "../components/QPayPaymentBlock";
 import { OrderReviewSection } from "./components/OrderReviewSection";
 import type { OrderDetails, OrderStatus } from "./components/types";
+
+// Same statuses OrderReviewSection accepts reviews for
+const REVIEWABLE: OrderStatus[] = ["PAID", "DELIVERING", "DELIVERED"];
 
 // Where each backend status sits on the 4-step tracker
 const STEP: Record<OrderStatus, number> = {
@@ -73,6 +78,8 @@ export default function OrderDetailPage() {
   }
 
   const step = STEP[order.status] ?? 0;
+  const awaitingBankTransfer =
+    order.paymentMethod === "BANK" && (order.status === "PENDING" || order.status === "WAITING_PAYMENT");
   const placed = formatDate(order.createdAt, locale);
   const steps = [st("step_ordered"), st("step_paid"), st("step_delivering"), st("step_delivered")];
 
@@ -83,7 +90,7 @@ export default function OrderDetailPage() {
         {st("back_to_orders")}
       </Link>
 
-      <div className="mt-[24px] grid gap-[40px] lg:grid-cols-12 lg:gap-[48px]">
+      <div className="mt-[24px] grid grid-cols-1 gap-[40px] lg:grid-cols-12 lg:gap-[48px]">
         <div className="lg:col-span-7">
           {/* Shopify order-status style: the status IS the headline */}
           <span className="eyebrow">
@@ -108,7 +115,7 @@ export default function OrderDetailPage() {
                     </div>
                     <div className="mt-[12px] flex items-start gap-[6px]">
                       {done && <Check className="mt-[2px] h-[13px] w-[13px] shrink-0 text-ink" strokeWidth={1.8} />}
-                      <span className={`text-[12px] leading-tight md:text-[13px] ${done ? "text-ink" : "text-ink/40"}`}>{label}</span>
+                      <span className={`min-w-0 break-words text-[12px] leading-tight md:text-[13px] ${done ? "text-ink" : "text-ink/40"}`}>{label}</span>
                     </div>
                   </li>
                 );
@@ -125,7 +132,23 @@ export default function OrderDetailPage() {
 
           <div className="mt-[40px] space-y-[40px]">
             <QPayPaymentBlock order={order} onRefresh={fetchOrder} />
-            <OrderReviewSection order={order} token={token} />
+            {awaitingBankTransfer && (
+              <section>
+                <h2 className="store-heading text-[28px]">{st("pay_by_transfer")}</h2>
+                <p className="mb-[18px] mt-[6px] text-[14px] text-ink/70">{t("bank_transfer_subtitle")}</p>
+                <BankDetails orderNumber={order.orderNumber} amount={order.totalPrice} />
+              </section>
+            )}
+            {/* Reviews open once the order is paid; before that the box is just noise */}
+            {REVIEWABLE.includes(order.status) && <OrderReviewSection order={order} token={token} />}
+            {STORE.contact.phone && (
+              <p className="border-t border-ink/10 pt-[20px] text-[14px] text-ink/70">
+                {st("help_call")}{" "}
+                <a href={`tel:${STORE.contact.phone}`} className="link-underline text-ink">
+                  {STORE.contact.phone}
+                </a>
+              </p>
+            )}
           </div>
         </div>
 

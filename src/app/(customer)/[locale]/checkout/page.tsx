@@ -3,8 +3,8 @@
 
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
-import { ChevronDown, Loader2, ShoppingBag } from "lucide-react";
-import { STORE, CHECKOUT_ACCENT } from "@/config/store";
+import { ArrowLeft, ChevronDown, Loader2, Lock, ShoppingBag } from "lucide-react";
+import { STORE } from "@/config/store";
 import { AIMAG_DISTRICTS, AIMAGS, ULAANBAATAR_DISTRICTS } from "@/data/mongoliaLocations";
 import { useAuth } from "../provider/AuthProvider";
 import { useStoreCart } from "@/components/store/lib/useCart";
@@ -19,14 +19,14 @@ export default function CheckoutPage() {
   const { st, locale } = useStoreT();
   const { items, ready } = useStoreCart();
 
-  if (!ready) return <div className="min-h-screen" />;
+  if (!ready) return <div className="min-h-screen bg-paper" />;
 
   if (!items.length) {
     return (
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-screen flex-col bg-paper text-ink">
         <CheckoutHeader />
         <div className="flex flex-1 flex-col items-center justify-center gap-[24px] px-[20px] text-center">
-          <h1 className="text-[24px] text-[#121212]">{st("cart_empty")}</h1>
+          <h1 className="store-heading text-[40px]">{st("cart_empty")}</h1>
           <Link href={collectionUrl(locale)} className="btn">
             {st("continue_shopping")}
           </Link>
@@ -38,19 +38,23 @@ export default function CheckoutPage() {
   return <Checkout items={items} />;
 }
 
+/** Same header as the order status pages: serif wordmark over the form column. */
 function CheckoutHeader() {
   const { locale, st } = useStoreT();
   return (
-    <header className="border-b border-[#dedede] bg-white">
-      {/* Same two-half grid as the page so the logo lines up with the form */}
-      <div className="flex h-[64px] lg:h-[80px] items-center">
+    <header className="border-b border-ink/10 bg-paper">
+      <div className="flex h-[64px] items-center lg:h-[84px]">
         <div className="flex flex-1 lg:justify-end">
-          <div className="flex w-full max-w-[640px] items-center justify-between px-[20px] lg:px-[38px] mx-auto lg:mx-0">
-            <Link href={`/${locale}`} className="text-[22px] text-[#121212]">
+          <div className="mx-auto flex w-full max-w-[640px] items-center justify-between px-[20px] lg:mx-0 lg:px-[40px]">
+            <Link href={`/${locale}`} className="store-heading text-[26px] lg:text-[30px]">
               {STORE.name}
             </Link>
-            <Link href={`/${locale}/cart`} aria-label={st("cart")} style={{ color: CHECKOUT_ACCENT }}>
-              <ShoppingBag className="h-[22px] w-[22px]" strokeWidth={1.5} />
+            <Link
+              href={`/${locale}/cart`}
+              aria-label={st("cart")}
+              className="flex h-[44px] w-[44px] items-center justify-center text-ink/70 transition-colors hover:text-ink lg:hidden"
+            >
+              <ShoppingBag className="h-[21px] w-[21px]" strokeWidth={1.3} />
             </Link>
           </div>
         </div>
@@ -61,7 +65,7 @@ function CheckoutHeader() {
 }
 
 function Checkout({ items }: { items: StoreCartItem[] }) {
-  const { st } = useStoreT();
+  const { st, locale } = useStoreT();
   const { token } = useAuth();
   const authDialog = useAuthDialog();
   const c = useCheckout(items);
@@ -72,157 +76,174 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
   const set = (k: keyof DeliveryFormData, v: string) => c.setForm((f) => ({ ...f, [k]: v }));
   const zone = c.form.deliveryZone ?? "UB";
   const districts = zone === "UB" ? ULAANBAATAR_DISTRICTS : (AIMAG_DISTRICTS[c.form.city ?? ""] ?? []);
+  const setZone = (v: "UB" | "RURAL") =>
+    c.setForm((f) => ({ ...f, deliveryZone: v, city: v === "UB" ? "Улаанбаатар" : "", district: "" }));
+
+  const payments: [PaymentMethod, string, string][] = [
+    ["QPAY", st("qpay"), st("qpay_short")],
+    ["BANK", st("bank"), st("bank_short")],
+  ];
 
   return (
-    <div className="min-h-screen bg-white text-[14px] text-[#121212] tracking-normal" style={{ fontFamily: "var(--font-store), system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-paper text-[14px] text-ink">
       <CheckoutHeader />
 
-      {/* Mobile summary toggle */}
+      {/* Mobile: collapsible order summary */}
       <button
         type="button"
         onClick={() => setSummaryOpen((v) => !v)}
-        className="flex w-full items-center justify-between border-b border-[#dedede] bg-[#f6f1ea] px-[20px] py-[16px] lg:hidden"
+        aria-expanded={summaryOpen}
+        className="flex w-full items-center justify-between border-b border-ink/10 bg-sand px-[20px] py-[16px] lg:hidden"
       >
-        <span className="flex items-center gap-[6px]" style={{ color: CHECKOUT_ACCENT }}>
+        <span className="flex items-center gap-[6px] text-[14px]">
           {summaryOpen ? st("hide_summary") : st("show_summary")}
-          <ChevronDown className={`h-[14px] w-[14px] transition-transform ${summaryOpen ? "rotate-180" : ""}`} />
+          <ChevronDown className={`h-[14px] w-[14px] transition-transform duration-500 ease-silk ${summaryOpen ? "rotate-180" : ""}`} strokeWidth={1.4} />
         </span>
-        <span className="text-[17px] font-semibold">{money(c.total)}</span>
+        <span className="text-[17px] font-medium">{money(c.total)}</span>
       </button>
       {summaryOpen && (
-        <div className="border-b border-[#dedede] bg-[#f6f1ea] px-[20px] py-[20px] lg:hidden">
+        <div className="border-b border-ink/10 bg-sand px-[20px] py-[22px] lg:hidden">
           <Summary items={items} c={c} />
         </div>
       )}
 
-      <div className="lg:flex lg:min-h-[calc(100vh-80px)]">
+      <div className="lg:flex lg:min-h-[calc(100vh-84px)]">
         {/* Form column */}
-        <div className="lg:flex lg:flex-1 lg:justify-end lg:border-r lg:border-[#dedede]">
-          <div className="w-full max-w-[640px] px-[20px] py-[24px] lg:px-[38px] lg:py-[38px] mx-auto lg:mx-0">
+        <div className="lg:flex lg:flex-1 lg:justify-end lg:border-r lg:border-ink/10">
+          <div className="mx-auto w-full max-w-[640px] px-[20px] py-[28px] lg:mx-0 lg:px-[40px] lg:py-[44px]">
+            <Link
+              href={`/${locale}/cart`}
+              className="group mb-[28px] hidden items-center gap-[8px] text-[13px] text-ink/60 hover:text-ink lg:inline-flex"
+            >
+              <ArrowLeft className="h-[14px] w-[14px] transition-transform duration-500 ease-silk group-hover:-translate-x-[3px]" strokeWidth={1.3} />
+              {st("back_to_cart")}
+            </Link>
+
             <Section
+              n={1}
               title={st("contact_section")}
               aside={
                 !token || isGuest ? (
-                  <button type="button" onClick={authDialog.open} className="text-[14px] underline underline-offset-[3px]" style={{ color: CHECKOUT_ACCENT }}>
-                    {st("log_in")}
+                  <button type="button" onClick={authDialog.open} className="link-underline text-[13px] text-ink/70 hover:text-ink">
+                    {st("have_account")}
                   </button>
                 ) : null
               }
             >
               <Field name="phonenumber" label={st("phone")} value={c.form.phonenumber} onChange={set} error={c.errors.phonenumber} inputMode="tel" autoComplete="tel" />
+              {!c.errors.phonenumber && <p className="mt-[8px] text-[12px] text-taupe">{st("phone_hint")}</p>}
             </Section>
 
-            <Section title={st("delivery")}>
+            <Section n={2} title={st("delivery")} sub={st("delivery_fee_note", { fee: money(c.deliveryFee) })}>
               <div className="space-y-[12px]">
-                <SelectField
-                  name="deliveryZone"
-                  label={st("zone")}
-                  value={zone}
-                  onChange={(_, v) =>
-                    c.setForm((f) => ({
-                      ...f,
-                      deliveryZone: v as "UB" | "RURAL",
-                      city: v === "UB" ? "Улаанбаатар" : "",
-                      district: v === "UB" ? ULAANBAATAR_DISTRICTS[0] : "",
-                    }))
-                  }
-                  options={[
-                    ["UB", st("zone_ub")],
-                    ["RURAL", st("zone_rural")],
-                  ]}
-                />
-                <div className="grid grid-cols-2 gap-[12px]">
-                  <Field name="firstName" label={st("first_name")} value={c.form.firstName} onChange={set} error={c.errors.firstName} autoComplete="given-name" />
-                  <Field name="lastName" label={st("last_name")} value={c.form.lastName} onChange={set} error={c.errors.lastName} autoComplete="family-name" />
+                {/* Zone: two clear choices instead of a dropdown */}
+                <div className="grid grid-cols-2 gap-[8px]" role="radiogroup" aria-label={st("zone")}>
+                  {(
+                    [
+                      ["UB", st("zone_ub")],
+                      ["RURAL", st("zone_rural")],
+                    ] as ["UB" | "RURAL", string][]
+                  ).map(([v, label]) => (
+                    <button
+                      key={v}
+                      type="button"
+                      role="radio"
+                      aria-checked={zone === v}
+                      onClick={() => setZone(v)}
+                      className={`h-[48px] text-[14px] transition-colors ${
+                        zone === v ? "bg-ink text-paper" : "bg-white text-ink shadow-[inset_0_0_0_1px_rgba(28,23,20,0.18)] hover:shadow-[inset_0_0_0_1px_rgba(28,23,20,0.5)]"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
+
                 <div className="grid grid-cols-2 gap-[12px]">
-                  {zone === "RURAL" ? (
-                    <SelectField
-                      name="city"
-                      label={st("aimag")}
-                      value={c.form.city ?? ""}
-                      onChange={(_, v) => c.setForm((f) => ({ ...f, city: v, district: "" }))}
-                      options={[["", ""], ...AIMAGS.map((a) => [a, a] as [string, string])]}
-                      error={c.errors.city}
-                    />
-                  ) : null}
+                  <Field name="lastName" label={st("last_name")} value={c.form.lastName} onChange={set} error={c.errors.lastName} autoComplete="family-name" />
+                  <Field name="firstName" label={st("first_name")} value={c.form.firstName} onChange={set} error={c.errors.firstName} autoComplete="given-name" />
+                </div>
+
+                {zone === "RURAL" && (
+                  <SelectField
+                    name="city"
+                    label={st("aimag")}
+                    value={c.form.city ?? ""}
+                    onChange={(_, v) => c.setForm((f) => ({ ...f, city: v, district: "" }))}
+                    placeholder={st("choose")}
+                    options={AIMAGS.map((a) => [a, a] as [string, string])}
+                    error={c.errors.city}
+                  />
+                )}
+                <div className="grid grid-cols-2 gap-[12px]">
                   <SelectField
                     name="district"
                     label={zone === "UB" ? st("district") : st("soum")}
                     value={c.form.district ?? ""}
                     onChange={set}
-                    options={[["", ""], ...districts.map((d) => [d, d] as [string, string])]}
+                    placeholder={st("choose")}
+                    options={districts.map((d) => [d, d] as [string, string])}
                     error={c.errors.district}
-                    className={zone === "UB" ? "col-span-1" : ""}
                   />
-                  <div className={zone === "UB" ? "" : "col-span-2"}>
-                    <Field name="khoroo" label={st("khoroo")} value={c.form.khoroo} onChange={set} error={c.errors.khoroo} />
-                  </div>
+                  <Field name="khoroo" label={st("khoroo")} value={c.form.khoroo} onChange={set} error={c.errors.khoroo} />
                 </div>
                 <Field name="address" label={st("address")} value={c.form.address} onChange={set} error={c.errors.address} autoComplete="street-address" />
                 <Field name="notes" label={st("notes")} value={c.form.notes} onChange={set} />
               </div>
             </Section>
 
-            <Section title={st("shipping_method")}>
-              <div className="flex items-center justify-between rounded-none border px-[16px] py-[16px]" style={{ borderColor: CHECKOUT_ACCENT, background: "#f6f1ea" }}>
-                <span>{st("standard_delivery")}</span>
-                <span className="font-semibold">{money(c.deliveryFee)}</span>
-              </div>
-            </Section>
-
-            <Section title={st("payment")} sub={st("payment_sub")}>
-              <div className="overflow-hidden rounded-none border border-[#dedede]">
-                {(
-                  [
-                    ["QPAY", st("qpay"), st("qpay_desc")],
-                    ["BANK", st("bank"), st("bank_desc")],
-                  ] as [PaymentMethod, string, string][]
-                ).map(([value, label, desc], i) => {
+            <Section n={3} title={st("payment")}>
+              <div className="grid gap-[8px] sm:grid-cols-2" role="radiogroup" aria-label={st("payment")}>
+                {payments.map(([value, label, desc]) => {
                   const active = c.paymentMethod === value;
                   return (
-                    <div key={value} className={i > 0 ? "border-t border-[#dedede]" : ""}>
-                      <label
-                        className="flex cursor-pointer items-center gap-[12px] px-[16px] py-[16px]"
-                        style={active ? { background: "#f6f1ea", boxShadow: `inset 0 0 0 1px ${CHECKOUT_ACCENT}` } : undefined}
+                    <button
+                      key={value}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => c.setPaymentMethod(value)}
+                      className={`flex items-start gap-[12px] px-[16px] py-[16px] text-left transition-colors ${
+                        active ? "bg-sand shadow-[inset_0_0_0_1.5px_#1c1714]" : "bg-white shadow-[inset_0_0_0_1px_rgba(28,23,20,0.18)] hover:shadow-[inset_0_0_0_1px_rgba(28,23,20,0.5)]"
+                      }`}
+                    >
+                      <span
+                        aria-hidden
+                        className={`mt-[2px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border ${active ? "border-ink" : "border-ink/30"}`}
                       >
-                        <input
-                          type="radio"
-                          name="payment"
-                          checked={active}
-                          onChange={() => c.setPaymentMethod(value)}
-                          className="h-[18px] w-[18px]"
-                          style={{ accentColor: CHECKOUT_ACCENT }}
-                        />
-                        <span className="flex-1">{label}</span>
-                      </label>
-                      {active && <div className="border-t border-[#dedede] bg-[#f6f1ea] px-[16px] py-[18px] text-center text-[13px] text-[#545454]">{desc}</div>}
-                    </div>
+                        {active && <span className="h-[8px] w-[8px] rounded-full bg-ink" />}
+                      </span>
+                      <span>
+                        <span className="block text-[15px] font-medium">{label}</span>
+                        <span className="mt-[3px] block text-[13px] leading-snug text-taupe">{desc}</span>
+                      </span>
+                    </button>
                   );
                 })}
               </div>
+              <p className="mt-[10px] text-[12px] text-taupe">{c.paymentMethod === "QPAY" ? st("qpay_desc") : st("bank_desc")}</p>
             </Section>
 
-            {c.submitError && <p className="mb-[12px] rounded-none border border-[#d72c0d] bg-[#fff4f4] px-[14px] py-[12px] text-[#d72c0d]">{c.submitError}</p>}
+            {c.submitError && (
+              <p className="mb-[14px] border border-terracotta/40 bg-terracotta/5 px-[14px] py-[12px] text-[14px] text-terracotta">{c.submitError}</p>
+            )}
 
-            <button
-              type="button"
-              onClick={c.placeOrder}
-              disabled={c.submitting}
-              className="flex h-[56px] w-full items-center justify-center gap-[8px] rounded-none text-[17px] font-semibold text-white transition-opacity disabled:opacity-70"
-              style={{ background: CHECKOUT_ACCENT }}
-            >
+            <button type="button" onClick={c.placeOrder} disabled={c.submitting} className="btn h-[56px] w-full text-[15px]">
               {c.submitting ? (
                 <>
                   <Loader2 className="h-[18px] w-[18px] animate-spin" /> {st("processing")}
                 </>
               ) : (
-                st("pay_now")
+                <>
+                  <Lock className="h-[15px] w-[15px]" strokeWidth={1.5} />
+                  {st("pay_now")}
+                  <span className="hidden sm:inline">· {money(c.total)}</span>
+                </>
               )}
             </button>
-            <p className="mt-[14px] text-[12px] text-[#707070]">
+            <p className="mt-[14px] text-center text-[12px] text-taupe">
               {st("terms_note")}{" "}
-              <button type="button" onClick={() => setTermsOpen(true)} className="underline underline-offset-[2px]" style={{ color: CHECKOUT_ACCENT }}>
+              <button type="button" onClick={() => setTermsOpen(true)} className="underline underline-offset-[2px] hover:text-ink">
                 {st("terms")}
               </button>
             </p>
@@ -230,8 +251,8 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
         </div>
 
         {/* Summary column */}
-        <aside className="hidden bg-[#f6f1ea] lg:block lg:flex-1">
-          <div className="sticky top-0 max-w-[520px] px-[38px] py-[38px]">
+        <aside className="hidden bg-sand lg:block lg:flex-1">
+          <div className="sticky top-0 max-w-[520px] px-[40px] py-[48px]">
             <Summary items={items} c={c} />
           </div>
         </aside>
@@ -243,39 +264,45 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
 }
 
 function Summary({ items, c }: { items: StoreCartItem[]; c: ReturnType<typeof useCheckout> }) {
-  const { st } = useStoreT();
+  const { st, locale } = useStoreT();
   return (
-    <div>
-      <ul className="space-y-[14px]">
+    <div className="text-[14px]">
+      <div className="mb-[18px] flex items-baseline justify-between">
+        <h2 className="store-heading text-[24px]">{st("order_summary")}</h2>
+        <Link href={`/${locale}/cart`} className="link-underline text-[13px] text-ink/70 hover:text-ink">
+          {st("edit_cart")}
+        </Link>
+      </div>
+      <ul className="space-y-[16px]">
         {items.map((i) => (
           <li key={`${i.foodId}-${i.selectedSize ?? ""}`} className="flex items-center gap-[14px]">
-            <div className="relative h-[64px] w-[64px] shrink-0 rounded-none border border-[#dedede] bg-white">
-              {i.food?.image ? <img src={i.food.image} alt="" className="h-full w-full rounded-none object-cover" /> : null}
-              <span className="absolute -right-[8px] -top-[8px] flex h-[21px] min-w-[21px] items-center justify-center rounded-full bg-[#666] px-[6px] text-[12px] text-white">
+            <div className="relative h-[64px] w-[64px] shrink-0 bg-paper">
+              {i.food?.image ? <img src={i.food.image} alt="" className="h-full w-full object-cover" /> : null}
+              <span className="absolute -right-[8px] -top-[8px] flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-ink px-[5px] text-[11px] text-paper">
                 {i.quantity}
               </span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate">{i.food?.foodName}</p>
-              {i.selectedSize && <p className="text-[12px] text-[#707070]">{i.selectedSize}</p>}
+              <p className="truncate font-medium">{i.food?.foodName}</p>
+              {i.selectedSize && <p className="text-[12px] text-taupe">{i.selectedSize}</p>}
             </div>
-            <span>{money(Number(i.food?.price ?? 0) * i.quantity)}</span>
+            <span className="tabular-nums">{money(Number(i.food?.price ?? 0) * i.quantity)}</span>
           </li>
         ))}
       </ul>
-      <dl className="mt-[24px] space-y-[8px]">
+      <dl className="mt-[24px] space-y-[8px] border-t border-ink/10 pt-[18px]">
         <div className="flex justify-between">
-          <dt>{st("subtotal")}</dt>
-          <dd>{money(c.productTotal)}</dd>
+          <dt className="text-ink/70">{st("subtotal")}</dt>
+          <dd className="tabular-nums">{money(c.productTotal)}</dd>
         </div>
         <div className="flex justify-between">
-          <dt>{st("shipping")}</dt>
-          <dd>{money(c.deliveryFee)}</dd>
+          <dt className="text-ink/70">{st("shipping")}</dt>
+          <dd className="tabular-nums">{money(c.deliveryFee)}</dd>
         </div>
-        <div className="flex items-baseline justify-between pt-[10px] text-[19px] font-semibold">
-          <dt>{st("total")}</dt>
-          <dd>
-            <span className="mr-[8px] text-[12px] font-normal text-[#707070]">MNT</span>
+        <div className="flex items-baseline justify-between pt-[10px]">
+          <dt className="store-heading text-[24px]">{st("total")}</dt>
+          <dd className="text-[19px] font-medium tabular-nums">
+            <span className="mr-[8px] text-[11px] font-normal text-taupe">MNT</span>
             {money(c.total)}
           </dd>
         </div>
@@ -284,21 +311,28 @@ function Summary({ items, c }: { items: StoreCartItem[]; c: ReturnType<typeof us
   );
 }
 
-function Section({ title, sub, aside, children }: { title: string; sub?: string; aside?: ReactNode; children: ReactNode }) {
+function Section({ n, title, sub, aside, children }: { n: number; title: string; sub?: string; aside?: ReactNode; children: ReactNode }) {
   return (
-    <section className="mb-[32px]">
-      <div className="mb-[12px] flex items-center justify-between">
-        <h2 className="text-[21px] font-semibold">{title}</h2>
+    <section className="mb-[36px]">
+      <div className="mb-[14px] flex items-center justify-between gap-[12px]">
+        <h2 className="flex items-center gap-[12px]">
+          <span className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full text-[12px] text-ink/60 ring-1 ring-ink/25">
+            {n}
+          </span>
+          <span className="store-heading text-[26px]">{title}</span>
+        </h2>
         {aside}
       </div>
-      {sub && <p className="-mt-[6px] mb-[12px] text-[13px] text-[#707070]">{sub}</p>}
+      {sub && <p className="-mt-[8px] mb-[14px] text-[13px] text-taupe">{sub}</p>}
       {children}
     </section>
   );
 }
 
 const inputBase =
-  "peer h-[52px] w-full rounded-none border bg-white px-[12px] pt-[18px] pb-[4px] text-[14px] outline-none transition-[box-shadow,border-color] focus:shadow-[0_0_0_1px_#1c1714] focus:border-[#1c1714]";
+  "peer h-[52px] w-full bg-white px-[14px] pt-[18px] pb-[4px] text-[14px] text-ink outline-none transition-[box-shadow] focus:shadow-[inset_0_0_0_1.5px_#1c1714]";
+const ring = (error?: string) =>
+  error ? "shadow-[inset_0_0_0_1.5px_#a8452f]" : "shadow-[inset_0_0_0_1px_rgba(28,23,20,0.18)]";
 
 function Field({
   name,
@@ -328,16 +362,17 @@ function Field({
           onChange={(e) => onChange(name, e.target.value)}
           inputMode={inputMode}
           autoComplete={autoComplete}
-          className={`${inputBase} ${error ? "border-[#d72c0d]" : "border-[#dedede]"}`}
+          aria-invalid={Boolean(error)}
+          className={`${inputBase} ${ring(error)}`}
         />
         <label
           htmlFor={id}
-          className="pointer-events-none absolute left-[12px] top-[16px] text-[14px] text-[#707070] transition-all peer-focus:top-[6px] peer-focus:text-[11px] peer-[:not(:placeholder-shown)]:top-[6px] peer-[:not(:placeholder-shown)]:text-[11px]"
+          className="pointer-events-none absolute left-[14px] top-[16px] text-[14px] text-taupe transition-all peer-focus:top-[6px] peer-focus:text-[11px] peer-[:not(:placeholder-shown)]:top-[6px] peer-[:not(:placeholder-shown)]:text-[11px]"
         >
           {label}
         </label>
       </div>
-      {error && <p className="mt-[6px] text-[12px] text-[#d72c0d]">{error}</p>}
+      {error && <p className="mt-[6px] text-[12px] text-terracotta">{error}</p>}
     </div>
   );
 }
@@ -348,39 +383,43 @@ function SelectField({
   value,
   onChange,
   options,
+  placeholder,
   error,
-  className = "",
 }: {
   name: keyof DeliveryFormData;
   label: string;
   value: string;
   onChange: (k: keyof DeliveryFormData, v: string) => void;
   options: [string, string][];
+  placeholder: string;
   error?: string;
-  className?: string;
 }) {
   const id = `co-${name}`;
   return (
-    <div data-field={name} className={className}>
+    <div data-field={name}>
       <div className="relative">
         <select
           id={id}
           value={value}
           onChange={(e) => onChange(name, e.target.value)}
-          className={`${inputBase} appearance-none pr-[32px] ${error ? "border-[#d72c0d]" : "border-[#dedede]"}`}
+          aria-invalid={Boolean(error)}
+          className={`${inputBase} ${ring(error)} cursor-pointer appearance-none pr-[34px] ${value ? "" : "text-taupe"}`}
         >
+          <option value="" disabled>
+            {placeholder}
+          </option>
           {options.map(([v, l]) => (
-            <option key={v || "empty"} value={v}>
+            <option key={v} value={v} className="text-ink">
               {l}
             </option>
           ))}
         </select>
-        <label htmlFor={id} className="pointer-events-none absolute left-[12px] top-[6px] text-[11px] text-[#707070]">
+        <label htmlFor={id} className="pointer-events-none absolute left-[14px] top-[6px] text-[11px] text-taupe">
           {label}
         </label>
-        <ChevronDown className="pointer-events-none absolute right-[12px] top-1/2 h-[14px] w-[14px] -translate-y-1/2 text-[#707070]" />
+        <ChevronDown className="pointer-events-none absolute right-[12px] top-1/2 h-[14px] w-[14px] -translate-y-1/2 text-taupe" strokeWidth={1.4} />
       </div>
-      {error && <p className="mt-[6px] text-[12px] text-[#d72c0d]">{error}</p>}
+      {error && <p className="mt-[6px] text-[12px] text-terracotta">{error}</p>}
     </div>
   );
 }

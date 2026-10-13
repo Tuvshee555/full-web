@@ -71,7 +71,7 @@ export function OrderSummary({ order }: { order: any }) {
   const fee = Number(order?.deliveryFee ?? 0);
   const total = Number(order?.totalPrice ?? 0);
   const d = order?.delivery ?? {};
-  const place = [d.city, d.district, d.khoroo && `${d.khoroo}`].filter(Boolean).join(", ");
+  const place = [d.city, d.district, d.khoroo && st("khoroo_n", { n: d.khoroo })].filter(Boolean).join(", ");
 
   return (
     <div className="text-[14px]">

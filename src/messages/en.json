@@ -560,7 +560,18 @@
     "os_DELIVERED_t": "Delivered",
     "os_DELIVERED_s": "Your order has arrived. We'd love a review.",
     "os_CANCELLED_t": "Cancelled",
-    "os_CANCELLED_s": "This order was cancelled. You're welcome to order again."
+    "os_CANCELLED_s": "This order was cancelled. You're welcome to order again.",
+    "back_to_cart": "Back to cart",
+    "have_account": "Have an account? Log in",
+    "phone_hint": "We'll call this number about your delivery.",
+    "delivery_fee_note": "Delivery fee {fee}",
+    "choose": "Select",
+    "qpay_short": "Pay instantly with a QR code",
+    "bank_short": "Transfer to our bank account",
+    "edit_cart": "Edit",
+    "khoroo_n": "Khoroo {n}",
+    "help_call": "Questions? Call us:",
+    "pay_by_transfer": "Pay by bank transfer"
   },
   "chatbot": {
     "title": "Lorentz assistant",
