@@ -343,6 +343,11 @@
     "search": "Search",
     "total_contacts": "Conversations",
     "total_leads": "Leads",
-    "leads_by_day": "Leads by day"
+    "leads_by_day": "Leads by day",
+    "status_on": "Bot is on",
+    "status_off": "Bot is off",
+    "turn_off": "Turn off",
+    "turn_on": "Turn on",
+    "off_notice": "The bot is off. It won't auto-reply on the website or Messenger/Instagram. Incoming messages are kept in the Inbox."
   }
 }
