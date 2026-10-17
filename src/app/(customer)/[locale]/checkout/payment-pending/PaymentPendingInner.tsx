@@ -60,7 +60,7 @@ export default function PaymentPendingInner() {
         <ol className="mt-[12px] border-t border-ink/10">
           {[st("next_1"), st("next_2"), st("next_3")].map((s, i) => (
             <li key={i} className="flex items-baseline gap-[18px] border-b border-ink/10 py-[16px] text-[15px]">
-              <span className="store-heading w-[18px] shrink-0 text-[22px] text-ink/40">{i + 1}</span>
+              <span className="store-heading w-[18px] shrink-0 text-[22px] text-ink/55">{i + 1}</span>
               {s}
             </li>
           ))}
@@ -151,7 +151,7 @@ export default function PaymentPendingInner() {
               </div>
             )}
           </div>
-          <p className="mt-[10px] max-w-[232px] text-[12px] text-ink/50 sm:hidden">{st("scan_other")}</p>
+          <p className="mt-[10px] max-w-[232px] text-[12px] text-ink/65 sm:hidden">{st("scan_other")}</p>
         </div>
 
         <div className="hidden sm:block">

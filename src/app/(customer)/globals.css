@@ -68,6 +68,25 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Even line lengths on headings, no one-word last lines in prose */
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p,
+  li,
+  blockquote {
+    text-wrap: pretty;
+  }
+  /* One visible keyboard focus for every link and button (specificity 0: component rings still win) */
+  :where(a, button, [role="button"], summary):focus-visible {
+    outline: 2px solid #1c1714;
+    outline-offset: 3px;
+  }
+  :where(.bg-espresso, .bg-ink) :where(a, button, [role="button"], summary):focus-visible {
+    outline-color: #fbf8f3;
+  }
 }
 
 /* ---------- Storefront: editorial beauty ----------
@@ -148,6 +167,13 @@
       transition: none;
     }
   }
+  /* Without JavaScript nothing can add .is-in, so never hide the content */
+  @media (scripting: none) {
+    .reveal {
+      opacity: 1;
+      transform: none;
+    }
+  }
   /* Film grain: fixed, non-interactive, very faint (paper feel) */
   .grain {
     pointer-events: none;
@@ -167,6 +193,11 @@
   }
   .marquee {
     animation: marquee 40s linear infinite;
+  }
+  /* Moving text must be pausable (WCAG 2.2.2) */
+  .marquee:hover,
+  .marquee:focus-within {
+    animation-play-state: paused;
   }
   @media (prefers-reduced-motion: reduce) {
     .marquee {
@@ -239,7 +270,7 @@
   top: 0;
   left: 0;
   width: 100%;
-  z-index: 9999;
+  z-index: 1200; /* above every drawer and modal (see the z-index scale in tailwind.config.ts) */
 }
 
 #nprogress .peg {

@@ -158,11 +158,10 @@ export function HomePage() {
       <section className="page-width py-[72px] md:py-[120px]">
         <div className="flex flex-wrap items-end justify-between gap-[20px]">
           <Reveal>
-            <span className="eyebrow">{STORE.name}</span>
-            <h2 className="store-heading mt-[12px] text-[44px] md:text-[64px]">{st("best_sellers")}</h2>
+            <h2 className="store-heading text-[44px] md:text-[64px]">{st("best_sellers")}</h2>
           </Reveal>
           <Reveal delay={150}>
-            <Link href={collectionUrl(locale)} className="group inline-flex items-center gap-[8px] text-[14px] text-ink">
+            <Link href={collectionUrl(locale)} className="group inline-flex min-h-[44px] items-center gap-[8px] text-[14px] text-ink">
               <span className="link-underline">{st("view_all")}</span>
               <ArrowRight className="h-[15px] w-[15px] transition-transform duration-500 ease-silk group-hover:translate-x-[3px]" strokeWidth={1.3} />
             </Link>
@@ -245,7 +244,7 @@ export function HomePage() {
                     <ArrowRight className="h-[16px] w-[16px]" strokeWidth={1.3} />
                   </span>
                 </Link>
-                <Price product={spotlight} className="text-[18px] [&_span]:!text-paper [&_s]:!text-paper/40" />
+                <Price product={spotlight} className="text-[18px] [&_span]:!text-paper [&_s]:!text-paper/60" />
               </Reveal>
             </div>
           </div>
@@ -261,8 +260,7 @@ export function HomePage() {
           <ul className={`mt-[40px] grid gap-[32px] md:mt-[56px] md:gap-[24px] ${VALUE_COLS[Math.min(BRAND.values.length, 4)]}`}>
             {BRAND.values.slice(0, 4).map((v, i) => (
               <Reveal as="li" key={v.title} delay={i * 110} className="border-t border-ink/15 pt-[20px]">
-                <span className="display-italic text-[40px] leading-none text-ink/30">{String(i + 1).padStart(2, "0")}</span>
-                <h3 className="store-heading mt-[14px] text-[26px]">{v.title}</h3>
+                <h3 className="store-heading text-[26px]">{v.title}</h3>
                 <p className="mt-[8px] text-[15px] text-ink/70">{v.text}</p>
               </Reveal>
             ))}

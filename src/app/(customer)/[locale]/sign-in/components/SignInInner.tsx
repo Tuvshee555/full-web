@@ -5,7 +5,6 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 import AuthDrawer from "@/components/AuthDrawer";
-import { STORE } from "@/config/store";
 import { useI18n } from "@/components/i18n/ClientI18nProvider";
 import { googleLogin, guestLogin } from "./helpers";
 
@@ -21,8 +20,7 @@ export default function SignInPageInner() {
   return (
     <div className="page-width flex min-h-[70vh] justify-center pb-[96px] pt-[56px] md:pt-[96px]">
       <div className="w-full max-w-[420px]">
-        <span className="eyebrow">{STORE.name}</span>
-        <h1 className="store-heading mt-[10px] text-[52px] md:text-[64px]">{t("auth.sign_in")}</h1>
+        <h1 className="store-heading text-[52px] md:text-[64px]">{t("auth.sign_in")}</h1>
         <p className="mt-[8px] text-[15px] text-ink/60">{t("auth.sign_in_subtitle")}</p>
 
         <div className="mt-[36px] flex flex-col gap-[10px]">
@@ -30,7 +28,7 @@ export default function SignInPageInner() {
             {t("auth.sign_in_email")}
           </button>
 
-          <div className="my-[8px] flex items-center gap-[12px] text-[12px] text-ink/45">
+          <div className="my-[8px] flex items-center gap-[12px] text-[12px] text-ink/60">
             <span className="h-px flex-1 bg-ink/10" />
             {t("auth.or")}
             <span className="h-px flex-1 bg-ink/10" />
@@ -50,7 +48,7 @@ export default function SignInPageInner() {
           </button>
         </div>
 
-        <p className="mt-[40px] text-[12px] leading-relaxed text-ink/50">{t("auth.terms_notice")}</p>
+        <p className="mt-[40px] text-[12px] leading-relaxed text-ink/65">{t("auth.terms_notice")}</p>
       </div>
 
       <AuthDrawer open={openEmail} onClose={() => setOpenEmail(false)} />

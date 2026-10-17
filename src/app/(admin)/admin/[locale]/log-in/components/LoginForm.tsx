@@ -19,7 +19,7 @@ type Props = {
 };
 
 const input =
-  "h-[50px] w-full bg-white px-[14px] text-[15px] text-ink outline-none shadow-[inset_0_0_0_1px_rgba(28,23,20,0.18)] transition-shadow focus:shadow-[inset_0_0_0_1px_#1c1714] placeholder:text-ink/40";
+  "h-[50px] w-full bg-white px-[14px] text-[15px] text-ink outline-none shadow-[inset_0_0_0_1px_rgba(28,23,20,0.18)] transition-shadow focus:shadow-[inset_0_0_0_1px_#1c1714] placeholder:text-ink/60";
 
 export const LoginForm = ({ user, setUser, showPassword, setShowPassword, error, loading, onLogin, onGoogle }: Props) => {
   const { t } = useI18n();
@@ -65,7 +65,7 @@ export const LoginForm = ({ user, setUser, showPassword, setShowPassword, error,
           {loading ? t("logging_in") : t("login")}
         </button>
 
-        <div className="my-[6px] flex items-center gap-[12px] text-[12px] text-ink/45">
+        <div className="my-[6px] flex items-center gap-[12px] text-[12px] text-ink/60">
           <span className="h-px flex-1 bg-ink/10" />
           {t("or")}
           <span className="h-px flex-1 bg-ink/10" />

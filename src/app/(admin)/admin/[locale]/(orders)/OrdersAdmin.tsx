@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { ChevronDown, PackageX, Search, X } from "lucide-react";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 import { Skeleton } from "@admin/components/ui/skeleton";
+import { AdminTabs } from "@admin/components/ui/AdminTabs";
 import { normalizeOrderId } from "@admin/utils/normalizeOrderId";
 import { formatDateTime, formatMNT } from "@admin/utils/format";
 import { PaginationControls } from "./components/PaginationControls";
@@ -80,34 +81,11 @@ export default function OrdersAdmin({ onChanged }: { onChanged?: () => void }) {
       </div>
 
       {/* Tabs */}
-      <div className="-mx-[16px] mb-[16px] overflow-x-auto px-[16px] md:mx-0 md:px-0">
-        <div className="flex min-w-max gap-[4px] border-b border-ink/10">
-          {ORDER_TABS.map((x) => {
-            const active = tab === x.id;
-            const n = tabCount(x.statuses);
-            return (
-              <button
-                key={x.id}
-                type="button"
-                onClick={() => selectTab(x.id)}
-                className={`relative flex h-[44px] items-center gap-[8px] px-[14px] text-[14px] transition-colors ${
-                  active ? "font-medium text-ink" : "text-taupe hover:text-ink"
-                }`}
-              >
-                {t(`orders_ui.tab_${x.id}`)}
-                <span
-                  className={`min-w-[22px] rounded-full px-[7px] py-[1px] text-center text-[11px] tabular-nums ${
-                    active ? "bg-ink text-paper" : x.id === "to_ship" && n > 0 ? "bg-terracotta text-paper" : "bg-sand text-taupe"
-                  }`}
-                >
-                  {n}
-                </span>
-                {active && <span className="absolute inset-x-0 -bottom-px h-[2px] bg-ink" />}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <AdminTabs
+        value={tab}
+        onChange={selectTab}
+        tabs={ORDER_TABS.map((x) => ({ id: x.id, label: t(`orders_ui.tab_${x.id}`), count: tabCount(x.statuses), urgent: x.id === "to_ship" }))}
+      />
 
       {/* Search */}
       <div className="relative mb-[16px] md:max-w-[440px]">
@@ -116,7 +94,7 @@ export default function OrdersAdmin({ onChanged }: { onChanged?: () => void }) {
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder={t("orders_ui.search_placeholder")}
-          className="h-[44px] w-full border border-ink/20 bg-white pl-[38px] pr-[38px] text-[14px] text-ink outline-none placeholder:text-ink/40 focus:border-ink"
+          className="h-[44px] w-full border border-ink/20 bg-white pl-[38px] pr-[38px] text-[14px] text-ink outline-none placeholder:text-ink/60 focus:border-ink"
         />
         {searchInput && (
           <button

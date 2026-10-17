@@ -33,7 +33,7 @@ export const EmailLoggedIn = ({ email, closeSheet }: { email: string; closeSheet
             className="group flex w-full items-center justify-between border-b border-ink/10 py-[18px] text-left text-[16px] text-ink"
           >
             {label}
-            <ArrowRight className="h-[16px] w-[16px] text-ink/40 transition-transform duration-500 ease-silk group-hover:translate-x-[3px] group-hover:text-ink" strokeWidth={1.3} />
+            <ArrowRight className="h-[16px] w-[16px] text-ink/55 transition-transform duration-500 ease-silk group-hover:translate-x-[3px] group-hover:text-ink" strokeWidth={1.3} />
           </button>
         ))}
       </nav>

@@ -9,6 +9,8 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      // Layering scale: buybar < header < widget < overlay (drawers, lightbox) < modal < modal-panel.
+      zIndex: { dropdown: "30", buybar: "80", header: "90", widget: "95", overlay: "1000", modal: "1100", "modal-panel": "1101" },
       fontFamily: {
         display: ["var(--font-display)", "Georgia", "serif"],
         store: ["var(--font-store)", "system-ui", "sans-serif"],

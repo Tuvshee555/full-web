@@ -58,7 +58,7 @@ export const Sidebar = ({ active, onNavigate, openOrders = 0, isMobile, open, on
     <aside className="flex h-full w-[248px] flex-col bg-espresso text-paper">
       <Link href="/admin" className="px-[26px] pb-[26px] pt-[30px]">
         <span className="store-heading block text-[30px] !text-paper">{STORE.name}</span>
-        <span className="eyebrow mt-[4px] !text-paper/45">Admin</span>
+        <span className="eyebrow mt-[4px] !text-paper/60">Admin</span>
       </Link>
 
       <nav className="flex flex-1 flex-col gap-[2px] px-[14px]">
@@ -79,7 +79,7 @@ export const Sidebar = ({ active, onNavigate, openOrders = 0, isMobile, open, on
               <span className="flex-1">{label}</span>
               {!!badge && (
                 <span
-                  className="min-w-[22px] rounded-full bg-terracotta px-[7px] py-[1px] text-center text-[11px] font-medium tabular-nums text-paper"
+                  className="min-w-[22px] bg-terracotta px-[7px] py-[1px] text-center text-[11px] font-medium tabular-nums text-paper"
                   title={t("nav.open_orders", { count: badge })}
                 >
                   {badge}

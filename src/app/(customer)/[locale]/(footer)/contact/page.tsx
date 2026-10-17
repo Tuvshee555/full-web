@@ -30,7 +30,7 @@ export default function ContactPage() {
                 {r.href ? (
                   <a href={r.href} target={r.href.startsWith("http") ? "_blank" : undefined} rel="noreferrer" className="group inline-flex items-center gap-[6px] text-[18px] text-ink">
                     <span className="link-underline">{r.value}</span>
-                    <ArrowUpRight className="h-[16px] w-[16px] text-ink/40 transition-transform duration-500 ease-silk group-hover:-translate-y-[2px] group-hover:translate-x-[2px]" strokeWidth={1.3} />
+                    <ArrowUpRight className="h-[16px] w-[16px] text-ink/55 transition-transform duration-500 ease-silk group-hover:-translate-y-[2px] group-hover:translate-x-[2px]" strokeWidth={1.3} />
                   </a>
                 ) : (
                   <span className="text-[18px] text-ink">{r.value}</span>

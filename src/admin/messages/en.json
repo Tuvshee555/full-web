@@ -285,7 +285,9 @@
     "days_30": "30 days",
     "daily_7": "Daily revenue · 7 days",
     "daily_30": "Daily revenue · 30 days",
-    "no_revenue_range": "No revenue in this period."
+    "no_revenue_range": "No revenue in this period.",
+    "no_revenue_hint": "Paid orders will show up here day by day.",
+    "no_payments_hint": "Orders that have been paid are listed here."
   },
   "chatbot": {
     "title": "Chatbot",
@@ -348,6 +350,8 @@
     "status_off": "Bot is off",
     "turn_off": "Turn off",
     "turn_on": "Turn on",
+    "page_hint": "Incoming messages, requests and bot settings.",
+    "contact_shown": "Contact details the bot gives customers when it cannot answer",
     "off_notice": "The bot is off. It won't auto-reply on the website or Messenger/Instagram. Incoming messages are kept in the Inbox."
   }
 }

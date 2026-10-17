@@ -197,12 +197,13 @@ export default function RevenueDashboard() {
                   width={52}
                 />
                 <Tooltip cursor={{ fill: "rgba(239,231,221,0.7)" }} content={<ChartTooltip t={t} />} />
-                <Bar dataKey="revenue" fill="#1c1714" radius={[4, 4, 0, 0]} maxBarSize={44} />
+                <Bar dataKey="revenue" fill="#1c1714" radius={0} maxBarSize={44} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex h-full items-center justify-center text-[13px] text-taupe">
-              {t("revenue_ui.no_revenue_range")}
+            <div className="flex h-full flex-col items-center justify-center gap-[4px] px-[16px] text-center text-[13px] text-taupe">
+              <p className="text-ink">{t("revenue_ui.no_revenue_range")}</p>
+              <p>{t("revenue_ui.no_revenue_hint")}</p>
             </div>
           )}
         </div>
@@ -237,7 +238,10 @@ export default function RevenueDashboard() {
             ))}
           </ul>
         ) : (
-          <p className="px-[24px] py-[32px] text-center text-[13px] text-taupe">{t("no_payments")}</p>
+          <div className="px-[24px] py-[32px] text-center text-[13px] text-taupe">
+            <p className="text-ink">{t("no_payments")}</p>
+            <p className="mt-[4px]">{t("revenue_ui.no_payments_hint")}</p>
+          </div>
         )}
       </section>
     </div>

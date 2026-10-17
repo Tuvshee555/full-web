@@ -67,6 +67,36 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Even line lengths on headings, no one-word last lines in prose */
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p,
+  li,
+  blockquote {
+    text-wrap: pretty;
+  }
+  /* One visible keyboard focus for every link and button (specificity 0: component rings still win) */
+  :where(a, button, [role="button"], summary):focus-visible {
+    outline: 2px solid #1c1714;
+    outline-offset: 3px;
+  }
+  :where(.bg-espresso, .bg-ink) :where(a, button, [role="button"], summary):focus-visible {
+    outline-color: #fbf8f3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ---------- Lorentz admin: same type + buttons as the storefront ---------- */
@@ -112,24 +142,6 @@
   }
 }
 
-.label {
-  @apply text-sm text-gray-400;
-}
-
-.input {
-  @apply bg-[#1a1a1a] border border-gray-700 text-white mt-1;
-}
-
-.textarea {
-  @apply bg-[#1a1a1a] border border-gray-700 text-white mt-1 h-[120px];
-}
-
-.primary-btn {
-  @apply px-8 py-3 rounded-none bg-gradient-to-r from-[#facc15] to-[#fbbf24]
-         text-black font-semibold shadow-[0_0_20px_rgba(250,204,21,0.2)]
-         hover:brightness-110 transition-all;
-}
-
 /* Top loading bar */
 #nprogress {
   pointer-events: none;
@@ -142,7 +154,7 @@
   top: 0;
   left: 0;
   width: 100%;
-  z-index: 9999;
+  z-index: 1200; /* above every drawer and modal (see the z-index scale in tailwind.config.ts) */
 }
 
 #nprogress .peg {

@@ -41,7 +41,7 @@ export default function CategoryMobileSheet({
           <div className="text-sm font-medium">Categories</div>
           <button
             onClick={onClose}
-            className="h-[36px] w-[36px] flex items-center justify-center rounded hover:bg-muted"
+            className="h-[44px] w-[44px] flex items-center justify-center hover:bg-muted"
             aria-label="Close"
           >
             ✕

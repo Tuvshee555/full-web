@@ -66,7 +66,7 @@ export function StoreFooter() {
         </div>
         {columns.map((col, i) => (
           <div key={col.title} className={i === 0 ? "md:col-span-3 md:col-start-7" : "md:col-span-3"}>
-            <h2 className="eyebrow !text-paper/45">{col.title}</h2>
+            <h2 className="eyebrow !text-paper/60">{col.title}</h2>
             <ul className="mt-[18px] space-y-[10px] text-[15px]">
               {col.links.map(([label, href]) => (
                 <li key={href}>
@@ -88,7 +88,7 @@ export function StoreFooter() {
               type="button"
               onClick={() => switchLanguage(l.code)}
               aria-pressed={locale === l.code}
-              className={`px-[10px] py-[6px] transition-colors ${locale === l.code ? "bg-paper text-ink" : "text-paper/60 hover:text-paper"}`}
+              className={`flex min-h-[44px] items-center px-[14px] transition-colors ${locale === l.code ? "bg-paper text-ink" : "text-paper/60 hover:text-paper"}`}
             >
               {l.label}
             </button>
@@ -101,7 +101,7 @@ export function StoreFooter() {
             </li>
           ))}
         </ul>
-        <p className="text-paper/45">
+        <p className="text-paper/60">
           © {new Date().getFullYear()} {STORE.name}
         </p>
       </div>

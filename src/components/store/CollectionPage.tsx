@@ -8,7 +8,6 @@ import { API_BASE_URL } from "@/lib/api";
 import { sanitizeFoodList } from "@/utils/catalogSanitizer";
 import { ProductCard, ProductCardSkeleton } from "./ProductCard";
 import { isSoldOut, money, onSale } from "./lib/product";
-import { STORE } from "@/config/store";
 import { useStoreT } from "./lib/useStoreT";
 import { Drawer } from "./ui";
 
@@ -120,8 +119,7 @@ export function CollectionPage({ id }: { id: string }) {
 
   return (
     <div className="page-width pb-[72px]">
-      <span className="eyebrow mt-[40px] md:mt-[72px]">{STORE.name}</span>
-      <h1 className="store-heading mt-[10px] text-[48px] md:text-[80px]">{q ? `“${q}”` : title || " "}</h1>
+      <h1 className="store-heading mt-[40px] text-[48px] md:mt-[72px] md:text-[80px]">{q ? `“${q}”` : title || " "}</h1>
 
       {/* Desktop facets */}
       <div className="mt-[24px] hidden md:flex items-start justify-between gap-[20px]">
@@ -155,7 +153,7 @@ export function CollectionPage({ id }: { id: string }) {
 
       {/* Mobile facets */}
       <div className="mt-[20px] flex items-center justify-between md:hidden text-[14px]">
-        <button type="button" onClick={() => setDrawer(true)} className="flex items-center gap-[8px] text-[#1c1714]">
+        <button type="button" onClick={() => setDrawer(true)} className="flex min-h-[44px] items-center gap-[8px] text-[#1c1714]">
           <SlidersHorizontal className="h-[16px] w-[16px]" strokeWidth={1.4} />
           {st("filter_and_sort")}
         </button>
@@ -263,7 +261,7 @@ function Facet({ label, selected, onReset, children }: { label: string; selected
         <ChevronDown className={`h-[12px] w-[12px] transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <div className="absolute left-0 top-[calc(100%+10px)] z-30 min-w-[280px] border border-[rgba(28,23,20,0.15)] bg-white">
+        <div className="absolute left-0 top-[calc(100%+10px)] z-dropdown min-w-[280px] border border-[rgba(28,23,20,0.15)] bg-white">
           <div className="flex items-center justify-between border-b border-[rgba(28,23,20,0.08)] px-[20px] py-[12px] text-[13px]">
             <span>{selected ? `${selected} ✓` : " "}</span>
             <button type="button" onClick={onReset} className="underline underline-offset-[3px] text-[#1c1714]">

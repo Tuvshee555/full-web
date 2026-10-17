@@ -77,10 +77,10 @@ export function ProductCard({ product, quickAdd = true }: { product: any; quickA
             onClick={onQuickAdd}
             aria-label={st("add_to_cart")}
             title={st("add_to_cart")}
-            className="absolute bottom-[10px] right-[10px] z-10 flex h-[40px] w-[40px] items-center justify-center bg-paper text-ink
+            className="absolute bottom-[10px] right-[10px] z-10 flex h-[44px] w-[44px] items-center justify-center bg-paper text-ink
               shadow-[0_10px_30px_-10px_rgba(28,23,20,0.35)] transition-[transform,opacity,background-color,color] duration-500 ease-silk
               hover:bg-ink hover:text-paper active:scale-95
-              md:translate-y-[8px] md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100"
+              md:translate-y-[8px] md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 md:focus-visible:translate-y-0 md:focus-visible:opacity-100"
           >
             <Plus className="h-[18px] w-[18px]" strokeWidth={1.2} />
           </button>
@@ -91,7 +91,7 @@ export function ProductCard({ product, quickAdd = true }: { product: any; quickA
         {/* Phones: price under the name. Desktop: price right-aligned beside it. */}
         <div className="flex flex-col gap-[4px] md:flex-row md:items-start md:justify-between md:gap-[12px]">
           <h3 className="store-heading text-[19px] leading-[1.15] md:text-[22px] line-clamp-2">
-            <Link href={href}>{product.foodName}</Link>
+            <Link href={href} className="-my-[6px] inline-block py-[6px]">{product.foodName}</Link>
           </h3>
           <Price product={product} className="shrink-0 text-[14px] md:flex-col md:!items-end md:!gap-0 md:pt-[3px]" />
         </div>

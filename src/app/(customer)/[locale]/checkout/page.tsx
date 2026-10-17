@@ -46,7 +46,7 @@ function CheckoutHeader() {
       <div className="flex h-[64px] items-center lg:h-[84px]">
         <div className="flex flex-1 lg:justify-end">
           <div className="mx-auto flex w-full max-w-[640px] items-center justify-between px-[20px] lg:mx-0 lg:px-[40px]">
-            <Link href={`/${locale}`} className="store-heading text-[26px] lg:text-[30px]">
+            <Link href={`/${locale}`} className="store-heading py-[10px] text-[26px] lg:text-[30px]">
               {STORE.name}
             </Link>
             <Link
@@ -124,7 +124,7 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
               title={st("contact_section")}
               aside={
                 !token || isGuest ? (
-                  <button type="button" onClick={authDialog.open} className="link-underline text-[13px] text-ink/70 hover:text-ink">
+                  <button type="button" onClick={authDialog.open} className="link-underline inline-flex min-h-[44px] items-center text-[13px] text-ink/70 hover:text-ink">
                     {st("have_account")}
                   </button>
                 ) : null

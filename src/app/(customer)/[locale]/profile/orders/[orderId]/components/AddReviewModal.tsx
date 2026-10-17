@@ -108,7 +108,7 @@ export const AddReviewModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[60]">
+    <div className="fixed inset-0 z-modal">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-none border border-border bg-card p-4 sm:p-6">
         <div className="flex items-start justify-between gap-4">

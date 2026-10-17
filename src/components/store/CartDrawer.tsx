@@ -95,7 +95,7 @@ function CartLine({ item, onNavigate, locale }: { item: StoreCartItem; onNavigat
           <button
             type="button"
             aria-label={st("remove")}
-            className="p-[8px] text-[#1c1714]"
+            className="flex h-[44px] w-[44px] items-center justify-center text-[#1c1714]"
             onClick={() => setQuantity(item.foodId, item.selectedSize, 0)}
           >
             <Trash2 className="h-[16px] w-[16px]" strokeWidth={1.5} />

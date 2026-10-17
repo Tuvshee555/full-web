@@ -87,7 +87,7 @@ export function ProductList({ foods, categoryName, showCategory, onEdit, onToggl
                 </div>
 
                 {/* Mobile: chevron */}
-                <ChevronRight className="h-[18px] w-[18px] text-ink/30 md:hidden" strokeWidth={1.4} />
+                <ChevronRight className="h-[18px] w-[18px] text-ink/50 md:hidden" strokeWidth={1.4} />
 
                 {/* Desktop columns */}
                 <span className="hidden truncate text-[13px] text-taupe md:block">

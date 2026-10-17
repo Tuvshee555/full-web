@@ -584,6 +584,7 @@
     "human_mode": "Messages are saved for our team. You can leave your name and phone.",
     "unavailable": "Chat is temporarily unavailable. Please contact our team.",
     "send_error": "Message could not be sent. Please try again.",
-    "waiting": "Please wait…"
+    "waiting": "Please wait…",
+    "staff": "Staff"
   }
 }

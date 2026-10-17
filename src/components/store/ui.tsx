@@ -109,13 +109,13 @@ export function QuantityInput({
   small?: boolean;
 }) {
   const { st } = useStoreT();
-  const h = small ? "h-[40px]" : "h-[52px]";
+  const h = small ? "h-[44px]" : "h-[52px]";
   return (
-    <div className={`inline-flex items-center ${h} w-[132px] shadow-[inset_0_0_0_1px_rgba(28,23,20,0.25)]`}>
+    <div className={`inline-flex items-center ${h} w-[140px] shadow-[inset_0_0_0_1px_rgba(28,23,20,0.25)]`}>
       <button
         type="button"
         aria-label={st("decrease")}
-        className="flex h-full w-[45px] items-center justify-center text-[#1c1714] disabled:opacity-30"
+        className="flex h-full w-[45px] shrink-0 items-center justify-center text-[#1c1714] disabled:opacity-30"
         onClick={() => onChange(Math.max(min, value - 1))}
         disabled={value <= min}
       >
@@ -136,7 +136,7 @@ export function QuantityInput({
       <button
         type="button"
         aria-label={st("increase")}
-        className="flex h-full w-[45px] items-center justify-center text-[#1c1714]"
+        className="flex h-full w-[45px] shrink-0 items-center justify-center text-[#1c1714]"
         onClick={() => onChange(value + 1)}
       >
         <Plus className="h-[12px] w-[12px]" strokeWidth={1.4} />
@@ -180,7 +180,7 @@ export function Drawer({
   if (!mounted) return null;
 
   return createPortal(
-    <div className={`fixed inset-0 z-[1000] ${open ? "" : "pointer-events-none"}`} aria-hidden={!open}>
+    <div className={`fixed inset-0 z-overlay ${open ? "" : "pointer-events-none"}`} aria-hidden={!open}>
       <div
         className={`absolute inset-0 bg-espresso/40 backdrop-blur-[2px] transition-opacity duration-700 ease-silk ${open ? "opacity-100" : "opacity-0"}`}
         onClick={onClose}
@@ -199,7 +199,7 @@ export function Drawer({
               type="button"
               aria-label={st("close")}
               onClick={onClose}
-              className="-mr-[10px] p-[10px] text-ink transition-transform duration-500 ease-silk hover:rotate-90"
+              className="-mr-[12px] p-[12px] text-ink transition-transform duration-500 ease-silk hover:rotate-90"
             >
               <X className="h-[20px] w-[20px]" strokeWidth={1.1} />
             </button>

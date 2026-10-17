@@ -115,7 +115,7 @@ export default function OrderDetailPage() {
                     </div>
                     <div className="mt-[12px] flex items-start gap-[6px]">
                       {done && <Check className="mt-[2px] h-[13px] w-[13px] shrink-0 text-ink" strokeWidth={1.8} />}
-                      <span className={`min-w-0 break-words text-[12px] leading-tight md:text-[13px] ${done ? "text-ink" : "text-ink/40"}`}>{label}</span>
+                      <span className={`min-w-0 break-words text-[12px] leading-tight md:text-[13px] ${done ? "text-ink" : "text-ink/60"}`}>{label}</span>
                     </div>
                   </li>
                 );

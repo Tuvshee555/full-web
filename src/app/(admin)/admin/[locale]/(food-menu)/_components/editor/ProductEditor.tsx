@@ -225,7 +225,7 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
 
   const label = "mb-[8px] block text-[13px] font-medium text-ink";
   const field =
-    "h-[44px] w-full border bg-white px-[12px] text-[14px] text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-ink";
+    "h-[44px] w-full border bg-white px-[12px] text-[14px] text-ink outline-none transition-colors placeholder:text-ink/60 focus:border-ink";
   const border = (key: keyof Errors) => (errors[key] ? "border-terracotta" : "border-ink/20");
   const err = (key: keyof Errors) =>
     errors[key] ? <p className="mt-[6px] text-[12px] text-terracotta">{errors[key]}</p> : null;
@@ -310,7 +310,7 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
                   onChange={(e) => set("ingredients", e.target.value)}
                   placeholder={t("editor.description_placeholder")}
                   rows={5}
-                  className="w-full resize-y border border-ink/20 bg-white px-[12px] py-[10px] text-[14px] leading-[1.6] text-ink outline-none placeholder:text-ink/35 focus:border-ink"
+                  className="w-full resize-y border border-ink/20 bg-white px-[12px] py-[10px] text-[14px] leading-[1.6] text-ink outline-none placeholder:text-ink/60 focus:border-ink"
                 />
               </div>
             </section>

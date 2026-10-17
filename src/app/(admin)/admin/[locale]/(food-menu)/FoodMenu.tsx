@@ -212,7 +212,7 @@ export const FoodMenu = () => {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t("editor.search_placeholder")}
-                className="h-[44px] w-full border border-ink/20 bg-white pl-[38px] pr-[38px] text-[14px] text-ink outline-none placeholder:text-ink/40 focus:border-ink"
+                className="h-[44px] w-full border border-ink/20 bg-white pl-[38px] pr-[38px] text-[14px] text-ink outline-none placeholder:text-ink/60 focus:border-ink"
               />
               {query && (
                 <button

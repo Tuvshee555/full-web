@@ -80,7 +80,7 @@ export function StoreHeader({ onOpenAccount, onOpenCart }: { onOpenAccount: () =
 
   return (
     <>
-      <div className={`sticky top-0 z-[90] transition-transform duration-700 ease-silk ${hidden ? "-translate-y-full" : "translate-y-0"}`}>
+      <div className={`sticky top-0 z-header transition-transform duration-700 ease-silk ${hidden ? "-translate-y-full" : "translate-y-0"}`}>
         <header className="border-b border-ink/10 bg-paper/90 backdrop-blur-md">
           {/* Luxury-beauty layout: menu left · serif wordmark centred · icons right */}
           <div className="page-width grid h-[64px] grid-cols-[1fr_auto_1fr] items-center md:h-[84px]">
@@ -100,7 +100,7 @@ export function StoreHeader({ onOpenAccount, onOpenCart }: { onOpenAccount: () =
               </nav>
             </div>
 
-            <Link href={`/${locale}`} className="store-heading whitespace-nowrap px-[10px] text-[24px] tracking-[0.01em] md:text-[32px]">
+            <Link href={`/${locale}`} className="store-heading whitespace-nowrap px-[10px] py-[10px] text-[24px] tracking-[0.01em] md:text-[32px]">
               {STORE.name}
             </Link>
 
@@ -278,7 +278,7 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[1000]">
+    <div className="fixed inset-0 z-overlay">
       <div className="absolute inset-0 bg-[rgba(28,23,20,0.5)]" onClick={onClose} />
       <div className="relative bg-white border-b border-[rgba(28,23,20,0.08)]">
         <div className="page-width flex items-center gap-[10px] py-[16px] md:py-[22px]">

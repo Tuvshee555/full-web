@@ -56,6 +56,11 @@ export function ProductPage({ product, related }: { product: any; related: any[]
     window.addEventListener("scroll", check, { passive: true });
     return () => window.removeEventListener("scroll", check);
   }, []);
+  // Tell the floating chat button when the bottom bar is on screen, so it can sit above it
+  useEffect(() => {
+    document.documentElement.dataset.buybar = ctaVisible ? "off" : "on";
+    return () => { delete document.documentElement.dataset.buybar; };
+  }, [ctaVisible]);
 
   const share = async () => {
     const url = window.location.href;
@@ -205,7 +210,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
               </Collapsible>
             </div>
 
-            <button type="button" onClick={share} className="mt-[20px] flex items-center gap-[8px] text-[14px] text-[#1c1714] hover:underline underline-offset-[3px]">
+            <button type="button" onClick={share} className="mt-[12px] flex min-h-[44px] items-center gap-[8px] text-[14px] text-[#1c1714] hover:underline underline-offset-[3px]">
               <Share2 className="h-[15px] w-[15px]" strokeWidth={1.4} /> {st("share")}
             </button>
           </div>
@@ -232,7 +237,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
       {/* Mobile: buy bar sticks to the bottom once the main buttons scroll away */}
       {!unavailable && (
         <div
-          className={`fixed inset-x-0 bottom-0 z-[80] flex items-center gap-[12px] border-t border-[rgba(28,23,20,0.1)] bg-white px-[15px] py-[10px] transition-transform duration-300 md:hidden ${
+          className={`fixed inset-x-0 bottom-0 z-buybar flex items-center gap-[12px] border-t border-[rgba(28,23,20,0.1)] bg-white px-[15px] py-[10px] transition-transform duration-300 md:hidden ${
             ctaVisible ? "translate-y-full" : "translate-y-0"
           }`}
         >
@@ -372,13 +377,13 @@ function MobileSlider({ media, onOpen }: { media: Media[]; onOpen: (i: number) =
       </div>
       {media.length > 1 && (
         <div className="flex items-center justify-center gap-[10px] py-[10px] text-[13px] text-[#1c1714]">
-          <button type="button" onClick={() => go(i - 1)} className="p-[8px] disabled:opacity-30" disabled={i === 0} aria-label="prev">
+          <button type="button" onClick={() => go(i - 1)} className="p-[14px] disabled:opacity-30" disabled={i === 0} aria-label="prev">
             <ChevronLeft className="h-[16px] w-[16px]" />
           </button>
           <span>
             {i + 1} / {media.length}
           </span>
-          <button type="button" onClick={() => go(i + 1)} className="p-[8px] disabled:opacity-30" disabled={i === media.length - 1} aria-label="next">
+          <button type="button" onClick={() => go(i + 1)} className="p-[14px] disabled:opacity-30" disabled={i === media.length - 1} aria-label="next">
             <ChevronRight className="h-[16px] w-[16px]" />
           </button>
         </div>
@@ -401,7 +406,7 @@ function Lightbox({ media, start, alt, onClose }: { media: Media[]; start: numbe
     };
   }, [start, onClose]);
   return (
-    <div className="fixed inset-0 z-[1000] overflow-y-auto bg-white">
+    <div className="fixed inset-0 z-overlay overflow-y-auto bg-white">
       <button type="button" onClick={onClose} aria-label="close" className="fixed right-[16px] top-[16px] z-10 flex h-[44px] w-[44px] items-center justify-center rounded-full bg-white shadow-[0_0_0_1px_rgba(28,23,20,0.1)]">
         <X className="h-[18px] w-[18px]" />
       </button>

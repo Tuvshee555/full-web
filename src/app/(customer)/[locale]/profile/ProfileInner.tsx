@@ -59,7 +59,7 @@ export default function ProfileInner() {
             aria-selected={tab === k}
             onClick={() => changeTab(k)}
             className={`-mb-px border-b-2 pb-[14px] text-[15px] transition-colors ${
-              tab === k ? "border-ink text-ink" : "border-transparent text-ink/50 hover:text-ink"
+              tab === k ? "border-ink text-ink" : "border-transparent text-ink/65 hover:text-ink"
             }`}
           >
             {k === "orders" ? st("tab_orders") : st("tab_profile")}

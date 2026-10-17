@@ -1,5 +1,5 @@
 import { STORE } from "@/config/store";
-import { Card } from "./ui";
-export function ContactInfoCard() {
-  return <Card className="flex flex-wrap gap-4 p-3 text-sm"><a href={`tel:${STORE.contact.phone}`}>{STORE.contact.phone}</a><a href={`mailto:${STORE.contact.email}`}>{STORE.contact.email}</a></Card>;
+/** The contact details the bot hands to customers when it cannot answer (edited in src/config/store.ts). */
+export function ContactInfoCard({ label }: { label: string }) {
+  return <div className="text-sm"><p className="text-taupe">{label}</p><p className="mt-1 flex flex-wrap gap-x-4 gap-y-1"><a href={`tel:${STORE.contact.phone}`} className="underline underline-offset-2">{STORE.contact.phone}</a><a href={`mailto:${STORE.contact.email}`} className="underline underline-offset-2">{STORE.contact.email}</a></p></div>;
 }

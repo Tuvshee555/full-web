@@ -33,7 +33,7 @@ export const EmailLoggedOut = ({ closeSheet }: { closeSheet: () => void }) => {
           {t("login_with_email")}
         </button>
 
-        <div className="my-[8px] flex items-center gap-[12px] text-[12px] text-ink/45">
+        <div className="my-[8px] flex items-center gap-[12px] text-[12px] text-ink/60">
           <span className="h-px flex-1 bg-ink/10" />
           {t("or")}
           <span className="h-px flex-1 bg-ink/10" />

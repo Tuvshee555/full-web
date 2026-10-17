@@ -97,7 +97,7 @@ export const OrdersList = () => {
                 </span>
                 <span className="hidden text-right text-[15px] font-medium md:block">{money(o.totalPrice)}</span>
                 <ArrowRight
-                  className="hidden h-[16px] w-[16px] text-ink/40 transition-transform duration-500 ease-silk group-hover:translate-x-[3px] group-hover:text-ink md:block"
+                  className="hidden h-[16px] w-[16px] text-ink/55 transition-transform duration-500 ease-silk group-hover:translate-x-[3px] group-hover:text-ink md:block"
                   strokeWidth={1.3}
                 />
               </Link>

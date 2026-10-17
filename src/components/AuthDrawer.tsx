@@ -118,10 +118,10 @@ export default function AuthDrawer({
   return (
     <AnimatePresence>
       {/* Backdrop */}
-      {/* Above the sticky header (z-90) and drawers (z-1000) */}
+      {/* Above the sticky header and the drawers (see the z-index scale in tailwind.config.ts) */}
       <motion.div
         key="bg"
-        className="fixed inset-0 z-[1100] bg-espresso/40 backdrop-blur-[2px]"
+        className="fixed inset-0 z-modal bg-espresso/40 backdrop-blur-[2px]"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -134,7 +134,7 @@ export default function AuthDrawer({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 16 }}
         transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
-        className="pointer-events-none fixed inset-0 z-[1101] flex items-center justify-center p-[16px]"
+        className="pointer-events-none fixed inset-0 z-modal-panel flex items-center justify-center p-[16px]"
       >
         <div className="pointer-events-auto w-full max-w-[440px] bg-paper p-[28px] text-ink shadow-[0_40px_80px_-30px_rgba(28,23,20,0.45)] sm:p-[36px]">
           <div className="flex items-start justify-between">

@@ -11,7 +11,7 @@ type T = (key: string, params?: Record<string, string | number>) => string;
 
 export function StatusBadge({ status, t }: { status: OrderStatus; t: T }) {
   return (
-    <span className={`inline-flex whitespace-nowrap rounded-full px-[10px] py-[3px] text-[12px] font-medium ${STATUS_BADGE[status]}`}>
+    <span className={`inline-flex whitespace-nowrap px-[10px] py-[3px] text-[12px] font-medium ${STATUS_BADGE[status]}`}>
       {t(`order_status.${status}`)}
     </span>
   );
@@ -142,7 +142,7 @@ export function OrderDetails({ order, t, busy, copy, onChange }: Props) {
         )}
         <p className="mt-[10px] text-[13px] leading-[1.6] text-ink">{addressLine || "—"}</p>
         {d?.notes && (
-          <p className="mt-[10px] border-l-2 border-terracotta bg-white px-[12px] py-[8px] text-[13px] text-ink">
+          <p className="mt-[10px] border border-terracotta/30 bg-white px-[12px] py-[8px] text-[13px] text-ink">
             {d.notes}
           </p>
         )}
