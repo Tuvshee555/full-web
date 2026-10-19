@@ -2,8 +2,11 @@
 import { prisma } from "../../prismaClient.js";
 import { normalizeSizeInput } from "../../utils/sizes.js";
 import { invalidateCatalog } from "../../utils/cache.js";
+import { validateFoodInput } from "./validate-food.js";
 
 export const createFood = async (req, res) => {
+  const invalid = validateFoodInput(req.body, true);
+  if (invalid) return res.status(400).json({ message: invalid });
   try {
     const {
       foodName,
@@ -31,9 +34,9 @@ export const createFood = async (req, res) => {
     const discountProvided =
       typeof rawDiscount !== "undefined" && rawDiscount !== null && rawDiscount !== "";
 
-    let price = priceProvided ? parseFloat(rawPrice) : undefined;
-    const oldPrice = oldPriceProvided ? parseFloat(rawOldPrice) : null;
-    let discount = discountProvided ? parseInt(rawDiscount, 10) : 0;
+    let price = priceProvided ? Number(rawPrice) : undefined;
+    const oldPrice = oldPriceProvided ? Number(rawOldPrice) : null;
+    let discount = discountProvided ? Number(rawDiscount) : 0;
 
     // sanitize discount
     if (discount < 0) discount = 0;
@@ -67,7 +70,7 @@ export const createFood = async (req, res) => {
 
     const newFood = await prisma.food.create({
       data: {
-        foodName,
+        foodName: foodName.trim(),
         price: Number(price),
         oldPrice: oldPrice !== null ? Number(oldPrice) : undefined,
         discount: discount || 0,
@@ -92,7 +95,8 @@ export const createFood = async (req, res) => {
 
     return res.status(201).json(newFood);
   } catch (error) {
+    if (error.code === "P2003") return res.status(400).json({ message: "Category not found" });
     console.error("Error creating food:", error);
-    return res.status(500).json({ message: "Error creating food", error: error.message });
+    return res.status(500).json({ message: "Error creating food" });
   }
 };

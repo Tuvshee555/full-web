@@ -1,33 +1,50 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { notFound } from "next/navigation";
 import { API_BASE_URL } from "@/lib/api";
 import { useFood } from "@/hooks/useFood";
 import { sanitizeFood } from "@/utils/catalogSanitizer";
 import { ProductPage } from "@/components/store/ProductPage";
+import { useStoreT } from "@/components/store/lib/useStoreT";
+
+class ProductRequestError extends Error {
+  constructor(public status: number) { super("Product unavailable"); }
+}
 
 export default function Product({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [product, setProduct] = useState<any>(null);
-  const [missing, setMissing] = useState(false);
+  const { st } = useStoreT();
   const { data: all = [] } = useFood();
+  const query = useQuery<any, ProductRequestError>({
+    queryKey: ["food", id],
+    queryFn: async ({ signal }) => {
+      const res = await fetch(`${API_BASE_URL}/food/${encodeURIComponent(id)}`, { signal, cache: "no-store" });
+      if (!res.ok) throw new ProductRequestError(res.status);
+      const data = await res.json();
+      if (!data || data.id !== id) throw new ProductRequestError(502);
+      return sanitizeFood(data);
+    },
+    // The grid can render immediately while a fresh inventory check runs.
+    placeholderData: all.find((p) => p.id === id),
+    staleTime: 0,
+    retry: (count, error) => error.status !== 404 && count < 1,
+  });
 
   useEffect(() => {
-    setProduct(null);
-    setMissing(false);
-    fetch(`${API_BASE_URL}/food/${id}`, { cache: "no-store" })
-      .then(async (res) => (res.ok ? setProduct(sanitizeFood(await res.json())) : setMissing(true)))
-      .catch(() => setMissing(true));
     window.scrollTo({ top: 0 });
   }, [id]);
 
-  // Coming from a product grid the item is already cached: render it instantly,
-  // then swap in the fresh copy when the request lands.
-  const shown = product ?? all.find((p: any) => p.id === id);
-
-  if (missing) notFound();
+  const shown = query.data;
+  if (query.error?.status === 404) notFound();
+  if (query.isError) return (
+    <div role="alert" className="page-width py-[64px] text-center">
+      <p>{st("catalogue_error")}</p>
+      <button type="button" onClick={() => void query.refetch()} className="btn-secondary mt-[16px]">{st("retry")}</button>
+    </div>
+  );
   if (!shown) return <ProductSkeleton />;
 
   // Same category first, then everything else

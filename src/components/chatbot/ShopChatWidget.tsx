@@ -107,18 +107,18 @@ export function ShopChatWidget() {
   };
 
   // Low in the corner; on a phone's product page it lifts above the buy bar while that bar is showing (html[data-buybar], set by ProductPage).
-  return <div className="fixed bottom-[calc(16px+env(safe-area-inset-bottom))] right-4 z-widget text-ink transition-[bottom] duration-300 [html[data-buybar=on]_&]:bottom-[calc(88px+env(safe-area-inset-bottom))] md:bottom-6 md:[html[data-buybar=on]_&]:bottom-6">
+  return <div className="fixed bottom-[calc(16px+env(safe-area-inset-bottom))] right-4 z-widget text-ink transition-[bottom] duration-300 [html[data-buybar=on]_&]:bottom-[calc(88px+env(safe-area-inset-bottom))] lg:bottom-6 lg:[html[data-buybar=on]_&]:bottom-6">
     {open && <section id="shop-chat-panel" aria-label={t("chatbot.title")} className="mb-3 flex h-[min(560px,calc(100dvh-180px))] w-[min(380px,calc(100vw-32px))] flex-col border border-ink/20 bg-paper">
       <header className="flex items-center justify-between border-b border-ink/15 px-4 py-3">
         <h2 className="text-base font-medium">{t("chatbot.title")}</h2>
-        <button type="button" onClick={() => setOpen(false)} aria-label={t("chatbot.close")} className="p-2"><X size={18} /></button>
+        <button type="button" onClick={() => setOpen(false)} aria-label={t("chatbot.close")} className="flex h-11 w-11 items-center justify-center"><X size={18} /></button>
       </header>
       {paused && <p className="border-b border-terracotta/20 bg-sand px-4 py-2 text-xs text-terracotta">{t("chatbot.human_mode")}</p>}
       <div className="flex-1 overflow-y-auto overscroll-contain p-4"><ChatThread messages={messages} empty={t("chatbot.welcome")} staffLabel={t("chatbot.staff")} /><div ref={bottom} /></div>
       {error && <p role="alert" className="px-4 pb-2 text-xs text-terracotta">{error}<br /><a href={`tel:${STORE.contact.phone}`} className="underline">{STORE.contact.phone}</a> · {STORE.contact.email}</p>}
       <form onSubmit={send} className="flex gap-2 border-t border-ink/15 p-3">
         <label className="sr-only" htmlFor="shop-chat-message">{t("chatbot.placeholder")}</label>
-        <textarea id="shop-chat-message" ref={input} value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} rows={2} placeholder={t("chatbot.placeholder")} className="min-w-0 flex-1 resize-none border border-ink/20 bg-white p-2 text-sm outline-none focus:border-ink" />
+        <textarea id="shop-chat-message" ref={input} value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} rows={2} placeholder={t("chatbot.placeholder")} className="min-w-0 flex-1 resize-none border border-ink/20 bg-white p-2 text-base outline-none md:text-sm focus:border-ink" />
         <button type="submit" disabled={busy || !session || !text.trim()} aria-label={t("chatbot.send")} className="bg-ink px-3 text-paper disabled:opacity-40"><Send size={16} /></button>
       </form>
       {busy && <p role="status" className="px-4 pb-2 text-xs">{t("chatbot.waiting")}</p>}

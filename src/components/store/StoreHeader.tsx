@@ -3,6 +3,7 @@
 "use client";
 
 import Link from "next/link";
+import * as Dialog from "@radix-ui/react-dialog";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Menu, Search, ShoppingBag, User, X } from "lucide-react";
@@ -18,17 +19,11 @@ import { Drawer, Price } from "./ui";
 export function AnnouncementBar() {
   const { locale } = useStoreT();
   const messages = STORE.announcements[locale] ?? STORE.announcements.mn ?? [];
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    if (messages.length < 2) return;
-    const id = window.setInterval(() => setI((v) => (v + 1) % messages.length), 5000);
-    return () => window.clearInterval(id);
-  }, [messages.length]);
   if (!messages.length) return null;
   return (
     <div className="bg-espresso text-paper">
-      <p key={i} className="page-width animate-in fade-in duration-700 py-[9px] text-center text-[12px] tracking-[0.04em] text-paper/90">
-        {messages[i]}
+      <p className="page-width py-[9px] text-center text-[11px] leading-relaxed text-paper/90 sm:text-[12px]">
+        {messages[0]}
       </p>
     </div>
   );
@@ -80,19 +75,19 @@ export function StoreHeader({ onOpenAccount, onOpenCart }: { onOpenAccount: () =
 
   return (
     <>
-      <div className={`sticky top-0 z-header transition-transform duration-700 ease-silk ${hidden ? "-translate-y-full" : "translate-y-0"}`}>
+      <div className={`sticky top-0 z-header transition-transform duration-200 ease-silk ${hidden && !menuOpen && !searchOpen ? "-translate-y-full" : "translate-y-0"}`}>
         <header className="border-b border-ink/10 bg-paper/90 backdrop-blur-md">
           {/* Luxury-beauty layout: menu left · serif wordmark centred · icons right */}
-          <div className="page-width grid h-[64px] grid-cols-[1fr_auto_1fr] items-center md:h-[84px]">
+          <div className="page-width grid h-[68px] grid-cols-[1fr_auto_1fr] items-center lg:h-[84px]">
             <div className="flex items-center -ml-[10px] md:ml-0">
-              <button type="button" className={`${iconBtn} md:hidden`} aria-label={st("menu")} onClick={() => setMenuOpen(true)}>
+              <button type="button" className={`${iconBtn} lg:hidden`} aria-label={st("menu")} onClick={() => setMenuOpen(true)}>
                 <Menu className="h-[22px] w-[22px]" strokeWidth={1.1} />
               </button>
-              <button type="button" className={`${iconBtn} md:hidden`} aria-label={st("search")} onClick={() => setSearchOpen(true)}>
+              <button type="button" className={`${iconBtn} lg:hidden`} aria-label={st("search")} onClick={() => setSearchOpen(true)}>
                 <Search className="h-[19px] w-[19px]" strokeWidth={1.1} />
               </button>
-              <nav className="hidden md:block">
-                <ul className="flex flex-nowrap items-center gap-x-[28px] whitespace-nowrap">
+              <nav className="hidden lg:block" aria-label={st("menu")}>
+                <ul className="flex flex-nowrap items-center gap-x-[18px] whitespace-nowrap xl:gap-x-[24px]">
                   {nav.map((item: any) => (
                     <NavItem key={item.href} item={item} active={pathname === item.href} />
                   ))}
@@ -105,7 +100,7 @@ export function StoreHeader({ onOpenAccount, onOpenCart }: { onOpenAccount: () =
             </Link>
 
             <div className="flex items-center justify-self-end -mr-[10px]">
-              <button type="button" className={`${iconBtn} hidden md:flex`} aria-label={st("search")} onClick={() => setSearchOpen(true)}>
+              <button type="button" className={`${iconBtn} hidden lg:flex`} aria-label={st("search")} onClick={() => setSearchOpen(true)}>
                 <Search className="h-[19px] w-[19px]" strokeWidth={1.1} />
               </button>
               <button type="button" className={iconBtn} aria-label={st("account")} onClick={onOpenAccount}>
@@ -152,7 +147,7 @@ function NavItem({ item, active }: { item: any; active: boolean }) {
     );
   }
   return (
-    <li className="relative" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+    <li className="relative" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }} onKeyDown={(event) => { if (event.key === "Escape") { setOpen(false); event.stopPropagation(); } }}>
       <Link href={item.href} className={base}>
         {item.label}
         <ChevronDown className={`h-[12px] w-[12px] transition-transform duration-500 ease-silk ${open ? "rotate-180" : ""}`} strokeWidth={1.4} />
@@ -168,7 +163,8 @@ function NavItem({ item, active }: { item: any; active: boolean }) {
             <li key={c.href + c.label}>
               <Link
                 href={c.href}
-                className={`block py-[6px] text-ink/75 transition-colors hover:text-ink ${
+                tabIndex={open ? undefined : -1}
+                className={`flex min-h-[44px] items-center py-[8px] text-ink/75 transition-colors hover:text-ink ${
                   i === 0 ? "store-heading mb-[6px] border-b border-ink/10 pb-[10px] text-[22px] !text-ink" : c.sub ? "pl-[14px] text-[13px]" : "text-[14px]"
                 }`}
               >
@@ -252,6 +248,7 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
   const { data: products = [] } = useFood();
   const [q, setQ] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -276,11 +273,12 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
     router.push(`${collectionUrl(locale)}?q=${encodeURIComponent(q.trim())}`);
   };
 
-  if (!open) return null;
   return (
-    <div className="fixed inset-0 z-overlay">
-      <div className="absolute inset-0 bg-[rgba(28,23,20,0.5)]" onClick={onClose} />
-      <div className="relative bg-white border-b border-[rgba(28,23,20,0.08)]">
+    <Dialog.Root open={open} onOpenChange={(value) => { if (!value) onClose(); }}>
+      <Dialog.Portal>
+      <Dialog.Overlay className="fixed inset-0 z-overlay bg-espresso/40" />
+      <Dialog.Content onOpenAutoFocus={() => { returnFocus.current = document.activeElement as HTMLElement; }} onCloseAutoFocus={(event) => { event.preventDefault(); returnFocus.current?.focus(); }} aria-describedby={undefined} className="fixed inset-x-0 top-0 z-overlay max-h-[90dvh] overflow-y-auto border-b border-ink/15 bg-paper outline-none">
+        <Dialog.Title className="sr-only">{st("search")}</Dialog.Title>
         <div className="page-width flex items-center gap-[10px] py-[16px] md:py-[22px]">
           <form
             className="field flex-1 max-w-[740px] mx-auto"
@@ -289,9 +287,9 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
               submit();
             }}
           >
-            <input ref={inputRef} id="store-search" placeholder=" " value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
+            <input ref={inputRef} id="store-search" placeholder=" " value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" className="!pr-[52px]" />
             <label htmlFor="store-search">{st("search")}</label>
-            <button type="submit" aria-label={st("search")} className="absolute right-[10px] top-1/2 -translate-y-1/2 p-[6px] text-[#1c1714]">
+            <button type="submit" aria-label={st("search")} className="absolute right-[4px] top-1/2 flex h-[44px] w-[44px] -translate-y-1/2 items-center justify-center text-ink">
               <Search className="h-[18px] w-[18px]" strokeWidth={1.4} />
             </button>
           </form>
@@ -329,7 +327,8 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
             </div>
           </div>
         )}
-      </div>
-    </div>
+      </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

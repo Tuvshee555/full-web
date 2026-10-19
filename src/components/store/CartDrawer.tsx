@@ -18,7 +18,7 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
   const empty = items.length === 0;
 
   return (
-    <Drawer open={open} onClose={onClose} title={empty ? undefined : st("your_cart")}>
+    <Drawer open={open} onClose={onClose} title={st("your_cart")}>
       {empty ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-[25px] px-[30px] text-center">
           <h2 className="store-heading text-[24px]">{st("cart_empty")}</h2>
@@ -72,11 +72,11 @@ function CartLine({ item, onNavigate, locale }: { item: StoreCartItem; onNavigat
   const href = productUrl(locale, item.foodId);
   return (
     <li className="flex gap-[15px] py-[20px] border-b border-[rgba(28,23,20,0.08)] last:border-0">
-      <Link href={href} onClick={onNavigate} className="h-[96px] w-[96px] shrink-0 bg-[#efe7dd]">
+      <Link href={href} onClick={onNavigate} className="h-[76px] w-[64px] sm:h-[96px] sm:w-[80px] shrink-0 bg-[#efe7dd]">
         {item.food?.image ? <img src={item.food.image} alt="" className="h-full w-full object-cover" /> : null}
       </Link>
       <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-[10px]">
+        <div className="flex flex-wrap items-start justify-between gap-x-[10px] gap-y-[4px]">
           <Link href={href} onClick={onNavigate} className="font-medium text-ink text-[15px] link-underline">
             {item.food?.foodName}
           </Link>

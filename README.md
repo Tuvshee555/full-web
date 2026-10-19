@@ -1,45 +1,80 @@
-# eyebrow
+# Lorentz storefront
 
-The food delivery platform as one project: customer storefront, admin dashboard and API, served by a single Node process on one port.
+A Mongolian-first retail storefront, customer accounts, admin dashboard,
+product assistant and Express/Prisma API in one Next.js application.
 
-| URL | What | Code |
-| --- | --- | --- |
-| `/` → `/mn` | Customer storefront | `src/app/(customer)`, `src/components`, `src/lib`, … |
-| `/admin` → `/admin/mn` | Admin dashboard (requires login) | `src/app/(admin)`, `src/admin` |
-| `/api/*` | Express + Prisma backend | `server/` |
+| URL | Purpose |
+| --- | --- |
+| `/mn`, `/en` | Customer storefront |
+| `/admin/mn`, `/admin/en` | Admin dashboard |
+| `/api/*` | Express API and chatbot endpoints |
+| `/api/health`, `/api/ready` | Process health and database readiness |
 
-Locales: `mn` (default), `en`, `ko`.
+## Local development
 
-## Run locally
-
-```bash
+```powershell
 npm install
-cp .env.example .env.local    # then fill in secrets
-npm run db:local              # optional: throwaway Postgres on :5433 instead of Neon
-npm run db:migrate            # first time only
-npm run dev                   # http://localhost:3000
+Copy-Item .env.example .env.local
+# Fill in local credentials and use a strong JWT_SECRET.
+npm run db:local
+# In another terminal:
+npm run db:migrate
+npm run dev
 ```
 
-Production: `npm run build && npm start`.
+`db:local` creates a persistent throwaway PostgreSQL at `localhost:5433` in
+`.local-db`. Existing data is never reset automatically. For a fresh database,
+run migrations before using the app. Public URLs and merchant/SMTP settings
+must match the intended environment.
 
-## Scripts
+## Checks
 
-| Script | Does |
-| --- | --- |
-| `dev` | Combined server with hot reload |
-| `build` | `prisma generate` + `next build` |
-| `start` | Combined server, production mode |
-| `api` | API alone (routes at the root, port `API_PORT` or 4000) |
-| `db:local` | Embedded Postgres in `./.local-db` |
-| `db:migrate` / `db:studio` | Prisma migrate deploy / Prisma Studio |
-| `typecheck` / `lint` | `tsc --noEmit` / ESLint |
+```text
+npm run lint
+npm run typecheck
+npm test
+npm run test:commerce:db
+npm run build
+```
 
-## Changes from the three separate projects
+`npm test` runs isolated commerce and chatbot suites with fake database/service
+credentials. `test:commerce:db` additionally creates a fresh temporary PostgreSQL
+cluster on port 5441, tests real transaction/concurrency behavior, and cleans it
+up. It never uses `.env.local`'s database and must not run against production.
 
-- **One server** (`server.mjs`): Express mounts the API at `/api` and hands every other request to Next.js. `NEXT_PUBLIC_BACKEND_URL` is now `<site>/api`.
-- **Admin under `/admin`**: admin routes, links and the language switcher were prefixed. Admin code imports through the `@admin/*` alias; the storefront keeps `@/*`.
-- **Separate admin session**: both apps used the same `localStorage` keys on one origin, so admin keys were renamed (`adminToken`, `adminEmail`, `adminUserId`, `adminUser`, and the `adminToken` cookie). Logging in to one app no longer overwrites the other.
-- **One proxy** (`src/proxy.ts`) handles locale redirects for both apps plus the admin auth redirect.
-- **One `.env.local`** for everything; see `.env.example`.
-- Password-reset emails link to `ADMIN_URL`, or `FRONTEND_URL/admin` when it isn't set.
-- External webhooks/callbacks now live under `/api`. Update the QPay callback when you deploy: `BACKEND_URL/qpay/webhook`. Payments are QPay and bank transfer only (no cards).
+On Windows, Prisma generation may report a locked engine DLL while a running
+server has loaded it. Stop that server before `npm run build`. When the schema
+has not changed, `npx next build` validates the application using the existing
+client. Start production with `npm start` after a successful build.
+
+GitHub Actions runs lint, types, isolated tests and a production build on pull
+requests and main/master pushes. It does not deploy the application or run live
+merchant transactions.
+
+## Deploying a store
+
+The combined Node server serves everything on one port. Vercel uses the Pages
+API adapter instead, with background maintenance registered after the response.
+
+- Set `DATABASE_URL`, `DIRECT_URL`, a strong `JWT_SECRET`, and the real public
+  `FRONTEND_URL`/`CUSTOMER_URL`/`BACKEND_URL` values.
+- Leave `NEXT_PUBLIC_BACKEND_URL` empty to use same-origin `/api`. A localhost
+  value embedded in a production build points shoppers at their own computer.
+- Configure QPay merchant credentials, invoice code and the reachable callback
+  at `<BACKEND_URL>/qpay/webhook`. Test provider settlement separately.
+- Configure SMTP and a verified sender, Cloudinary uploads and Google OAuth
+  origins. Optional alerts require the corresponding Telegram/Meta settings.
+- Set CORS origins and trusted proxy topology for a separately hosted API.
+- Provision database backups, restore checks and service/error monitoring.
+- Replace brand, bank, contacts, product content and business policies in
+  `src/config/store-data.mjs`; set delivery pricing through `DELIVERY_FEE`.
+
+## Reusing the project
+
+This is a single-store foundation. A separate business should have its own
+configuration, deployment, database and service credentials. The current schema
+has no tenant ownership boundaries, so one running installation must not be
+presented as an isolated multi-business service.
+
+Read `UI_UX_AUDIT.md` for the visual pass and `APPLICATION_AUDIT.md` for the
+application improvements, measured performance and remaining launch work.

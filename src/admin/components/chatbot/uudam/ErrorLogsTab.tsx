@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Badge, Button, Card, EmptyState, Icons, Input, useToast } from "./ui";
 import { LoadingPanel, SectionHeading, StatCard, TabHeader } from "./AdminShared";
-import { formatTime } from "@/chatbot/adminUtils";
+import { formatDateTime } from "@admin/utils/format";
+import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 
 type LogLevel = "error" | "warn" | "info";
 
@@ -20,9 +21,9 @@ type ErrorLogRow = {
 type ErrorLogSummary = { event: string; level: LogLevel; count: number; last_at: string };
 
 const RANGES = [
-  { hours: 24, label: "24 цаг" },
-  { hours: 72, label: "3 хоног" },
-  { hours: 168, label: "7 хоног" },
+  { hours: 24, label: "range_24" },
+  { hours: 72, label: "range_72" },
+  { hours: 168, label: "range_168" },
 ] as const;
 
 const LEVEL_TONE: Record<LogLevel, "danger" | "warning" | "neutral"> = {
@@ -31,18 +32,13 @@ const LEVEL_TONE: Record<LogLevel, "danger" | "warning" | "neutral"> = {
   info: "neutral",
 };
 
-const LEVEL_LABEL: Record<LogLevel, string> = {
-  error: "Алдаа",
-  warn: "Анхааруулга",
-  info: "Мэдээлэл",
-};
-
 export function ErrorLogsTab({
   apiFetch,
 }: {
   apiFetch: (url: string, init?: RequestInit) => Promise<Response>;
 }) {
   const toast = useToast();
+  const { t } = useI18n();
   const [hours, setHours] = useState<number>(24);
   const [level, setLevel] = useState<"" | LogLevel>("");
   const [event, setEvent] = useState("");
@@ -68,11 +64,11 @@ export function ErrorLogsTab({
       setSummary(Array.isArray(data?.summary) ? data.summary : []);
       setRows(Array.isArray(data?.rows) ? data.rows : []);
     } catch {
-      toast.error("Алдааны бүртгэл ачаалж чадсангүй.");
+      toast.error(t("chatbot.error_logs.load_failed"));
     } finally {
       setLoading(false);
     }
-  }, [apiFetch, toast, hours, level, event, search]);
+  }, [apiFetch, toast, hours, level, event, search, t]);
 
   useEffect(() => {
     void load();
@@ -85,19 +81,19 @@ export function ErrorLogsTab({
     <div className="space-y-6">
       <TabHeader
         icon={<Icons.alert size={20} />}
-        title="Алдааны бүртгэл"
-        description={`Ботын бүх алдаа, анхааруулга ${retentionDays} хоног хадгалагдаад автоматаар устна. AI муудсан гэж хэлэхэд эндээс шалтгааныг нь хараарай.`}
+        title={t("chatbot.errors")}
+        description={t("chatbot.error_logs.description", { days: retentionDays })}
         actions={
           <Button size="sm" variant="secondary" onClick={() => void load()} disabled={loading}>
             <Icons.refresh size={14} />
-            Шинэчлэх
+            {t("refresh")}
           </Button>
         }
       />
 
       {!configured && (
         <Alert tone="info">
-          Өгөгдлийн сан холбогдоогүй тул алдааг хадгалах боломжгүй байна.
+          {t("chatbot.error_logs.not_configured")}
         </Alert>
       )}
 
@@ -109,7 +105,7 @@ export function ErrorLogsTab({
             variant={hours === range.hours ? "primary" : "secondary"}
             onClick={() => setHours(range.hours)}
           >
-            {range.label}
+            {t(`chatbot.error_logs.${range.label}`)}
           </Button>
         ))}
         <span className="mx-1 h-5 w-px bg-line" />
@@ -120,7 +116,7 @@ export function ErrorLogsTab({
             variant={level === value ? "primary" : "secondary"}
             onClick={() => setLevel(value)}
           >
-            {value ? LEVEL_LABEL[value] : "Бүгд"}
+            {t(value ? `chatbot.error_logs.level_${value}` : "chatbot.error_logs.all_levels")}
           </Button>
         ))}
       </div>
@@ -134,14 +130,15 @@ export function ErrorLogsTab({
       >
         <div className="min-w-0 flex-1">
           <Input
-            placeholder="Хайх: event, алдааны текст, request id…"
+            placeholder={t("chatbot.error_logs.search_placeholder")}
+            aria-label={t("chatbot.error_logs.search_placeholder")}
             value={searchDraft}
             onChange={(e) => setSearchDraft(e.target.value)}
           />
         </div>
         <Button type="submit" size="md" variant="secondary">
           <Icons.search size={14} />
-          Хайх
+          {t("chatbot.search")}
         </Button>
         {(event || search) && (
           <Button
@@ -154,7 +151,7 @@ export function ErrorLogsTab({
               setSearchDraft("");
             }}
           >
-            Цэвэрлэх
+            {t("clear")}
           </Button>
         )}
       </form>
@@ -164,21 +161,21 @@ export function ErrorLogsTab({
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <StatCard label="Алдаа" value={errorCount} tone={errorCount ? "text-terracotta" : undefined} />
-            <StatCard label="Анхааруулга" value={warnCount} tone={warnCount ? "text-terracotta" : undefined} />
-            <StatCard label="Өөр төрөл" value={summary.length} />
+            <StatCard label={t("chatbot.error_logs.level_error")} value={errorCount} tone={errorCount ? "text-terracotta" : undefined} />
+            <StatCard label={t("chatbot.error_logs.level_warn")} value={warnCount} tone={warnCount ? "text-terracotta" : undefined} />
+            <StatCard label={t("chatbot.error_logs.event_types")} value={summary.length} />
           </div>
 
           <Card className="p-4">
             <SectionHeading
-              title="Төрлөөр нь"
-              description="Аль алдаа хамгийн олон давтагдаж байгааг эндээс хараад дарж шүүнэ."
+              title={t("chatbot.error_logs.by_event")}
+              description={t("chatbot.error_logs.by_event_hint")}
             />
             {summary.length === 0 ? (
               <EmptyState
                 icon={<Icons.check size={24} />}
-                title="Алдаа алга"
-                description="Сонгосон хугацаанд бүртгэгдсэн алдаа байхгүй байна."
+                title={t("chatbot.error_logs.empty_title")}
+                description={t("chatbot.error_logs.empty_description")}
               />
             ) : (
               <div className="mt-3 space-y-1.5">
@@ -194,13 +191,13 @@ export function ErrorLogsTab({
                     }`}
                   >
                     <span className="flex min-w-0 items-center gap-2">
-                      <Badge tone={LEVEL_TONE[item.level]}>{LEVEL_LABEL[item.level]}</Badge>
+                      <Badge tone={LEVEL_TONE[item.level]}>{t(`chatbot.error_logs.level_${item.level}`)}</Badge>
                       <span className="truncate font-mono text-xs text-ink">{item.event}</span>
                     </span>
                     <span className="shrink-0 text-xs text-taupe">
                       <span className="font-semibold tabular-nums text-ink">{item.count}</span>
                       {" · "}
-                      {formatTime(item.last_at)}
+                      {formatDateTime(item.last_at)}
                     </span>
                   </button>
                 ))}
@@ -211,8 +208,8 @@ export function ErrorLogsTab({
           {rows.length > 0 && (
             <Card className="p-4">
               <SectionHeading
-                title="Сүүлийн бүртгэлүүд"
-                description={`Хамгийн сүүлийн ${rows.length} бичлэг. Дэлгэрэнгүйг харахын тулд дарна уу.`}
+                title={t("chatbot.error_logs.recent_title")}
+                description={t("chatbot.error_logs.recent_description", { count: rows.length })}
               />
               <div className="mt-3 space-y-2">
                 {rows.map((row) => (
@@ -223,7 +220,7 @@ export function ErrorLogsTab({
                     <summary className="flex cursor-pointer list-none items-start justify-between gap-3">
                       <span className="min-w-0">
                         <span className="flex flex-wrap items-center gap-2">
-                          <Badge tone={LEVEL_TONE[row.level]}>{LEVEL_LABEL[row.level]}</Badge>
+                          <Badge tone={LEVEL_TONE[row.level]}>{t(`chatbot.error_logs.level_${row.level}`)}</Badge>
                           <span className="truncate font-mono text-xs text-ink">{row.event}</span>
                         </span>
                         {row.message && (
@@ -233,19 +230,19 @@ export function ErrorLogsTab({
                         )}
                       </span>
                       <span className="shrink-0 text-xs text-taupe">
-                        {formatTime(row.created_at)}
+                        {formatDateTime(row.created_at)}
                       </span>
                     </summary>
                     <div className="mt-2 space-y-1.5 border-t border-ink/10 pt-2 text-xs text-taupe">
                       {row.message && <p className="whitespace-pre-wrap break-words">{row.message}</p>}
                       {row.request_id && (
                         <p>
-                          request: <span className="font-mono">{row.request_id}</span>
+                          {t("chatbot.error_logs.request")}: <span className="font-mono">{row.request_id}</span>
                         </p>
                       )}
                       {row.sender_hash && (
                         <p>
-                          хэрэглэгч: <span className="font-mono">{row.sender_hash}</span>
+                          {t("chatbot.error_logs.sender")}: <span className="font-mono">{row.sender_hash}</span>
                         </p>
                       )}
                       <pre className="max-h-64 overflow-auto  bg-white p-2 text-[11px] leading-relaxed text-ink">

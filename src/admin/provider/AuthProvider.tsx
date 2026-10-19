@@ -1,94 +1,98 @@
 "use client";
 
-import React, { useState, createContext, useContext, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useJwt } from "react-jwt";
-import { toast } from "sonner";
+import React, { useState, createContext, useContext, useEffect, useCallback, useMemo } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { decodeToken, isExpired } from "react-jwt";
+import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 
 type UserType = {
   userId?: string;
   id?: string;
   role?: string;
+  exp?: number;
 };
 
 type AuthContextType = {
   userId?: string;
   role?: string;
-  token?: string | null;
+  token: string | null;
   setAuthToken: (newToken: string | null) => void;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+function validAdmin(token: string | null): UserType | null {
+  if (!token || isExpired(token)) return null;
+  const user = decodeToken<UserType>(token);
+  return user?.role === "ADMIN" ? user : null;
+}
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
+  const pathname = usePathname();
+  const { locale, t } = useI18n();
   const [token, setToken] = useState<string | null>(null);
-  const { decodedToken, reEvaluateToken, isExpired } = useJwt<UserType>(
-    token || ""
-  );
+  const [ready, setReady] = useState(false);
+  const user = useMemo(() => validAdmin(token), [token]);
+  const publicPage = /\/(log-in|forgot-password|reset-password|sign-up)\/?$/.test(pathname ?? "");
+  const loginPath = `/admin/${locale}/log-in`;
 
-  // Load token from storage on mount
-  useEffect(() => {
-    const storedToken = localStorage.getItem("adminToken");
-
-    if (!storedToken) {
-      router.push("/admin/log-in");
-      return;
+  const persist = useCallback((value: string | null) => {
+    if (value) {
+      localStorage.setItem("adminToken", value);
+      // UI route hint only. Every API independently verifies the bearer token.
+      document.cookie = `adminToken=${value}; path=/; SameSite=Strict${location.protocol === "https:" ? "; Secure" : ""}`;
+    } else {
+      for (const key of ["adminToken", "adminEmail", "adminUserId", "adminUser"]) localStorage.removeItem(key);
+      document.cookie = "adminToken=; path=/; max-age=0; SameSite=Strict";
     }
-
-    setToken(storedToken);
-    reEvaluateToken(storedToken);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setToken(value);
   }, []);
 
-  // Redirect when token becomes expired (fires whenever isExpired changes)
   useEffect(() => {
-    if (isExpired) {
-      localStorage.removeItem("adminToken");
-      document.cookie = "adminToken=; path=/; max-age=0; SameSite=Strict";
-      router.push("/admin/log-in");
-    }
-  }, [isExpired, router]);
+    const stored = localStorage.getItem("adminToken");
+    persist(validAdmin(stored) ? stored : null);
+    setReady(true);
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === "adminToken" || event.key === null) {
+        const next = localStorage.getItem("adminToken");
+        persist(validAdmin(next) ? next : null);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [persist]);
 
   useEffect(() => {
-    if (token && decodedToken && decodedToken.role !== "ADMIN") {
-      localStorage.removeItem("adminToken");
-      document.cookie = "adminToken=; path=/; max-age=0; SameSite=Strict";
-      setToken(null);
-      toast.error("Admin access required");
-      router.push("/admin/log-in");
-    }
-  }, [decodedToken, router, token]);
+    if (ready && !publicPage && !user) router.replace(loginPath);
+  }, [ready, publicPage, user, router, loginPath]);
 
-  const setAuthToken = (newToken: string | null) => {
-    if (newToken) {
-      localStorage.setItem("adminToken", newToken);
-      // Mirror the token into a cookie so it's available outside React if a
-      // server-side guard is added later. NOTE: route protection today is
-      // client-side (this provider) only; the real authorization boundary is
-      // the backend, which enforces requireAdmin on every admin endpoint.
-      document.cookie = `adminToken=${newToken}; path=/; SameSite=Strict`;
-      setToken(newToken);
-      reEvaluateToken(newToken);
-    } else {
-      localStorage.removeItem("adminToken");
-      // Clear the middleware cookie on logout
-      document.cookie = "adminToken=; path=/; max-age=0; SameSite=Strict";
-      setToken(null);
-      router.push("/admin/log-in");
-    }
+  useEffect(() => {
+    if (!user?.exp) return;
+    const expire = () => persist(null);
+    const remaining = user.exp * 1000 - Date.now();
+    const timer = window.setTimeout(expire, Math.max(0, Math.min(remaining, 2_147_483_647)));
+    const onFocus = () => { if (!validAdmin(token)) expire(); };
+    window.addEventListener("focus", onFocus);
+    return () => { window.clearTimeout(timer); window.removeEventListener("focus", onFocus); };
+  }, [user, token, persist]);
+
+  const setAuthToken = (value: string | null) => {
+    const next = validAdmin(value) ? value : null;
+    persist(next);
+    if (!next) router.replace(loginPath);
   };
 
   return (
     <AuthContext.Provider
       value={{
-        userId: decodedToken?.userId ?? decodedToken?.id,
-        role: decodedToken?.role,
+        userId: user?.userId ?? user?.id,
+        role: user?.role,
         token,
         setAuthToken,
       }}
     >
-      {children}
+      {publicPage || (ready && user) ? children : <div role="status" className="flex min-h-screen items-center justify-center bg-paper px-6 text-sm text-taupe">{t("common.loading")}</div>}
     </AuthContext.Provider>
   );
 };

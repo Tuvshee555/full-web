@@ -6,11 +6,12 @@ import { invalidateCatalog } from "../../utils/cache.js";
 export const createCategories = async (req, res) => {
   const { categoryName, parentId } = req.body;
 
-  if (!categoryName || !categoryName.trim()) {
+  if (typeof categoryName !== "string" || !categoryName.trim() || categoryName.trim().length > 200) {
     return res
       .status(400)
       .json({ success: false, message: "Category name is required" });
   }
+  if (parentId != null && typeof parentId !== "string") return res.status(400).json({ success: false, message: "Invalid parent category" });
 
   try {
     // if parentId is provided, optionally we could verify it exists

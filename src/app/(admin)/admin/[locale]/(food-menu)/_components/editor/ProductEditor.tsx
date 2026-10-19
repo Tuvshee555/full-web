@@ -1,7 +1,7 @@
 "use client";
 
 import { API_BASE_URL } from "@admin/lib/api";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2, X } from "lucide-react";
@@ -11,6 +11,7 @@ import { useAuth } from "@admin/provider/AuthProvider";
 import { uploadMedia } from "@admin/utils/uploadMedia";
 import { shrinkImage } from "@admin/utils/shrinkImage";
 import { FoodType } from "@admin/type/type";
+import { inventoryOptions, inventoryPayload, InventoryOption, validInventory } from "@admin/utils/inventory";
 import { MediaItem, PhotosField, VideoField, mediaFromUrl } from "./MediaField";
 
 export type CategoryOption = { id: string; name: string; depth: number };
@@ -32,15 +33,12 @@ type Form = {
   ingredients: string;
   categoryId: string;
   isFeatured: boolean;
-  sizes: string[];
+  sizes: InventoryOption[];
 };
 
-type Errors = Partial<Record<"foodName" | "price" | "oldPrice" | "categoryId" | "photos", string>>;
+type Errors = Partial<Record<"foodName" | "price" | "oldPrice" | "categoryId" | "photos" | "sizes", string>>;
 
 const digits = (v: string) => v.replace(/[^\d]/g, "");
-
-const sizeLabel = (s: unknown) =>
-  typeof s === "object" && s !== null ? String((s as { label?: string }).label ?? "") : String(s);
 
 function initialForm(food: FoodType | null | undefined, defaultCategoryId?: string | null): Form {
   const price = Number(food?.price ?? 0);
@@ -53,7 +51,7 @@ function initialForm(food: FoodType | null | undefined, defaultCategoryId?: stri
     ingredients: food?.ingredients ?? "",
     categoryId: food?.categoryId ?? defaultCategoryId ?? "",
     isFeatured: Boolean(food?.isFeatured),
-    sizes: Array.isArray(food?.sizes) ? food!.sizes.map(sizeLabel).filter(Boolean) : [],
+    sizes: inventoryOptions(food?.sizes),
   };
 }
 
@@ -79,6 +77,14 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
   const [progress, setProgress] = useState<number | null>(null);
   const [confirm, setConfirm] = useState<"discard" | "delete" | null>(null);
   const [snapshot, setSnapshot] = useState("");
+  const savingRef = useRef(false);
+  const previewUrls = useRef(new Set<string>());
+
+  useEffect(() => {
+    for (const media of [...photos, ...(video ? [video] : [])]) {
+      if (media.file) previewUrls.current.add(media.url);
+    }
+  }, [photos, video]);
 
   // Reset whenever the sheet opens for a (different) product
   useEffect(() => {
@@ -99,11 +105,12 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
   // Free blob previews of picked files when the editor closes
   useEffect(() => {
     if (open) return;
-    return () => {
-      photos.forEach((m) => m.file && URL.revokeObjectURL(m.url));
-      if (video?.file) URL.revokeObjectURL(video.url);
-    };
-  }, [open, photos, video]);
+    previewUrls.current.forEach((url) => URL.revokeObjectURL(url));
+    previewUrls.current.clear();
+  }, [open]);
+  useEffect(() => () => {
+    previewUrls.current.forEach((url) => URL.revokeObjectURL(url));
+  }, []);
 
   const dirty = useMemo(
     () => snapshot !== "" && snapshot !== JSON.stringify([form, photos.map((m) => m.url), video?.url ?? null]),
@@ -122,17 +129,20 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
   const addSize = () => {
     const v = sizeDraft.trim();
     if (!v) return;
-    if (!form.sizes.includes(v)) set("sizes", [...form.sizes, v]);
+    if (!form.sizes.some((size) => size.label.toLocaleLowerCase() === v.toLocaleLowerCase())) {
+      set("sizes", [...form.sizes, { label: v, stock: "" }]);
+    }
     setSizeDraft("");
   };
 
   const validate = () => {
     const e: Errors = {};
     if (!form.foodName.trim()) e.foodName = t("food.validation.name");
-    if (!priceNum || priceNum <= 0) e.price = t("food.validation.price");
-    if (form.oldPrice && oldPriceNum <= priceNum) e.oldPrice = t("editor.old_price_rule");
+    if (!Number.isFinite(priceNum) || priceNum <= 0 || priceNum > 1_000_000_000) e.price = t("food.validation.price");
+    if (form.oldPrice && (!Number.isFinite(oldPriceNum) || oldPriceNum <= priceNum || oldPriceNum > 1_000_000_000)) e.oldPrice = t("editor.old_price_rule");
     if (!form.categoryId) e.categoryId = t("editor.category_required");
     if (photos.length === 0) e.photos = t("editor.photo_required");
+    if (!validInventory(form.sizes)) e.sizes = t("editor.stock_rule");
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -145,11 +155,18 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
   };
 
   const save = async () => {
+    if (savingRef.current || !token) return;
+    if (sizeDraft.trim()) {
+      addSize();
+      toast.error(t("editor.variant_draft_hint"));
+      return;
+    }
     if (!validate()) {
       toast.error(t("editor.fix_errors"));
       return;
     }
     try {
+      savingRef.current = true;
       setSaving(true);
 
       // Upload new files one per request (keeps each under Vercel's body limit),
@@ -177,7 +194,7 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
         ingredients: form.ingredients.trim(),
         categoryId: form.categoryId,
         isFeatured: form.isFeatured,
-        sizes: form.sizes,
+        sizes: inventoryPayload(form.sizes, food?.sizes),
         image: photoUrls[0],
         extraImages: photoUrls.slice(1),
         video: videoUrl,
@@ -201,13 +218,16 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
         : "";
       toast.error(msg || (isEdit ? t("update_failed") : t("food.toast.error")));
     } finally {
+      savingRef.current = false;
       setSaving(false);
       setProgress(null);
     }
   };
 
   const remove = async () => {
+    if (savingRef.current || !token) return;
     try {
+      savingRef.current = true;
       setSaving(true);
       await axios.delete(`${API_BASE_URL}/food/${String(food!.id)}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -215,9 +235,11 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
       toast.success(t("deleted"));
       onSaved();
       onOpenChange(false);
-    } catch {
-      toast.error(t("editor.delete_failed"));
+    } catch (error) {
+      const message = axios.isAxiosError(error) ? error.response?.data?.message || error.response?.data?.error : null;
+      toast.error(message || t("editor.delete_failed"));
     } finally {
+      savingRef.current = false;
       setSaving(false);
       setConfirm(null);
     }
@@ -258,11 +280,12 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-[24px] py-[24px]">
-          <div className="space-y-[32px]">
+        <div className="min-h-0 flex-1 overflow-y-auto px-[16px] py-[24px] sm:px-[24px]">
+          <fieldset disabled={saving} className="min-w-0 space-y-[32px] disabled:opacity-70">
             <section>
               <h3 className="eyebrow mb-[14px]">{t("editor.section_photos")}</h3>
               <PhotosField
+                disabled={saving}
                 items={photos}
                 onChange={(p) => {
                   setPhotos(p);
@@ -363,6 +386,8 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
                 <span className={label}>{t("editor.sizes")}</span>
                 <div className="flex gap-[8px]">
                   <input
+                    aria-label={t("editor.sizes")}
+                    maxLength={60}
                     value={sizeDraft}
                     onChange={(e) => setSizeDraft(e.target.value)}
                     onKeyDown={(e) => {
@@ -384,24 +409,38 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
                   </button>
                 </div>
                 {form.sizes.length > 0 ? (
-                  <div className="mt-[10px] flex flex-wrap gap-[6px]">
-                    {form.sizes.map((s) => (
-                      <span key={s} className="inline-flex h-[32px] items-center gap-[6px] bg-sand pl-[12px] pr-[4px] text-[13px] text-ink">
-                        {s}
+                  <div className="mt-[12px] divide-y divide-ink/10 border border-ink/15 bg-white">
+                    {form.sizes.map((size, index) => (
+                      <div key={size.label} className="flex min-w-0 items-center gap-[10px] px-[12px] py-[8px]">
+                        <span className="min-w-0 flex-1 break-words text-[14px] text-ink">{size.label}</span>
+                        <div className="w-[116px] shrink-0">
+                          <label htmlFor={`pe-stock-${index}`} className="mb-[4px] block text-[12px] text-taupe">{t("editor.stock")}</label>
+                          <input
+                            id={`pe-stock-${index}`}
+                            inputMode="numeric"
+                            value={size.stock}
+                            placeholder={t("editor.untracked")}
+                            aria-label={`${size.label}: ${t("editor.stock")}`}
+                            className={`${field} border-ink/20 !px-[8px] tabular-nums`}
+                            onChange={(event) => set("sizes", form.sizes.map((option, at) => at === index ? { ...option, stock: digits(event.target.value) } : option))}
+                          />
+                        </div>
                         <button
                           type="button"
-                          onClick={() => set("sizes", form.sizes.filter((x) => x !== s))}
-                          aria-label={t("editor.remove")}
-                          className="flex h-[24px] w-[24px] items-center justify-center text-ink/50 hover:text-terracotta"
+                          onClick={() => set("sizes", form.sizes.filter((_, at) => at !== index))}
+                          aria-label={`${t("editor.remove")}: ${size.label}`}
+                          className="flex h-[44px] w-[44px] shrink-0 items-center justify-center text-taupe hover:text-terracotta"
                         >
                           <X className="h-[13px] w-[13px]" />
                         </button>
-                      </span>
+                      </div>
                     ))}
                   </div>
                 ) : (
                   <p className="mt-[6px] text-[12px] text-taupe">{t("editor.sizes_hint")}</p>
                 )}
+                <p className="mt-[8px] text-[12px] leading-relaxed text-taupe">{t("editor.stock_hint")}</p>
+                {err("sizes")}
               </div>
 
               <label className="flex cursor-pointer items-start justify-between gap-[16px] border border-ink/15 bg-white px-[16px] py-[14px]">
@@ -436,7 +475,7 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
               </h3>
               <VideoField video={video} onChange={setVideo} />
             </section>
-          </div>
+          </fieldset>
         </div>
 
         {/* Footer */}

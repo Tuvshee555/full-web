@@ -1,5 +1,8 @@
-import fs from "fs";
+import { unlink } from "node:fs/promises";
+import path from "node:path";
 import { cloudinary } from "../../utils/cloudinary.js";
+import { uploadMediaFiles } from "../../utils/mediaUpload.js";
+import { uploadDirectory } from "../../middleware/upload.js";
 
 export const uploadMedia = async (req, res) => {
   try {
@@ -7,8 +10,7 @@ export const uploadMedia = async (req, res) => {
       return res.status(400).json({ message: "No files uploaded" });
     }
 
-    const uploads = await Promise.all(
-      req.files.map(async (file) => {
+    const uploads = await uploadMediaFiles(req.files, async (file) => {
         const isVideo = file.mimetype.startsWith("video");
 
         const result = await cloudinary.uploader.upload(file.path, {
@@ -16,11 +18,11 @@ export const uploadMedia = async (req, res) => {
           folder: "foods",
         });
 
-        fs.unlinkSync(file.path); // cleanup temp file
-
         return result.secure_url;
-      })
-    );
+      }, async (file) => {
+        const target = path.resolve(file.path);
+        if (target.startsWith(path.resolve(uploadDirectory) + path.sep)) await unlink(target);
+      });
 
     return res.json({ urls: uploads });
   } catch (error) {

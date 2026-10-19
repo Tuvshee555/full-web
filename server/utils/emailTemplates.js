@@ -1,11 +1,14 @@
 import { siteUrl } from "./siteUrl.js";
+import { STORE } from "../../src/config/store-data.mjs";
+
+export const escapeHtml = (value) => String(value ?? "-").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character]));
 
 const wrap = (html) => `
   <div style="margin:0;padding:0;background:#f6f7fb;font-family:Inter,Arial,sans-serif;">
     <div style="max-width:620px;margin:0 auto;padding:24px;">
       <div style="background:#ffffff;border:1px solid #eceef3;border-radius:16px;overflow:hidden;">
         <div style="padding:18px 22px;background:linear-gradient(135deg,#111827,#1f2937);color:#fff;">
-          <div style="font-size:14px;opacity:.9;">Food Delivery</div>
+          <div style="font-size:14px;opacity:.9;">${escapeHtml(STORE.name)}</div>
           <div style="font-size:18px;font-weight:700;margin-top:4px;">Захиалгын мэдээлэл</div>
         </div>
 
@@ -19,7 +22,7 @@ const wrap = (html) => `
       </div>
 
       <div style="text-align:center;color:#9ca3af;font-size:12px;margin-top:14px;">
-        © ${new Date().getFullYear()} Food Delivery
+        © ${new Date().getFullYear()} ${escapeHtml(STORE.name)}
       </div>
     </div>
   </div>
@@ -31,7 +34,7 @@ const badge = (text, bg = "#EEF2FF", color = "#3730A3") =>
 const row = (label, value) => `
   <div style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px dashed #eceef3;">
     <div style="color:#6b7280;font-size:13px;">${label}</div>
-    <div style="color:#111827;font-size:13px;font-weight:600;text-align:right;">${value ?? "-"}</div>
+    <div style="color:#111827;font-size:13px;font-weight:600;text-align:right;">${escapeHtml(value)}</div>
   </div>
 `;
 
@@ -41,7 +44,7 @@ const money = (n) => `${Number(n || 0).toLocaleString()}₮`;
 // ✅ Order link helper (needs CUSTOMER_URL in backend env)
 const orderLink = (orderId) => {
   const base = siteUrl();
-  return `${base.replace(/\/$/, "")}/profile/orders/${orderId}`;
+  return `${base.replace(/\/$/, "")}/mn/profile/orders/${encodeURIComponent(orderId)}`;
 };
 
 const viewOrderButton = (orderId) => `
@@ -83,7 +86,7 @@ export function orderCreatedEmail(order) {
     order.foodOrderItems?.length > 0
       ? order.foodOrderItems
           .map((it) => {
-            const name = it.food?.foodName ?? "Хоол";
+            const name = escapeHtml(it.food?.foodName ?? "Бүтээгдэхүүн");
             const qty = it.quantity ?? 1;
             return `
               <div style="display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #f1f5f9;">
@@ -122,7 +125,7 @@ export function orderCreatedEmail(order) {
         ${
           order.notes
             ? `<div style="margin-top:10px;padding:12px;border-radius:12px;background:#fff7ed;color:#9a3412;">
-                 <b>📝 Тэмдэглэл:</b> ${safe(order.notes)}
+                 <b>📝 Тэмдэглэл:</b> ${escapeHtml(safe(order.notes))}
                </div>`
             : ""
         }

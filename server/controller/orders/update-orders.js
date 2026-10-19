@@ -6,6 +6,10 @@ import {
 import { sendEmail } from "../../utils/sendEmail.js";
 import { orderStatusChangedEmail } from "../../utils/emailTemplates.js";
 import { restockOrder } from "../../utils/stock.js";
+import { incrementSalesForOrder } from "../../utils/orderPaid.js";
+import { background } from "../../utils/background.js";
+import { invalidateCatalog } from "../../utils/cache.js";
+import { isGuestEmail } from "../../utils/serializeUser.js";
 
 const ALLOWED_TRANSITIONS = {
   PENDING: ["WAITING_PAYMENT", "COD_PENDING", "CANCELLED"],
@@ -37,7 +41,7 @@ export const updatedFoodOrder = async (req, res) => {
     khoroo,
     address,
     notes,
-  } = req.body;
+  } = req.body ?? {};
 
   try {
     const requesterId = req.user?.id;
@@ -89,12 +93,22 @@ export const updatedFoodOrder = async (req, res) => {
       return res.status(400).json({ message: "No valid fields provided to update" });
     }
 
-    if (status) {
+    if (status !== undefined) {
+      if (typeof status !== "string" || !Object.hasOwn(ALLOWED_TRANSITIONS, status)) {
+        return res.status(400).json({ message: "Invalid order status" });
+      }
       const allowed = ALLOWED_TRANSITIONS[existing.status] || [];
       if (!allowed.includes(status)) {
         return res.status(400).json({
           message: `Invalid status transition: ${existing.status} â†’ ${status}`,
         });
+      }
+      if (status === "PAID" && existing.paymentMethod === "QPAY") {
+        return res.status(400).json({ message: "QPay payments must be verified with the payment provider" });
+      }
+      if ((status === "COD_PENDING" && existing.paymentMethod !== "COD") ||
+          (status === "WAITING_PAYMENT" && existing.paymentMethod === "COD")) {
+        return res.status(400).json({ message: "Order status does not match its payment method" });
       }
     }
 
@@ -112,50 +126,30 @@ export const updatedFoodOrder = async (req, res) => {
     if (address !== undefined) data.address = safe(address);
     if (notes !== undefined) data.notes = safe(notes);
 
-    const updated = await prisma.foodOrder.update({
-      where: { id },
-      data,
-      include: {
-        foodOrderItems: { include: { food: true } },
-      },
+    const updated = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.foodOrder.updateMany({
+        where: { id, status: existing.status, updatedAt: existing.updatedAt },
+        data,
+      });
+      if (claimed.count !== 1) return null;
+      if (status === "PAID" || (status === "DELIVERED" && existing.paymentMethod === "COD")) {
+        await incrementSalesForOrder(id, tx);
+      }
+      if (status === "CANCELLED") await restockOrder(id, tx);
+      return tx.foodOrder.findUnique({
+        where: { id },
+        include: { foodOrderItems: { include: { food: true } } },
+      });
     });
+    if (!updated) return res.status(409).json({
+      message: "This order changed while you were editing it. Refresh and try again.",
+    });
+    if (status === "CANCELLED" || status === "PAID" || status === "DELIVERED") invalidateCatalog();
 
     const oldStatus = existing.status;
     const newStatus = updated.status;
 
     console.log("STATUS CHANGE:", oldStatus, "â†’", newStatus);
-
-    const shouldCountSale =
-      status &&
-      oldStatus !== "PAID" &&
-      newStatus === "PAID";
-
-    if (shouldCountSale) {
-      try {
-        for (const item of updated.foodOrderItems) {
-          await prisma.food.update({
-            where: { id: item.food.id },
-            data: {
-              salesCount: {
-                increment: item.quantity,
-              },
-            },
-          });
-        }
-
-        console.log(
-          "ðŸ“ˆ Sales count incremented for order:",
-          updated.orderNumber
-        );
-      } catch (salesErr) {
-        console.error("âŒ Failed to increment salesCount:", salesErr);
-      }
-    }
-
-    // Cancelling an order releases the stock it had reserved.
-    if (status && oldStatus !== "CANCELLED" && newStatus === "CANCELLED") {
-      await restockOrder(id);
-    }
 
     const IMPORTANT = new Set([
       "PAID",
@@ -164,49 +158,52 @@ export const updatedFoodOrder = async (req, res) => {
       "DELIVERED",
     ]);
 
-    if (status && oldStatus !== newStatus && IMPORTANT.has(newStatus)) {
-      try {
-        await sendTelegramMessage(
-          formatOrderStatusMessage(updated, oldStatus, newStatus)
-        );
-      } catch (tgErr) {
-        console.error("âŒ Telegram notify failed:", tgErr);
-      }
-    }
-
-    const EMAIL_STATUSES = new Set([
-      "DELIVERING",
-      "DELIVERED",
-      "CANCELLED",
-    ]);
-
-    if (status && oldStatus !== newStatus && EMAIL_STATUSES.has(newStatus)) {
-      try {
-        const user = await prisma.user.findUnique({
-          where: { id: updated.userId },
-          select: { email: true },
-        });
-
-        if (user?.email) {
-          await sendEmail({
-            to: user.email,
-            subject:
-              newStatus === "DELIVERING"
-                ? `ðŸšš Ð—Ð°Ñ…Ð¸Ð°Ð»Ð³Ð° Ð·Ð°Ð¼Ð´Ð°Ð° ÑÐ²Ð¶ Ð±Ð°Ð¹Ð½Ð° #${updated.orderNumber}`
-                : newStatus === "DELIVERED"
-                ? `ðŸ Ð—Ð°Ñ…Ð¸Ð°Ð»Ð³Ð° Ñ…Ò¯Ñ€Ð³ÑÐ³Ð´Ð»ÑÑ #${updated.orderNumber}`
-                : `âŒ Ð—Ð°Ñ…Ð¸Ð°Ð»Ð³Ð° Ñ†ÑƒÑ†Ð»Ð°Ð³Ð´Ð»Ð°Ð° #${updated.orderNumber}`,
-            html: orderStatusChangedEmail(
-              updated,
-              oldStatus,
-              newStatus
-            ),
-          });
+    background((async () => {
+      if (status && oldStatus !== newStatus && IMPORTANT.has(newStatus)) {
+        try {
+          await sendTelegramMessage(
+            formatOrderStatusMessage(updated, oldStatus, newStatus)
+          );
+        } catch (tgErr) {
+          console.error("âŒ Telegram notify failed:", tgErr);
         }
-      } catch (mailErr) {
-        console.error("âŒ Customer email failed:", mailErr);
       }
-    }
+
+      const EMAIL_STATUSES = new Set([
+        "DELIVERING",
+        "DELIVERED",
+        "CANCELLED",
+      ]);
+
+      if (status && oldStatus !== newStatus && EMAIL_STATUSES.has(newStatus)) {
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: updated.userId },
+            select: { email: true },
+          });
+
+          if (!isGuestEmail(user?.email)) {
+            await sendEmail({
+              to: user.email,
+              subject:
+                newStatus === "DELIVERING"
+                  ? `ðŸšš Ð—Ð°Ñ…Ð¸Ð°Ð»Ð³Ð° Ð·Ð°Ð¼Ð´Ð°Ð° ÑÐ²Ð¶ Ð±Ð°Ð¹Ð½Ð° #${updated.orderNumber}`
+                  : newStatus === "DELIVERED"
+                  ? `ðŸ Ð—Ð°Ñ…Ð¸Ð°Ð»Ð³Ð° Ñ…Ò¯Ñ€Ð³ÑÐ³Ð´Ð»ÑÑ #${updated.orderNumber}`
+                  : `âŒ Ð—Ð°Ñ…Ð¸Ð°Ð»Ð³Ð° Ñ†ÑƒÑ†Ð»Ð°Ð³Ð´Ð»Ð°Ð° #${updated.orderNumber}`,
+              html: orderStatusChangedEmail(
+                updated,
+                oldStatus,
+                newStatus
+              ),
+            });
+          }
+        } catch (mailErr) {
+          console.error("âŒ Customer email failed:", mailErr);
+        }
+      }
+
+    })());
 
     return res.status(200).json({
       id: updated.id,

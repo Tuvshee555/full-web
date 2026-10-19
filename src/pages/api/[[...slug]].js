@@ -3,7 +3,7 @@
 // not used). Locally, `npm run dev` still goes through server.mjs as before.
 import app from "../../../server/app.js";
 import { runDueJobs } from "../../../server/utils/lazyJobs.js";
-import { backgroundSettled } from "../../../server/utils/background.js";
+import { background, backgroundSettled } from "../../../server/utils/background.js";
 import { waitUntil } from "@vercel/functions";
 
 export const config = {
@@ -22,7 +22,9 @@ export default async function handler(req, res) {
   // parse the real query string instead.
   Object.defineProperty(req, "query", { value: undefined, writable: true, configurable: true });
 
-  await runDueJobs();
+  // Maintenance must not delay the customer's catalogue/payment request. The
+  // response lifecycle below keeps it alive on serverless hosts.
+  background(runDueJobs());
 
   return new Promise((resolve) => {
     res.once("close", () => {

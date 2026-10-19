@@ -1,10 +1,12 @@
 import { prisma } from "../../utils/prisma.js";
 import { Prisma } from "@prisma/client";
+import { invalidate, invalidateCatalog } from "../../utils/cache.js";
 
 function clampRating(value) {
+  if (!["number", "string"].includes(typeof value) || String(value).trim() === "") return null;
   const n = Number(value);
-  if (!Number.isFinite(n)) return null;
-  const r = Math.floor(n);
+  if (!Number.isInteger(n)) return null;
+  const r = n;
   if (r < 1 || r > 5) return null;
   return r;
 }
@@ -91,6 +93,8 @@ export const createFoodReview = async (req, res) => {
       },
     });
 
+    invalidateCatalog();
+    invalidate("reviews:");
     // ✅ return created/updated review
     return res.status(201).json({ review });
   } catch (err) {

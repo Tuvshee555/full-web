@@ -12,9 +12,9 @@ export const foodRouter = Router();
 foodRouter.get("/admin/inventory", requireAdmin, getFood);
 
 foodRouter.post("/", requireAdmin, createFood);
-foodRouter.get("/", publicCache(), getFood);
+foodRouter.get("/", publicCache(0, 0), getFood);
 foodRouter.put("/:id", requireAdmin, updateFood);
-foodRouter.get("/:id", publicCache(), getFoodById);
+foodRouter.get("/:id", publicCache(0, 0), getFoodById);
 
 
 foodRouter.delete("/", requireAdmin, deleteAllFoods);

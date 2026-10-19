@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { GoogleLogin } from "@react-oauth/google";
+import { ResponsiveGoogleLogin } from "@/components/ResponsiveGoogleLogin";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
@@ -19,10 +19,10 @@ type Props = {
 };
 
 const input =
-  "h-[50px] w-full bg-white px-[14px] text-[15px] text-ink outline-none shadow-[inset_0_0_0_1px_rgba(28,23,20,0.18)] transition-shadow focus:shadow-[inset_0_0_0_1px_#1c1714] placeholder:text-ink/60";
+  "h-[50px] w-full bg-white px-[14px] text-[16px] text-ink outline-none shadow-[inset_0_0_0_1px_rgba(28,23,20,0.18)] transition-shadow focus:shadow-[inset_0_0_0_1px_#1c1714] placeholder:text-ink/60";
 
 export const LoginForm = ({ user, setUser, showPassword, setShowPassword, error, loading, onLogin, onGoogle }: Props) => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
 
   return (
@@ -35,31 +35,37 @@ export const LoginForm = ({ user, setUser, showPassword, setShowPassword, error,
         <input
           type="email"
           placeholder={t("email_placeholder")}
+          aria-label={t("email_placeholder")}
           value={user.email}
           onChange={(e) => setUser((p: any) => ({ ...p, email: e.target.value }))}
           className={input}
           autoComplete="email"
+          required
+          disabled={loading}
         />
         <input
           type={showPassword ? "text" : "password"}
           placeholder={t("password")}
+          aria-label={t("password")}
           value={user.password}
           onChange={(e) => setUser((p: any) => ({ ...p, password: e.target.value }))}
           className={input}
           autoComplete="current-password"
+          required
+          disabled={loading}
         />
 
-        <div className="flex items-center justify-between text-[13px]">
-          <label className="flex cursor-pointer items-center gap-[8px] text-ink/70">
+        <div className="flex flex-wrap items-center justify-between gap-x-[12px] text-[13px]">
+          <label className="flex min-h-[44px] cursor-pointer items-center gap-[8px] text-ink/70">
             <input type="checkbox" checked={showPassword} onChange={() => setShowPassword(!showPassword)} className="accent-ink" />
             {t("show_password")}
           </label>
-          <button type="button" onClick={() => router.push("/admin/forgot-password")} className="text-ink/70 underline underline-offset-[3px] hover:text-ink">
+          <button type="button" onClick={() => router.push(`/admin/${locale}/forgot-password`)} className="min-h-[44px] text-ink/70 underline underline-offset-[3px] hover:text-ink">
             {t("forgot_password")}
           </button>
         </div>
 
-        {error && <p className="text-[13px] text-terracotta">{error}</p>}
+        {error && <p role="alert" className="text-[13px] text-terracotta">{error}</p>}
 
         <button disabled={loading} className="btn mt-[6px] w-full !min-h-[50px]">
           {loading ? t("logging_in") : t("login")}
@@ -72,7 +78,7 @@ export const LoginForm = ({ user, setUser, showPassword, setShowPassword, error,
         </div>
 
         <div className="[&>div]:w-full">
-          <GoogleLogin width="400" shape="rectangular" onSuccess={onGoogle} onError={() => toast.error(t("google_error"))} />
+          <ResponsiveGoogleLogin shape="rectangular" onSuccess={onGoogle} onError={() => toast.error(t("google_error"))} />
         </div>
       </form>
     </div>

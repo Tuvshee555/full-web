@@ -43,22 +43,10 @@ function CheckoutHeader() {
   const { locale, st } = useStoreT();
   return (
     <header className="border-b border-ink/10 bg-paper">
-      <div className="flex h-[64px] items-center lg:h-[84px]">
-        <div className="flex flex-1 lg:justify-end">
-          <div className="mx-auto flex w-full max-w-[640px] items-center justify-between px-[20px] lg:mx-0 lg:px-[40px]">
-            <Link href={`/${locale}`} className="store-heading py-[10px] text-[26px] lg:text-[30px]">
-              {STORE.name}
-            </Link>
-            <Link
-              href={`/${locale}/cart`}
-              aria-label={st("cart")}
-              className="flex h-[44px] w-[44px] items-center justify-center text-ink/70 transition-colors hover:text-ink lg:hidden"
-            >
-              <ShoppingBag className="h-[21px] w-[21px]" strokeWidth={1.3} />
-            </Link>
-          </div>
-        </div>
-        <div className="hidden lg:block lg:flex-1" />
+      <div className="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between px-[20px] sm:px-[32px] lg:h-[88px]">
+        <Link href={`/${locale}`} className="store-heading flex min-h-[44px] items-center text-[30px]">{STORE.name}</Link>
+        <span className="flex items-center gap-[7px] text-[12px] text-taupe"><Lock className="h-[14px] w-[14px]" aria-hidden />{st("secure_checkout")}</span>
+        <Link href={`/${locale}/cart`} aria-label={st("cart")} className="flex h-[44px] w-[44px] items-center justify-center text-ink"><ShoppingBag className="h-[21px] w-[21px]" strokeWidth={1.5} /></Link>
       </div>
     </header>
   );
@@ -93,6 +81,7 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
         type="button"
         onClick={() => setSummaryOpen((v) => !v)}
         aria-expanded={summaryOpen}
+        aria-controls="checkout-summary"
         className="flex w-full items-center justify-between border-b border-ink/10 bg-sand px-[20px] py-[16px] lg:hidden"
       >
         <span className="flex items-center gap-[6px] text-[14px]">
@@ -102,15 +91,15 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
         <span className="text-[17px] font-medium">{money(c.total)}</span>
       </button>
       {summaryOpen && (
-        <div className="border-b border-ink/10 bg-sand px-[20px] py-[22px] lg:hidden">
+        <div id="checkout-summary" className="border-b border-ink/10 bg-sand px-[20px] py-[22px] lg:hidden">
           <Summary items={items} c={c} />
         </div>
       )}
 
-      <div className="lg:flex lg:min-h-[calc(100vh-84px)]">
+      <div className="mx-auto grid max-w-[1200px] gap-[48px] px-[20px] sm:px-[32px] lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         {/* Form column */}
-        <div className="lg:flex lg:flex-1 lg:justify-end lg:border-r lg:border-ink/10">
-          <div className="mx-auto w-full max-w-[640px] px-[20px] py-[28px] lg:mx-0 lg:px-[40px] lg:py-[44px]">
+        <div className="min-w-0">
+          <div className="mx-auto w-full py-[28px] lg:py-[44px]">
             <Link
               href={`/${locale}/cart`}
               className="group mb-[28px] hidden items-center gap-[8px] text-[13px] text-ink/60 hover:text-ink lg:inline-flex"
@@ -118,6 +107,8 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
               <ArrowLeft className="h-[14px] w-[14px] transition-transform duration-500 ease-silk group-hover:-translate-x-[3px]" strokeWidth={1.3} />
               {st("back_to_cart")}
             </Link>
+
+            <h1 className="store-heading mb-[28px] text-[36px] sm:text-[44px]">{st("checkout")}</h1>
 
             <Section
               n={1}
@@ -159,7 +150,7 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
                   ))}
                 </div>
 
-                <div className="grid grid-cols-2 gap-[12px]">
+                <div className="grid gap-[12px] min-[380px]:grid-cols-2">
                   <Field name="lastName" label={st("last_name")} value={c.form.lastName} onChange={set} error={c.errors.lastName} autoComplete="family-name" />
                   <Field name="firstName" label={st("first_name")} value={c.form.firstName} onChange={set} error={c.errors.firstName} autoComplete="given-name" />
                 </div>
@@ -175,7 +166,7 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
                     error={c.errors.city}
                   />
                 )}
-                <div className="grid grid-cols-2 gap-[12px]">
+                <div className="grid gap-[12px] min-[380px]:grid-cols-2">
                   <SelectField
                     name="district"
                     label={zone === "UB" ? st("district") : st("soum")}
@@ -251,8 +242,8 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
         </div>
 
         {/* Summary column */}
-        <aside className="hidden bg-sand lg:block lg:flex-1">
-          <div className="sticky top-0 max-w-[520px] px-[40px] py-[48px]">
+        <aside className="hidden min-w-0 lg:block">
+          <div className="sticky top-[32px] my-[44px] border border-ink/10 bg-sand/60 p-[28px]">
             <Summary items={items} c={c} />
           </div>
         </aside>
@@ -283,7 +274,7 @@ function Summary({ items, c }: { items: StoreCartItem[]; c: ReturnType<typeof us
               </span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate font-medium">{i.food?.foodName}</p>
+              <p className="break-words font-medium leading-snug">{i.food?.foodName}</p>
               {i.selectedSize && <p className="text-[12px] text-taupe">{i.selectedSize}</p>}
             </div>
             <span className="tabular-nums">{money(Number(i.food?.price ?? 0) * i.quantity)}</span>
@@ -314,12 +305,12 @@ function Summary({ items, c }: { items: StoreCartItem[]; c: ReturnType<typeof us
 function Section({ n, title, sub, aside, children }: { n: number; title: string; sub?: string; aside?: ReactNode; children: ReactNode }) {
   return (
     <section className="mb-[36px]">
-      <div className="mb-[14px] flex items-center justify-between gap-[12px]">
+      <div className="mb-[14px] flex flex-wrap items-center justify-between gap-x-[12px] gap-y-[4px]">
         <h2 className="flex items-center gap-[12px]">
           <span className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full text-[12px] text-ink/60 ring-1 ring-ink/25">
             {n}
           </span>
-          <span className="store-heading text-[26px]">{title}</span>
+          <span className="text-[20px] font-medium leading-snug text-ink">{title}</span>
         </h2>
         {aside}
       </div>
@@ -330,7 +321,7 @@ function Section({ n, title, sub, aside, children }: { n: number; title: string;
 }
 
 const inputBase =
-  "peer h-[52px] w-full bg-white px-[14px] pt-[18px] pb-[4px] text-[14px] text-ink outline-none transition-[box-shadow] focus:shadow-[inset_0_0_0_1.5px_#1c1714]";
+  "peer h-[56px] w-full bg-white px-[14px] pt-[18px] pb-[4px] text-[16px] text-ink outline-none transition-[box-shadow] focus:shadow-[inset_0_0_0_1.5px_#1c1714]";
 const ring = (error?: string) =>
   error ? "shadow-[inset_0_0_0_1.5px_#a8452f]" : "shadow-[inset_0_0_0_1px_rgba(28,23,20,0.18)]";
 
@@ -363,6 +354,7 @@ function Field({
           inputMode={inputMode}
           autoComplete={autoComplete}
           aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${id}-error` : undefined}
           className={`${inputBase} ${ring(error)}`}
         />
         <label
@@ -372,7 +364,7 @@ function Field({
           {label}
         </label>
       </div>
-      {error && <p className="mt-[6px] text-[12px] text-terracotta">{error}</p>}
+      {error && <p id={`${id}-error`} role="alert" className="mt-[6px] text-[13px] text-terracotta">{error}</p>}
     </div>
   );
 }
@@ -403,6 +395,7 @@ function SelectField({
           value={value}
           onChange={(e) => onChange(name, e.target.value)}
           aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${id}-error` : undefined}
           className={`${inputBase} ${ring(error)} cursor-pointer appearance-none pr-[34px] ${value ? "" : "text-taupe"}`}
         >
           <option value="" disabled>
@@ -419,7 +412,7 @@ function SelectField({
         </label>
         <ChevronDown className="pointer-events-none absolute right-[12px] top-1/2 h-[14px] w-[14px] -translate-y-1/2 text-taupe" strokeWidth={1.4} />
       </div>
-      {error && <p className="mt-[6px] text-[12px] text-terracotta">{error}</p>}
+      {error && <p id={`${id}-error`} role="alert" className="mt-[6px] text-[13px] text-terracotta">{error}</p>}
     </div>
   );
 }

@@ -5,12 +5,12 @@ import { publicInventory } from "../../utils/stockLevel.js";
 export const getFoodById = async (req, res) => {
   const { id } = req.params;
   try {
-    const food = await prisma.food.findUnique({
+    const [food, settings] = await Promise.all([prisma.food.findUnique({
       where: { id },
       include: { category: true, sizes: true },
-    });
+    }), getSettings()]);
     if (!food) return res.status(404).json({ message: "Food not found" });
-    res.json(publicInventory(food, await getSettings()));
+    res.json(publicInventory(food, settings));
   } catch (error) {
     console.error("Error fetching food by ID:", error);
     res.status(500).json({ message: "Server error" });

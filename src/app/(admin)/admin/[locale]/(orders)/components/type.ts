@@ -93,7 +93,7 @@ export function primaryNext(status: OrderStatus, paymentMethod?: string): OrderS
     case "PENDING":
       return paymentMethod === "COD" ? "COD_PENDING" : "WAITING_PAYMENT";
     case "WAITING_PAYMENT":
-      return "PAID";
+      return paymentMethod === "BANK" ? "PAID" : null;
     case "COD_PENDING":
     case "PAID":
       return "DELIVERING";

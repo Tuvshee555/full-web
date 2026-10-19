@@ -1,7 +1,7 @@
 "use client";
 
 import { API_BASE_URL } from "@admin/lib/api";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { FolderTree, Plus, Search, X } from "lucide-react";
@@ -52,6 +52,10 @@ export const FoodMenu = () => {
   const [sort, setSort] = useState<Sort>("newest");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editor, setEditor] = useState<{ open: boolean; food: FoodType | null }>({ open: false, food: null });
+  const [categoryError, setCategoryError] = useState(false);
+  const [foodError, setFoodError] = useState(false);
+  const [featuredBusy, setFeaturedBusy] = useState<string[]>([]);
+  const featuredRequests = useRef(new Set<string>());
 
   const reloadCategories = useCallback(async () => {
     try {
@@ -59,8 +63,10 @@ export const FoodMenu = () => {
       const res = await axios.get(`${API_BASE_URL}/category/tree`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setTree(res.data || []);
+      setTree(Array.isArray(res.data) ? res.data : []);
+      setCategoryError(false);
     } catch {
+      setCategoryError(true);
       toast.error(t("error_loading"));
     } finally {
       setLoadingCats(false);
@@ -69,11 +75,14 @@ export const FoodMenu = () => {
 
   const reloadFoods = useCallback(async () => {
     try {
+      setLoadingFoods(true);
       const res = await axios.get(`${API_BASE_URL}/food/admin/inventory`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setFoods(res.data || []);
+      setFoods(Array.isArray(res.data) ? res.data : []);
+      setFoodError(false);
     } catch {
+      setFoodError(true);
       toast.error(t("editor.load_failed"));
     } finally {
       setLoadingFoods(false);
@@ -81,9 +90,10 @@ export const FoodMenu = () => {
   }, [token, t]);
 
   useEffect(() => {
+    if (!token) return;
     reloadCategories();
     reloadFoods();
-  }, [reloadCategories, reloadFoods]);
+  }, [token, reloadCategories, reloadFoods]);
 
   const options = useMemo(() => flattenWithDepth(tree), [tree]);
   const descendants = useMemo(() => descendantsMap(tree), [tree]);
@@ -120,6 +130,10 @@ export const FoodMenu = () => {
   }, [foods, selected, descendants, query, sort]);
 
   const toggleFeatured = async (food: FoodType) => {
+    const id = String(food.id);
+    if (!token || featuredRequests.current.has(id)) return;
+    featuredRequests.current.add(id);
+    setFeaturedBusy((items) => [...items, id]);
     const next = !food.isFeatured;
     setFoods((prev) => prev.map((f) => (f.id === food.id ? { ...f, isFeatured: next } : f)));
     try {
@@ -132,6 +146,9 @@ export const FoodMenu = () => {
     } catch {
       setFoods((prev) => prev.map((f) => (f.id === food.id ? { ...f, isFeatured: !next } : f)));
       toast.error(t("update_failed"));
+    } finally {
+      featuredRequests.current.delete(id);
+      setFeaturedBusy((items) => items.filter((item) => item !== id));
     }
   };
 
@@ -209,6 +226,8 @@ export const FoodMenu = () => {
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-[12px] top-1/2 h-[16px] w-[16px] -translate-y-1/2 text-taupe" strokeWidth={1.5} />
               <input
+                type="search"
+                aria-label={t("editor.search_placeholder")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t("editor.search_placeholder")}
@@ -243,6 +262,13 @@ export const FoodMenu = () => {
             <span className="shrink-0 text-[13px] text-taupe">{t("dish_count", { count: visible.length })}</span>
           </div>
 
+          {(foodError || categoryError) && (
+            <div role="alert" className="mb-[12px] flex flex-wrap items-center justify-between gap-[12px] border border-terracotta/30 bg-white p-[14px]">
+              <p className="text-[13px] text-terracotta">{t(foodError ? "editor.load_failed" : "error_loading")}</p>
+              <button type="button" className="btn-secondary !px-[14px]" onClick={() => { void reloadFoods(); void reloadCategories(); }} disabled={loading}>{t("retry")}</button>
+            </div>
+          )}
+
           {loading ? (
             <div className="space-y-[1px] border border-ink/10 bg-white">
               {[...Array(6)].map((_, i) => (
@@ -255,13 +281,14 @@ export const FoodMenu = () => {
                 </div>
               ))}
             </div>
-          ) : (
+          ) : foodError && foods.length === 0 ? null : (
             <ProductList
               foods={visible}
               showCategory={selected === ALL || (descendants.get(selected)?.length ?? 1) > 1}
               categoryName={(id) => nameById.get(id) ?? "—"}
               onEdit={(food) => setEditor({ open: true, food })}
               onToggleFeatured={toggleFeatured}
+              busyFeatured={featuredBusy}
               emptyText={query ? t("editor.no_search_results") : t("no_category_foods")}
             />
           )}

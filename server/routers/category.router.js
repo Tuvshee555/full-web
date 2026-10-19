@@ -19,4 +19,4 @@ categoryRouter.get("/tree", publicCache(), getCategoryTree);
 categoryRouter.put("/", requireAdmin, updateCategories);
 
 // ⚠ order matters: more specific routes first
-categoryRouter.get("/:id/foods-tree", publicCache(), getCategoryFoodsTree);
+categoryRouter.get("/:id/foods-tree", publicCache(0, 0), getCategoryFoodsTree);

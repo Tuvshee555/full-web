@@ -13,18 +13,37 @@ export type StoreCartItem = {
 };
 
 const KEY = "cart";
+let memoryCart: StoreCartItem[] = [];
+
+/** Old/corrupted browser data must not crash the storefront or create NaN totals. */
+export function normalizeCart(value: unknown): StoreCartItem[] {
+  if (!Array.isArray(value)) return [];
+  const items = new Map<string, StoreCartItem>();
+  for (const row of value.slice(0, 100)) {
+    if (!row || typeof row.foodId !== "string" || !row.foodId || !row.food || typeof row.food.foodName !== "string") continue;
+    const quantity = Number(row.quantity);
+    const price = Number(row.food.price);
+    if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 999 || !Number.isFinite(price) || price < 0) continue;
+    const size = typeof row.selectedSize === "string" ? row.selectedSize : null;
+    const key = JSON.stringify([row.foodId, size]);
+    const previous = items.get(key);
+    items.set(key, { foodId: row.foodId, selectedSize: size, quantity: Math.min(999, quantity + (previous?.quantity ?? 0)), food: { id: row.foodId, foodName: row.food.foodName, price, image: typeof row.food.image === "string" ? row.food.image : "", oldPrice: Number.isFinite(row.food.oldPrice) ? row.food.oldPrice : null } });
+  }
+  return Array.from(items.values());
+}
 
 export function readCart(): StoreCartItem[] {
   try {
     const parsed = JSON.parse(localStorage.getItem(KEY) || "[]");
-    return Array.isArray(parsed) ? parsed : [];
+    return normalizeCart(parsed);
   } catch {
-    return [];
+    return memoryCart;
   }
 }
 
 function writeCart(items: StoreCartItem[]) {
-  localStorage.setItem(KEY, JSON.stringify(items));
+  memoryCart = normalizeCart(items);
+  try { localStorage.setItem(KEY, JSON.stringify(memoryCart)); } catch { /* Storage-restricted browsers retain a session cart. */ }
   window.dispatchEvent(new Event("cart-updated"));
 }
 
@@ -35,7 +54,7 @@ export function addToCart(food: any, quantity = 1, selectedSize: string | null =
   const items = readCart();
   const i = items.findIndex((c) => same(c, food.id, selectedSize));
   if (i >= 0) {
-    items[i] = { ...items[i], quantity: items[i].quantity + quantity };
+    items[i] = { ...items[i], quantity: Math.min(999, items[i].quantity + quantity) };
   } else {
     items.push({
       foodId: food.id,

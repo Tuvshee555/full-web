@@ -4,6 +4,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ChevronDown, PackageX, Search, X } from "lucide-react";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
+import { useAuth } from "@admin/provider/AuthProvider";
 import { Skeleton } from "@admin/components/ui/skeleton";
 import { AdminTabs } from "@admin/components/ui/AdminTabs";
 import { normalizeOrderId } from "@admin/utils/normalizeOrderId";
@@ -44,10 +45,10 @@ export default function OrdersAdmin({ onChanged }: { onChanged?: () => void }) {
   const [tab, setTab] = useState("all");
   const [openId, setOpenId] = useState<string | null>(null);
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
+  const { token } = useAuth();
   const statuses = useMemo(() => ORDER_TABS.find((x) => x.id === tab)?.statuses ?? [], [tab]);
 
-  const { orders, counts, page, loading, fetchError, totalPages, totalOrders, busyId, setPage, copy, changeStatus } =
+  const { orders, counts, page, loading, fetchError, totalPages, totalOrders, busyId, setPage, copy, changeStatus, reload } =
     useOrdersAdmin(token, t, search, statuses, onChanged);
 
   // Debounce the search box so we don't hit the API on every keystroke
@@ -91,6 +92,8 @@ export default function OrdersAdmin({ onChanged }: { onChanged?: () => void }) {
       <div className="relative mb-[16px] md:max-w-[440px]">
         <Search className="pointer-events-none absolute left-[12px] top-1/2 h-[16px] w-[16px] -translate-y-1/2 text-taupe" strokeWidth={1.5} />
         <input
+          type="search"
+          aria-label={t("orders_ui.search_placeholder")}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder={t("orders_ui.search_placeholder")}
@@ -108,7 +111,7 @@ export default function OrdersAdmin({ onChanged }: { onChanged?: () => void }) {
         )}
       </div>
 
-      {fetchError && <div className="mb-[16px] border border-terracotta/30 bg-terracotta/5 p-[12px] text-[13px] text-terracotta">{fetchError}</div>}
+      {fetchError && <div role="alert" className="mb-[16px] flex flex-wrap items-center justify-between gap-[12px] border border-terracotta/30 bg-terracotta/5 p-[12px] text-[13px] text-terracotta"><span>{fetchError}</span><button type="button" onClick={reload} className="btn-secondary !px-[14px]">{t("retry")}</button></div>}
 
       {loading ? (
         <div className="space-y-[1px] border border-ink/10 bg-white">
@@ -126,7 +129,7 @@ export default function OrdersAdmin({ onChanged }: { onChanged?: () => void }) {
       ) : (
         <div className="border border-ink/10 bg-white">
           {/* Desktop header */}
-          <div className="hidden grid-cols-[150px_minmax(0,1fr)_130px_120px_150px_minmax(170px,auto)_28px] items-center gap-[16px] border-b border-ink/10 px-[16px] py-[10px] text-[11px] font-medium uppercase tracking-[0.12em] text-taupe lg:grid">
+          <div className="hidden grid-cols-[150px_minmax(0,1fr)_130px_120px_150px_minmax(170px,auto)_28px] items-center gap-[16px] border-b border-ink/10 px-[16px] py-[10px] text-[11px] font-medium uppercase tracking-[0.12em] text-taupe 2xl:grid">
             <span>{t("orders_ui.order")}</span>
             <span>{t("orders_ui.customer")}</span>
             <span>{t("orders_ui.items")}</span>
@@ -140,19 +143,15 @@ export default function OrdersAdmin({ onChanged }: { onChanged?: () => void }) {
             {orders.map((o) => {
               const status = (o.status ?? "PENDING") as OrderStatus;
               const isOpen = openId === o.id;
-              const busy = busyId === o.id;
+              const busy = busyId !== null;
               const name = customerName(o, t("no_email"));
               return (
                 <li key={o.id} className={isOpen ? "bg-paper" : ""}>
                   {/* Desktop row */}
                   <div
-                    role="button"
-                    tabIndex={0}
-                    aria-expanded={isOpen}
-                    onClick={() => toggle(o.id)}
-                    onKeyDown={(e) => (e.key === "Enter" ? toggle(o.id) : null)}
-                    className="hidden cursor-pointer grid-cols-[150px_minmax(0,1fr)_130px_120px_150px_minmax(170px,auto)_28px] items-center gap-[16px] px-[16px] py-[12px] transition-colors hover:bg-paper focus-visible:outline-none lg:grid"
+                    className="relative hidden grid-cols-[150px_minmax(0,1fr)_130px_120px_150px_minmax(170px,auto)_28px] items-center gap-[16px] px-[16px] py-[12px] transition-colors hover:bg-paper 2xl:grid"
                   >
+                    <button type="button" aria-expanded={isOpen} aria-controls={`order-details-${o.id}`} aria-label={`${t("view_details")}: #${o.orderNumber ?? o.id.slice(0, 8)}`} onClick={() => toggle(o.id)} className="absolute inset-0 z-[1]" />
                     <div>
                       <p className="font-mono text-[13px] font-medium text-ink">#{o.orderNumber ?? o.id.slice(0, 8)}</p>
                       <p className="text-[12px] tabular-nums text-taupe">{formatDateTime(o.createdAt)}</p>
@@ -166,7 +165,7 @@ export default function OrdersAdmin({ onChanged }: { onChanged?: () => void }) {
                     <div>
                       <StatusBadge status={status} t={t} />
                     </div>
-                    <div className="flex justify-end">
+                    <div className="relative z-[2] flex justify-end">
                       <NextStepButton order={o} t={t} busy={busy} onChange={(s) => changeStatus(o.id, s)} />
                     </div>
                     <ChevronDown className={`h-[16px] w-[16px] text-taupe transition-transform ${isOpen ? "rotate-180" : ""}`} />
@@ -174,12 +173,9 @@ export default function OrdersAdmin({ onChanged }: { onChanged?: () => void }) {
 
                   {/* Mobile card */}
                   <div
-                    role="button"
-                    tabIndex={0}
-                    aria-expanded={isOpen}
-                    onClick={() => toggle(o.id)}
-                    className="cursor-pointer px-[14px] py-[14px] lg:hidden"
+                    className="relative px-[14px] py-[14px] 2xl:hidden"
                   >
+                    <button type="button" aria-expanded={isOpen} aria-controls={`order-details-${o.id}`} aria-label={`${t("view_details")}: #${o.orderNumber ?? o.id.slice(0, 8)}`} onClick={() => toggle(o.id)} className="absolute inset-0 z-[1]" />
                     <div className="flex items-start justify-between gap-[12px]">
                       <div className="min-w-0">
                         <p className="font-mono text-[13px] font-medium text-ink">#{o.orderNumber ?? o.id.slice(0, 8)}</p>
@@ -193,12 +189,12 @@ export default function OrdersAdmin({ onChanged }: { onChanged?: () => void }) {
                     </div>
                     <div className="mt-[12px] flex items-center justify-between gap-[12px]">
                       <ItemThumbs order={o} />
-                      <NextStepButton order={o} t={t} busy={busy} onChange={(s) => changeStatus(o.id, s)} />
+                      <div className="relative z-[2]"><NextStepButton order={o} t={t} busy={busy} onChange={(s) => changeStatus(o.id, s)} /></div>
                     </div>
                   </div>
 
                   {isOpen && (
-                    <div className="border-t border-ink/10">
+                    <div id={`order-details-${o.id}`} className="border-t border-ink/10">
                       <OrderDetails order={o} t={t} busy={busy} copy={copy} onChange={(s) => changeStatus(o.id, s)} />
                     </div>
                   )}

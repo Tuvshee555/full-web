@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
@@ -42,29 +42,48 @@ export default function OrderDetailPage() {
 
   const [order, setOrder] = useState<OrderDetails | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "missing">("loading");
+  const requestVersion = useRef(0);
+  const activeRequest = useRef<AbortController | null>(null);
 
   const fetchOrder = useCallback(async () => {
     if (!orderId || !token) return;
+    const version = ++requestVersion.current;
+    activeRequest.current?.abort();
+    const controller = new AbortController();
+    activeRequest.current = controller;
+    const timeout = window.setTimeout(() => controller.abort(new DOMException("Order request timed out", "TimeoutError")), 25_000);
     try {
-      const res = await fetch(`${API_BASE_URL}/order/${orderId}`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API_BASE_URL}/order/${orderId}`, { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal });
       if (!res.ok) throw new Error();
-      setOrder(await res.json());
+      const data = await res.json();
+      if (version !== requestVersion.current || controller.signal.aborted) return;
+      setOrder(data);
       setState("ready");
-    } catch {
+    } catch (error) {
+      if (version !== requestVersion.current || (error instanceof DOMException && error.name === "AbortError")) return;
       setState("missing");
+    } finally {
+      window.clearTimeout(timeout);
+      if (activeRequest.current === controller) activeRequest.current = null;
     }
   }, [orderId, token]);
 
   useEffect(() => {
+    setOrder(null);
+    setState("loading");
     if (authLoading) return;
     if (!token || !userId) {
       router.push(`/${locale}/sign-in?redirect=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
     fetchOrder();
+    return () => {
+      requestVersion.current += 1;
+      activeRequest.current?.abort();
+    };
   }, [authLoading, token, userId, fetchOrder]);
 
-  if (state === "loading") return <div className="page-width min-h-[60vh] pt-[72px]"><div className="h-[320px] animate-pulse bg-sand/70" /></div>;
+  if (state === "loading" || (order && order.id !== orderId)) return <div className="page-width min-h-[60vh] pt-[72px]"><div className="h-[320px] animate-pulse bg-sand/70" /></div>;
 
   if (state === "missing" || !order) {
     return (

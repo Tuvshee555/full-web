@@ -215,7 +215,8 @@
     "otp_send_failed": "Failed to send code",
     "otp_sent_to": " We sent a 6-digit code to",
     "resend": "Resend",
-    "login_success": "Successfully signed in"
+    "login_success": "Successfully signed in",
+    "login_error": "Sign-in failed. Please try again."
   },
   "cart2": {
     "yourCart": "Your cart",
@@ -571,7 +572,23 @@
     "edit_cart": "Edit",
     "khoroo_n": "Khoroo {n}",
     "help_call": "Questions? Call us:",
-    "pay_by_transfer": "Pay by bank transfer"
+    "pay_by_transfer": "Pay by bank transfer",
+    "secure_checkout": "Secure checkout",
+    "payment_intro": "Pay through your bank app or scan the QR code.",
+    "scan_qr_alternative": "Or scan the QR code",
+    "qpay_qr_label": "QPay payment QR code",
+    "preparing_payment": "Preparing payment…",
+    "previous_image": "Previous image",
+    "next_image": "Next image",
+    "catalogue_error": "We couldn’t load the products. Please try again.",
+    "payment_received": "Payment received",
+    "payment_review_title": "Your payment needs a manual check",
+    "payment_review_body": "Payment arrived for a cancelled order. Please contact us with your order number so we can arrange fulfillment or a refund. Do not pay again.",
+    "payment_check_error": "We couldn’t check the payment. Please try again.",
+    "page_error_title": "This page couldn’t load",
+    "page_error_body": "Please try again. Your saved cart is still available.",
+    "page_not_found": "Page not found",
+    "page_not_found_body": "The page or product may have moved or is no longer available."
   },
   "chatbot": {
     "title": "Lorentz assistant",

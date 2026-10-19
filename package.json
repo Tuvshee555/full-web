@@ -2,7 +2,7 @@
   "name": "eyebrow",
   "version": "1.0.0",
   "private": true,
-  "description": "Food delivery platform: customer storefront, admin dashboard and Express/Prisma API in one project",
+  "description": "Retail storefront, customer accounts, admin dashboard and Express/Prisma API in one project",
   "scripts": {
     "dev": "node server.mjs --dev",
     "build": "prisma generate && next build",
@@ -10,6 +10,9 @@
     "api": "node server/index.js",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
+    "test": "npm run test:commerce && npm run test:chatbot",
+    "test:commerce": "node scripts/run-commerce-tests.mjs",
+    "test:commerce:db": "node scripts/test-commerce-db.mjs",
     "test:chatbot": "node scripts/run-chatbot-tests.mjs",
     "qa:chatbot": "node --import tsx scripts/chatbot-qa.mjs",
     "db:local": "node scripts/local-db.mjs",

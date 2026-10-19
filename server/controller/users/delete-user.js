@@ -30,11 +30,12 @@ export const deleteUser = async (req, res) => {
       .status(200)
       .json({ success: true, message: "Successfully deleted user" });
   } catch (error) {
+    if (error.code === "P2025") return res.status(404).json({ success: false, message: "User not found" });
+    if (error.code === "P2003") return res.status(409).json({ success: false, message: "This account has order history. Contact the store to request account removal." });
     console.error("Error deleting user:", error);
     res.status(500).json({
       success: false,
       message: "Error deleting user",
-      error: error.message,
     });
   }
 };

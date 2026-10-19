@@ -70,7 +70,7 @@ export const Sidebar = ({ active, onNavigate, openOrders = 0, isMobile, open, on
               type="button"
               onClick={() => go(id)}
               aria-current={isActive ? "page" : undefined}
-              className={`group relative flex w-full items-center gap-[12px] px-[12px] py-[11px] text-left text-[14px] transition-colors duration-300 ${
+              className={`group relative flex w-full items-center gap-[12px] px-[12px] min-h-[48px] py-[11px] text-left text-[14px] transition-colors duration-300 ${
                 isActive ? "bg-paper/10 text-paper" : "text-paper/70 hover:bg-paper/5 hover:text-paper"
               }`}
             >
@@ -98,7 +98,7 @@ export const Sidebar = ({ active, onNavigate, openOrders = 0, isMobile, open, on
               type="button"
               onClick={() => switchLocale(l.code)}
               aria-pressed={locale === l.code}
-              className={`h-[28px] px-[10px] text-[11px] font-medium tracking-[0.1em] transition-colors ${
+              className={`h-[44px] min-w-[44px] px-[10px] text-[11px] font-medium tracking-[0.1em] transition-colors ${
                 locale === l.code ? "bg-paper text-ink" : "text-paper/60 hover:text-paper"
               }`}
             >
@@ -110,7 +110,7 @@ export const Sidebar = ({ active, onNavigate, openOrders = 0, isMobile, open, on
         <button
           type="button"
           onClick={() => adminLogout(router.push)}
-          className="flex items-center gap-[10px] text-[13px] text-paper/75 transition-colors hover:text-paper"
+          className="flex min-h-[44px] items-center gap-[10px] text-[13px] text-paper/75 transition-colors hover:text-paper"
         >
           <LogOut className="h-[15px] w-[15px]" strokeWidth={1.3} />
           {t("sidebar.logout")}

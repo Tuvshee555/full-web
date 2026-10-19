@@ -2,17 +2,23 @@
 
 import { API_BASE_URL } from "@admin/lib/api";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CredentialResponse } from "@react-oauth/google";
 import { toast } from "sonner";
 import axios from "axios";
 import { useAuth } from "@admin/provider/AuthProvider";
 import { LoginForm } from "./components/LoginForm";
 import { LoginImage } from "./components/LoginImage";
+import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 
 export default function LogIn() {
   const router = useRouter();
   const { setAuthToken } = useAuth();
+  const { locale } = useI18n();
+  const searchParams = useSearchParams();
+  const from = searchParams?.get("from");
+  const destination = from?.startsWith(`/admin/${locale}/home-page`) && !from.includes("\\")
+    ? from : `/admin/${locale}/home-page`;
 
   const [user, setUser] = useState({ email: "", password: "", role: "ADMIN" });
   const [showPassword, setShowPassword] = useState(false);
@@ -29,6 +35,7 @@ export default function LogIn() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setError(null);
 
     try {
@@ -47,7 +54,7 @@ export default function LogIn() {
         localStorage.setItem("adminUserId", userData.userId || userData.id);
         setAuthToken(token);
         toast.success("Successfully logged in!");
-        router.push("/admin/home-page");
+        router.replace(destination);
       } else {
         setError(res.data.message);
         toast.error(res.data.message);
@@ -67,9 +74,11 @@ export default function LogIn() {
   };
 
   const handleGoogleLogin = async (res: CredentialResponse) => {
+    if (loading) return;
     if (!res.credential) return toast.error("No Google credentials received!");
 
     try {
+      setLoading(true);
       const r = await fetch(
         `${API_BASE_URL}/user/auth/google`,
         {
@@ -87,13 +96,13 @@ export default function LogIn() {
         localStorage.setItem("adminUserId", data.user.id);
         setAuthToken(data.token);
         toast.success("Successfully logged in with Google!");
-        router.push("/admin/home-page");
+        router.replace(destination);
       } else {
         toast.error(data.message || "Google login failed!");
       }
     } catch {
       toast.error("Google login failed!");
-    }
+    } finally { setLoading(false); }
   };
 
   return (

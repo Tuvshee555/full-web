@@ -1,7 +1,7 @@
 import { apiRoute } from "../../../../chatbot/api";
 import { requireAdminAccess } from "../../../../chatbot/adminAccess";
 import { prisma } from "../../../../chatbot/prisma";
-import { getSettings } from "../../../../chatbot/settings.js";
+import { getSettings, invalidateSettings } from "../../../../chatbot/settings.js";
 import { parseSettingsFields } from "../../../../chatbot/settingsFields";
 export const config = { api: { bodyParser: { sizeLimit: "64kb" } } };
 export default apiRoute(async (req, res) => {
@@ -12,7 +12,9 @@ export default apiRoute(async (req, res) => {
     let data;
     try { data = parseSettingsFields(fields); }
     catch { return res.status(400).json({ error: "invalid settings" }); }
-    return res.json(await prisma.chatSettings.upsert({ where: { id: "default" }, create: { id: "default", ...data }, update: data }));
+    const settings = await prisma.chatSettings.upsert({ where: { id: "default" }, create: { id: "default", ...data }, update: data });
+    invalidateSettings();
+    return res.json(settings);
   }
   return res.status(405).end();
 });

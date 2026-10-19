@@ -1,26 +1,53 @@
 import { prisma } from "../prismaClient.js";
+import { invalidateCatalog } from "./cache.js";
 
-/**
- * Increment salesCount for every item in an order.
- *
- * MUST be called exactly once, at the moment an order first transitions to
- * PAID. All callers guard on the previous status (skip if already PAID) so a
- * duplicate webhook / re-check never double-counts.
- */
-export async function incrementSalesForOrder(orderId) {
-  const items = await prisma.orderItem.findMany({
+export const PAYMENT_WINDOW_MS = 15 * 60 * 1000;
+const PAYABLE_STATUSES = ["PENDING", "WAITING_PAYMENT"];
+
+/** Called only by the transaction that won the first transition to PAID. */
+export async function incrementSalesForOrder(orderId, tx) {
+  if (!tx) throw new Error("Sales accounting requires an order transaction");
+  const items = await tx.orderItem.findMany({
     where: { orderId },
     select: { foodId: true, quantity: true },
   });
 
-  if (!items.length) return;
+  const quantities = new Map();
+  for (const item of items) {
+    quantities.set(item.foodId, (quantities.get(item.foodId) || 0) + item.quantity);
+  }
+  for (const [foodId, quantity] of [...quantities].sort(([a], [b]) => a.localeCompare(b))) {
+    await tx.food.update({
+      where: { id: foodId },
+      data: { salesCount: { increment: quantity } },
+    });
+  }
+}
 
-  await prisma.$transaction(
-    items.map((it) =>
-      prisma.food.update({
-        where: { id: it.foodId },
-        data: { salesCount: { increment: it.quantity } },
-      })
-    )
-  );
+/**
+ * Provider verification happens first. Atomically claim the transition so a
+ * webhook, customer poll and expiry cannot all win. Accounting commits with it.
+ * Late money is retained for resolution; never revive released reservations.
+ */
+export async function confirmPaidOrder({ orderId, invoiceId }, client = prisma) {
+  const result = await client.$transaction(async (tx) => {
+    const claimed = await tx.foodOrder.updateMany({
+      where: { id: orderId, paymentMethod: "QPAY", status: { in: PAYABLE_STATUSES } },
+      data: { status: "PAID" },
+    });
+    const order = await tx.foodOrder.findUnique({ where: { id: orderId } });
+    if (!order) return { order: null, changed: false, requiresReview: true };
+    await tx.payment.updateMany({
+      where: { orderId, invoiceId },
+      data: { status: "PAID" },
+    });
+    if (claimed.count === 1) await incrementSalesForOrder(orderId, tx);
+    return {
+      order,
+      changed: claimed.count === 1,
+      requiresReview: order.status === "CANCELLED" || order.paymentMethod !== "QPAY",
+    };
+  });
+  if (result.changed) invalidateCatalog();
+  return result;
 }

@@ -1,4 +1,5 @@
 import { prisma } from "../../utils/prisma.js";
+import { invalidate, invalidateCatalog } from "../../utils/cache.js";
 
 export const deleteReview = async (req, res) => {
   try {
@@ -33,6 +34,8 @@ export const deleteReview = async (req, res) => {
       },
     });
 
+    invalidateCatalog();
+    invalidate("reviews:");
     return res.json({ ok: true });
   } catch (err) {
     console.error("deleteReview error:", err);

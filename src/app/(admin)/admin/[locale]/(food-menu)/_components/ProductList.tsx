@@ -14,11 +14,12 @@ type Props = {
   onEdit: (food: FoodType) => void;
   onToggleFeatured: (food: FoodType) => void;
   emptyText: string;
+  busyFeatured?: string[];
 };
 
 const thumb = (f: FoodType) => (typeof f.image === "string" && f.image.trim() ? f.image : null);
 
-export function ProductList({ foods, categoryName, showCategory, onEdit, onToggleFeatured, emptyText }: Props) {
+export function ProductList({ foods, categoryName, showCategory, onEdit, onToggleFeatured, emptyText, busyFeatured = [] }: Props) {
   const { t, locale } = useI18n();
 
   if (foods.length === 0) {
@@ -33,7 +34,7 @@ export function ProductList({ foods, categoryName, showCategory, onEdit, onToggl
   return (
     <div className="border border-ink/10 bg-white">
       {/* Column labels (desktop) */}
-      <div className="hidden grid-cols-[64px_minmax(0,1fr)_150px_130px_56px_92px] items-center gap-[16px] border-b border-ink/10 px-[16px] py-[10px] text-[11px] font-medium uppercase tracking-[0.12em] text-taupe md:grid">
+      <div className="hidden grid-cols-[64px_minmax(0,1fr)_150px_130px_56px_92px] items-center gap-[16px] border-b border-ink/10 px-[16px] py-[10px] text-[11px] font-medium uppercase tracking-[0.12em] text-taupe 2xl:grid">
         <span />
         <span>{t("editor.name")}</span>
         <span>{showCategory ? t("category.title") : ""}</span>
@@ -53,13 +54,10 @@ export function ProductList({ foods, categoryName, showCategory, onEdit, onToggl
           return (
             <li key={String(f.id)}>
               <div
-                role="button"
-                tabIndex={0}
-                onClick={() => onEdit(f)}
-                onKeyDown={(e) => (e.key === "Enter" ? onEdit(f) : null)}
-                className="grid cursor-pointer grid-cols-[56px_minmax(0,1fr)_auto] items-center gap-[14px] px-[12px] py-[10px] transition-colors hover:bg-paper focus-visible:bg-paper focus-visible:outline-none md:grid-cols-[64px_minmax(0,1fr)_150px_130px_56px_92px] md:gap-[16px] md:px-[16px]"
+                className="relative grid grid-cols-[56px_minmax(0,1fr)_auto] items-center gap-[14px] px-[12px] py-[10px] transition-colors hover:bg-paper 2xl:grid-cols-[64px_minmax(0,1fr)_150px_130px_56px_92px] 2xl:gap-[16px] 2xl:px-[16px]"
               >
-                <div className="h-[56px] w-[56px] overflow-hidden bg-sand md:h-[64px] md:w-[64px]">
+                <button type="button" onClick={() => onEdit(f)} aria-label={`${t("editor.edit")}: ${f.foodName}`} className="absolute inset-0 z-[1]" />
+                <div className="h-[56px] w-[56px] overflow-hidden bg-sand 2xl:h-[64px] 2xl:w-[64px]">
                   {img ? (
                     <img src={img} alt="" loading="lazy" className="h-full w-full object-cover" />
                   ) : (
@@ -74,7 +72,7 @@ export function ProductList({ foods, categoryName, showCategory, onEdit, onToggl
                     <p className="truncate text-[14px] font-medium text-ink">{f.foodName}</p>
                     <StockBadge level={f.stockLevel} locale={locale} />
                     {f.isFeatured && (
-                      <Star className="h-[12px] w-[12px] shrink-0 fill-ink text-ink md:hidden" strokeWidth={1.6} />
+                      <Star className="h-[12px] w-[12px] shrink-0 fill-ink text-ink 2xl:hidden" strokeWidth={1.6} />
                     )}
                   </div>
                   <p className="mt-[2px] truncate text-[12px] text-taupe">
@@ -82,18 +80,18 @@ export function ProductList({ foods, categoryName, showCategory, onEdit, onToggl
                       {formatMNT(price)}
                       {onSale && <span className="ml-[6px] text-terracotta">−{Math.round((1 - price / old) * 100)}%</span>}
                     </span>
-                    <span className="hidden md:inline">{f.ingredients || "—"}</span>
+                    <span className="hidden 2xl:inline">{f.ingredients || "—"}</span>
                   </p>
                 </div>
 
                 {/* Mobile: chevron */}
-                <ChevronRight className="h-[18px] w-[18px] text-ink/50 md:hidden" strokeWidth={1.4} />
+                <ChevronRight className="h-[18px] w-[18px] text-ink/50 2xl:hidden" strokeWidth={1.4} />
 
                 {/* Desktop columns */}
-                <span className="hidden truncate text-[13px] text-taupe md:block">
+                <span className="hidden truncate text-[13px] text-taupe 2xl:block">
                   {showCategory ? categoryName(f.categoryId) : ""}
                 </span>
-                <span className="hidden text-right tabular-nums md:block">
+                <span className="hidden text-right tabular-nums 2xl:block">
                   <span className="block text-[14px] font-medium text-ink">{formatMNT(price)}</span>
                   {onSale && (
                     <span className="block text-[12px] text-taupe">
@@ -102,7 +100,7 @@ export function ProductList({ foods, categoryName, showCategory, onEdit, onToggl
                     </span>
                   )}
                 </span>
-                <span className="hidden justify-center md:flex">
+                <span className="relative z-[2] hidden justify-center 2xl:flex">
                   <button
                     type="button"
                     onClick={(e) => {
@@ -111,7 +109,9 @@ export function ProductList({ foods, categoryName, showCategory, onEdit, onToggl
                     }}
                     title={f.isFeatured ? t("editor.unfeature") : t("editor.feature")}
                     aria-pressed={f.isFeatured}
-                    className="flex h-[36px] w-[36px] items-center justify-center hover:bg-sand"
+                    aria-label={`${f.isFeatured ? t("editor.unfeature") : t("editor.feature")}: ${f.foodName}`}
+                    disabled={busyFeatured.includes(String(f.id))}
+                    className="flex h-[44px] w-[44px] items-center justify-center hover:bg-sand disabled:opacity-40"
                   >
                     <Star
                       className={`h-[16px] w-[16px] ${f.isFeatured ? "fill-ink text-ink" : "text-ink/25"}`}
@@ -119,7 +119,7 @@ export function ProductList({ foods, categoryName, showCategory, onEdit, onToggl
                     />
                   </button>
                 </span>
-                <span className="hidden justify-end md:flex">
+                <span className="hidden justify-end 2xl:flex">
                   <span className="inline-flex h-[36px] items-center gap-[6px] border border-ink/20 px-[12px] text-[13px] text-ink transition-colors group-hover:border-ink hover:bg-ink hover:text-paper">
                     <Pencil className="h-[13px] w-[13px]" strokeWidth={1.5} />
                     {t("editor.edit")}

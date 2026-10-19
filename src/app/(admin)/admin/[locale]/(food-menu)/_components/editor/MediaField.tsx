@@ -20,15 +20,17 @@ type PhotosProps = {
   items: MediaItem[];
   onChange: (items: MediaItem[]) => void;
   error?: string;
+  disabled?: boolean;
 };
 
 /** Photo grid: first photo is the cover. Add by click or drag-and-drop. */
-export function PhotosField({ items, onChange, error }: PhotosProps) {
+export function PhotosField({ items, onChange, error, disabled = false }: PhotosProps) {
   const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
   const add = (files: FileList | File[] | null) => {
+    if (disabled) return;
     const images = Array.from(files ?? []).filter((f) => f.type.startsWith("image/"));
     if (images.length) onChange([...items, ...images.map(mediaFromFile)]);
   };
@@ -53,7 +55,7 @@ export function PhotosField({ items, onChange, error }: PhotosProps) {
           setDragging(false);
           add(e.dataTransfer.files);
         }}
-        className={`grid grid-cols-3 gap-[10px] sm:grid-cols-4 ${dragging ? "outline outline-2 outline-offset-4 outline-ink/40" : ""}`}
+        className={`grid grid-cols-2 gap-[10px] sm:grid-cols-4 ${dragging ? "outline outline-2 outline-offset-4 outline-ink/40" : ""}`}
       >
         {items.map((m, i) => (
           <div key={m.key} className="group relative aspect-square overflow-hidden bg-sand">
@@ -67,17 +69,17 @@ export function PhotosField({ items, onChange, error }: PhotosProps) {
                 type="button"
                 onClick={() => makeCover(m.key)}
                 title={t("editor.make_cover")}
-                className="absolute left-[6px] top-[6px] flex h-[28px] items-center gap-[4px] bg-paper/90 px-[7px] text-[11px] text-ink opacity-100 transition-opacity hover:bg-paper sm:opacity-0 sm:group-hover:opacity-100"
+                aria-label={t("editor.make_cover")}
+                className="absolute left-[6px] top-[6px] flex h-[44px] w-[44px] items-center justify-center bg-paper/90 text-ink transition-opacity hover:bg-paper sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
               >
                 <Star className="h-[12px] w-[12px]" strokeWidth={1.6} />
-                <span className="hidden sm:inline">{t("editor.make_cover")}</span>
               </button>
             )}
             <button
               type="button"
               onClick={() => remove(m.key)}
               aria-label={t("editor.remove")}
-              className="absolute right-[6px] top-[6px] flex h-[28px] w-[28px] items-center justify-center bg-paper/90 text-ink transition-colors hover:bg-terracotta hover:text-paper"
+              className="absolute right-[6px] top-[6px] flex h-[44px] w-[44px] items-center justify-center bg-paper/90 text-ink transition-colors hover:bg-terracotta hover:text-paper"
             >
               <X className="h-[14px] w-[14px]" />
             </button>
@@ -135,7 +137,7 @@ export function VideoField({ video, onChange }: VideoProps) {
           <button
             type="button"
             onClick={() => onChange(null)}
-            className="absolute right-[8px] top-[8px] flex h-[30px] items-center gap-[6px] bg-paper/90 px-[10px] text-[12px] text-ink hover:bg-terracotta hover:text-paper"
+            className="absolute right-[8px] top-[8px] flex min-h-[44px] items-center gap-[6px] bg-paper/90 px-[10px] text-[12px] text-ink hover:bg-terracotta hover:text-paper"
           >
             <X className="h-[14px] w-[14px]" />
             {t("editor.remove")}

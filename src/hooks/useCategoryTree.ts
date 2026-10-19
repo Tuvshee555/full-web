@@ -21,13 +21,15 @@ const sanitizeNode = (node: CategoryNode): CategoryNode => ({
 export function useCategoryTree() {
   return useQuery<CategoryNode[]>({
     queryKey: ["category-tree"],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const { data } = await axios.get(
-        `${API_BASE_URL}/category/tree`
+        `${API_BASE_URL}/category/tree`, { signal, timeout: 15_000 }
       );
-      return Array.isArray(data) ? data.map(sanitizeNode) : [];
+      if (!Array.isArray(data)) throw new Error("Invalid category response");
+      return data.map(sanitizeNode);
     },
-    staleTime: 30 * 60_000, // tree rarely changes
+    staleTime: 60_000,
+    retry: 1,
     gcTime: 60 * 60_000,
   });
 }

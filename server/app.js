@@ -17,6 +17,7 @@ import { expireUnpaidOrders } from "./jobs/expireOrders.js";
 import { cleanupGuestUsers } from "./jobs/cleanupGuests.js";
 import { reviewRouter } from "./routers/review.router.js";
 import { connectPrismaWithRetry } from "./utils/prisma.js";
+import { corsOptions } from "./utils/corsOptions.js";
 
 // Optional hardening/perf middleware, loaded defensively so the server still
 // boots if the deps aren't installed yet (run `npm install` to enable them).
@@ -35,7 +36,9 @@ try {
 
 const app = express();
 // Behind Vercel (or any proxy): use the real client IP for rate limiting.
-app.set("trust proxy", 1);
+const trustProxy = process.env.TRUST_PROXY || (process.env.VERCEL ? "1" : "loopback");
+app.set("trust proxy", /^\d+$/.test(trustProxy) ? Number(trustProxy) : trustProxy);
+app.disable("x-powered-by");
 
 if (helmet) {
   // JSON API consumed cross-origin by the storefront/admin: keep the safe
@@ -58,23 +61,11 @@ if (!process.env.JWT_SECRET) {
   process.exit(1);
 }
 
-app.use(
-  cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "https://food-delivery-customer.vercel.app",
-      "https://food-delivery-admin-peach.vercel.app",
-      "https://food-delivery-admin-z918.vercel.app",
-      "https://delivery-customer.shop",
-    ],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Chat-Token"],
-  })
-);
-
-app.options("*", cors());
+app.use(cors(corsOptions()));
+app.use((req, res, next) => {
+  if (req.headers.authorization || !["GET", "HEAD"].includes(req.method)) res.set("Cache-Control", "no-store");
+  next();
+});
 
 app.use(express.json({
   limit: "4mb",
@@ -86,7 +77,16 @@ app.use(express.json({
 app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (_, res) => {
-  res.send("ðŸš€ Backend Running");
+  res.json({ status: "ok" });
+});
+app.get("/health", (_, res) => res.set("Cache-Control", "no-store").json({ status: "ok" }));
+app.get("/ready", async (_, res) => {
+  res.set("Cache-Control", "no-store");
+  try {
+    const { prisma } = await import("./prismaClient.js");
+    await prisma.$queryRaw`SELECT 1`;
+    return res.json({ status: "ready" });
+  } catch { return res.status(503).json({ status: "unavailable" }); }
 });
 
 app.use("/food", foodRouter);
@@ -106,6 +106,12 @@ app.use("/admin/chat", (req, res) => res.redirect(308, `/api/chatbot/admin${req.
 
 // Express recognises error middleware by its four parameters, so `_next` must stay.
 app.use((err, req, res, _next) => {
+  if (res.headersSent) return _next(err);
+  res.set("Cache-Control", "no-store");
+  if (err.type === "entity.parse.failed") return res.status(400).json({ message: "Invalid JSON request" });
+  if (err.status === 413 || err.code === "LIMIT_FILE_SIZE") return res.status(413).json({ message: "Upload or request is too large" });
+  if (err.code?.startsWith("LIMIT_")) return res.status(400).json({ message: "Invalid upload request" });
+  if (err.status === 415) return res.status(415).json({ message: "Unsupported file type" });
   if (/^\/(?:chat|admin\/chat)(?:\/|$)/.test(req.url)) {
     console.error(JSON.stringify({ scope: "chatbot", code: "INVALID_REQUEST" }));
     return res.status(err.status === 413 ? 413 : 400).json({ code: "INVALID_REQUEST" });

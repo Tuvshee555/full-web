@@ -5,7 +5,7 @@ import { publicInventory } from "../../utils/stockLevel.js";
 
 export const getFood = async (req, res) => {
   try {
-    const foods = await cached("foods:all", 20_000, () =>
+    const [foods, settings] = await Promise.all([cached("foods:all", 20_000, () =>
       prisma.food.findMany({
         include: {
           category: true,
@@ -15,9 +15,8 @@ export const getFood = async (req, res) => {
           createdAt: "desc",
         },
       })
-    );
-
-    const settings = await getSettings();
+    ), getSettings()]);
+    if (req.user?.role === "ADMIN") res.set("Cache-Control", "private, no-store");
     return res.status(200).json(foods.map((food) => publicInventory(food, settings, req.user?.role === "ADMIN")));
   } catch (err) {
     console.error("Error fetching foods:", err);

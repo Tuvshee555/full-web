@@ -24,13 +24,13 @@ export default function ContactPage() {
       {rows.length > 0 ? (
         <dl className="border-t border-ink/15">
           {rows.map((r) => (
-            <div key={r.label} className="flex items-center justify-between gap-[16px] border-b border-ink/10 py-[22px]">
+            <div key={r.label} className="flex flex-col items-start gap-[8px] border-b border-ink/10 py-[20px] lg:flex-row lg:items-center lg:justify-between lg:gap-[16px]">
               <dt className="eyebrow">{r.label}</dt>
-              <dd className="text-right">
+              <dd className="min-w-0 max-w-full lg:text-right">
                 {r.href ? (
-                  <a href={r.href} target={r.href.startsWith("http") ? "_blank" : undefined} rel="noreferrer" className="group inline-flex items-center gap-[6px] text-[18px] text-ink">
-                    <span className="link-underline">{r.value}</span>
-                    <ArrowUpRight className="h-[16px] w-[16px] text-ink/55 transition-transform duration-500 ease-silk group-hover:-translate-y-[2px] group-hover:translate-x-[2px]" strokeWidth={1.3} />
+                  <a href={r.href} target={r.href.startsWith("http") ? "_blank" : undefined} rel="noreferrer" className="group inline-flex min-h-[44px] max-w-full items-center gap-[8px] text-[16px] text-ink">
+                    <span className="link-underline [overflow-wrap:anywhere]">{r.value}</span>
+                    <ArrowUpRight className="h-[16px] w-[16px] shrink-0 text-taupe" strokeWidth={1.3} />
                   </a>
                 ) : (
                   <span className="text-[18px] text-ink">{r.value}</span>

@@ -42,7 +42,7 @@ export function NextStepButton({
         e.stopPropagation();
         onChange(next);
       }}
-      className={`inline-flex h-[36px] items-center justify-center gap-[6px] whitespace-nowrap bg-ink px-[14px] text-[13px] font-medium text-paper transition-colors hover:bg-[#3a2f28] disabled:opacity-50 ${className}`}
+      className={`inline-flex min-h-[44px] items-center justify-center gap-[6px] whitespace-nowrap bg-ink px-[14px] text-[13px] font-medium text-paper transition-colors hover:bg-[#3a2f28] disabled:opacity-50 ${className}`}
     >
       {busy && <Loader2 className="h-[14px] w-[14px] animate-spin" />}
       {t(`order_action.${next}`)}
@@ -65,10 +65,11 @@ export function OrderDetails({ order, t, busy, copy, onChange }: Props) {
   const d = normalizeDelivery(order);
   const name = [d?.lastName, d?.firstName].filter(Boolean).join(" ") || order.user?.email || "—";
   const addressLine = [d?.city, d?.district, d?.khoroo && t("orders_ui.khoroo_n", { n: d.khoroo }), d?.address].filter(Boolean).join(", ");
-  const subtotal = items.reduce((s, it) => s + (it.food?.price ?? 0) * it.quantity, 0);
   const deliveryFee = Number(order.deliveryFee ?? 0);
+  // Product prices can change after purchase. The saved order total is authoritative.
+  const subtotal = Math.max(0, Number(order.totalPrice ?? 0) - deliveryFee);
   const next = primaryNext(status, order.paymentMethod);
-  const others = STATUS_FLOW[status].filter((s) => s !== next && s !== "CANCELLED");
+  const others = STATUS_FLOW[status].filter((s) => s !== next && s !== "CANCELLED" && (s !== "PAID" || order.paymentMethod === "BANK") && (status !== "PENDING" || s === primaryNext(status, order.paymentMethod)));
   const canCancel = STATUS_FLOW[status].includes("CANCELLED");
 
   const courierText = [`#${order.orderNumber ?? order.id}`, name, d?.phone, addressLine, d?.notes].filter(Boolean).join("\n");
@@ -77,7 +78,7 @@ export function OrderDetails({ order, t, busy, copy, onChange }: Props) {
   const row = "flex items-start justify-between gap-[16px] py-[7px] text-[13px]";
 
   return (
-    <div className="grid gap-[28px] bg-paper px-[16px] py-[20px] md:px-[24px] lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.9fr)]">
+    <div className="grid gap-[28px] bg-paper px-[16px] py-[20px] md:px-[24px] xl:grid-cols-2 2xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.9fr)]">
       {/* Items */}
       <div>
         <h4 className={section}>{t("orders_ui.items")}</h4>
@@ -93,13 +94,10 @@ export function OrderDetails({ order, t, busy, copy, onChange }: Props) {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[13px] font-medium text-ink">{it.food?.foodName ?? "—"}</p>
                 <p className="text-[12px] text-taupe tabular-nums">
-                  {it.quantity} × {formatMNT(it.food?.price)}
+                  {t("quantity")}: {it.quantity}
                   {"size" in it && (it as { size?: string }).size ? ` · ${(it as { size?: string }).size}` : ""}
                 </p>
               </div>
-              <span className="text-[13px] font-medium tabular-nums text-ink">
-                {formatMNT((it.food?.price ?? 0) * it.quantity)}
-              </span>
             </li>
           ))}
         </ul>
@@ -132,7 +130,7 @@ export function OrderDetails({ order, t, busy, copy, onChange }: Props) {
             <button
               type="button"
               onClick={() => copy(d.phone!)}
-              className="flex h-[28px] w-[28px] items-center justify-center text-taupe hover:bg-sand hover:text-ink"
+              className="flex h-[44px] w-[44px] items-center justify-center text-taupe hover:bg-sand hover:text-ink"
               aria-label={t("copy")}
               title={t("copy")}
             >
@@ -149,7 +147,7 @@ export function OrderDetails({ order, t, busy, copy, onChange }: Props) {
         <button
           type="button"
           onClick={() => copy(courierText)}
-          className="mt-[12px] inline-flex h-[32px] items-center gap-[6px] border border-ink/20 px-[10px] text-[12px] text-ink hover:border-ink"
+          className="mt-[12px] inline-flex min-h-[44px] items-center gap-[6px] border border-ink/20 px-[10px] text-[12px] text-ink hover:border-ink"
         >
           <Copy className="h-[12px] w-[12px]" />
           {t("orders_ui.copy_for_courier")}
@@ -181,12 +179,14 @@ export function OrderDetails({ order, t, busy, copy, onChange }: Props) {
           </div>
         </div>
 
+        {status === "WAITING_PAYMENT" && order.paymentMethod === "QPAY" && <p className="mt-[12px] text-[13px] leading-relaxed text-taupe">{t("orders_ui.qpay_verification")}</p>}
+
         {confirmCancel ? (
           <div className="mt-[16px] border border-terracotta/40 bg-white p-[14px]">
             <p className="text-[13px] font-medium text-ink">{t("orders_ui.cancel_title")}</p>
             <p className="mt-[4px] text-[12px] text-taupe">{t("orders_ui.cancel_body")}</p>
             <div className="mt-[12px] flex gap-[8px]">
-              <button type="button" onClick={() => setConfirmCancel(false)} className="h-[36px] flex-1 border border-ink/20 text-[13px] hover:border-ink">
+              <button type="button" onClick={() => setConfirmCancel(false)} className="min-h-[44px] flex-1 border border-ink/20 text-[13px] hover:border-ink">
                 {t("orders_ui.keep_order")}
               </button>
               <button
@@ -196,7 +196,7 @@ export function OrderDetails({ order, t, busy, copy, onChange }: Props) {
                   onChange("CANCELLED");
                   setConfirmCancel(false);
                 }}
-                className="h-[36px] flex-1 bg-terracotta text-[13px] font-medium text-paper disabled:opacity-50"
+                className="min-h-[44px] flex-1 bg-terracotta text-[13px] font-medium text-paper disabled:opacity-50"
               >
                 {t("orders_ui.cancel_confirm")}
               </button>
@@ -212,7 +212,7 @@ export function OrderDetails({ order, t, busy, copy, onChange }: Props) {
                   type="button"
                   disabled={busy}
                   onClick={() => onChange(s)}
-                  className="h-[40px] w-full border border-ink/25 text-[13px] text-ink hover:border-ink disabled:opacity-50"
+                  className="min-h-[44px] w-full border border-ink/25 text-[13px] text-ink hover:border-ink disabled:opacity-50"
                 >
                   {t(`order_action.${s}`)}
                 </button>
@@ -222,7 +222,7 @@ export function OrderDetails({ order, t, busy, copy, onChange }: Props) {
                   type="button"
                   disabled={busy}
                   onClick={() => setConfirmCancel(true)}
-                  className="h-[36px] text-[13px] text-terracotta hover:underline disabled:opacity-50"
+                  className="min-h-[44px] text-[13px] text-terracotta hover:underline disabled:opacity-50"
                 >
                   {t("orders_ui.cancel_order")}
                 </button>

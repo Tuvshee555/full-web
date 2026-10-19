@@ -3,9 +3,10 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { QRCodeCanvas } from "qrcode.react";
 import { ArrowRight, Check, Clock, Loader2 } from "lucide-react";
 import { usePaymentPending } from "./components/usePaymentPending";
+import { PaymentPanel } from "@/components/store/order/PaymentPanel";
+import { PaymentReviewNotice } from "@/components/store/order/PaymentReviewNotice";
 import { OrderStatusShell } from "@/components/store/order/OrderStatusShell";
 import { useStoreT } from "@/components/store/lib/useStoreT";
 import { collectionUrl, money } from "@/components/store/lib/product";
@@ -28,22 +29,26 @@ function useCountdown(createdAt?: string | number | Date) {
 
 export default function PaymentPendingInner() {
   const { st, locale } = useStoreT();
-  const { t, orderId, order, qrText, paid, status, retryCreateInvoice } = usePaymentPending() as any;
+  const { t, orderId, resolvedOrderId, order, qrText, paid, requiresReview, status, loadingOrder, retryCreateInvoice } = usePaymentPending() as any;
   const left = useCountdown(order?.createdAt);
 
-  if (!orderId) {
+  if (!resolvedOrderId || (loadingOrder && !order)) {
+    return <OrderStatusShell><div role="status" aria-label={st("preparing_payment")} className="space-y-[20px] animate-pulse"><div className="h-[40px] w-3/4 bg-sand" /><div className="h-[100px] bg-sand" /><div className="h-[360px] bg-sand" /></div></OrderStatusShell>;
+  }
+
+  if (!orderId || !order) {
     return (
       <OrderStatusShell>
-        <p className="text-ink/70">{t("order_invalid_url")}</p>
-        <Link href={`/${locale}`} className="link-underline mt-[16px] inline-block text-ink">
-          {st("back_to_store")}
-        </Link>
+        <h1 className="store-heading page-title">{st("order_not_found")}</h1>
+        <p className="mt-[16px] text-taupe">{t("order_invalid_url")}</p>
+        {orderId && <button type="button" onClick={retryCreateInvoice} className="btn mt-[24px]">{st("retry")}</button>}
       </OrderStatusShell>
     );
   }
 
   const eyebrow = order?.orderNumber && <span className="eyebrow">{st("order_n", { n: order.orderNumber })}</span>;
   const expired = order?.status === "CANCELLED" || (!paid && left === 0);
+  if (requiresReview) return <OrderStatusShell order={order}>{eyebrow}<h1 className="store-heading page-title mb-[24px] mt-[10px]">{st("payment_received")}</h1><PaymentReviewNotice /></OrderStatusShell>;
 
   /* ---------- Paid: thank-you ---------- */
   if (paid) {
@@ -53,7 +58,7 @@ export default function PaymentPendingInner() {
           <Check className="h-[26px] w-[26px]" strokeWidth={1.5} />
         </div>
         <div className="mt-[24px]">{eyebrow}</div>
-        <h1 className="store-heading mt-[10px] text-[56px] md:text-[72px]">{st("thanks_title")}</h1>
+        <h1 className="store-heading page-title mt-[10px]">{st("thanks_title")}</h1>
         <p className="mt-[10px] text-[16px] text-ink/70">{st("thanks_sub")}</p>
 
         <p className="eyebrow mt-[40px]">{st("next_title")}</p>
@@ -88,7 +93,7 @@ export default function PaymentPendingInner() {
     return (
       <OrderStatusShell order={order}>
         {eyebrow}
-        <h1 className="store-heading mt-[10px] text-[48px] md:text-[60px]">{st("time_up")}</h1>
+        <h1 className="store-heading page-title mt-[10px]">{st("time_up")}</h1>
         <p className="mt-[10px] max-w-[460px] text-[16px] text-ink/70">{st("time_up_sub")}</p>
         <Link href={collectionUrl(locale)} className="btn group mt-[32px]">
           {st("shop_again")}
@@ -103,75 +108,29 @@ export default function PaymentPendingInner() {
   /* ---------- Waiting for payment ---------- */
   const creating = !qrText && status === t("payment_creating");
   const mmss = left === null ? "" : `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`;
-  const deepLink = qrText ? `https://qpay.mn/q?q=${encodeURIComponent(qrText)}` : null;
-  const openApp = deepLink && (
-    <a href={deepLink} target="_blank" rel="noopener noreferrer" className="btn group w-full sm:w-auto">
-      {st("open_bank_app")}
-      <span className="btn-arrow">
-        <ArrowRight className="h-[16px] w-[16px]" strokeWidth={1.3} />
-      </span>
-    </a>
-  );
-
   return (
     <OrderStatusShell order={order}>
       {eyebrow}
-      <h1 className="store-heading mt-[10px] text-[44px] md:text-[56px]">{st("pay_now_title")}</h1>
-
-      {/* Amount + countdown: what a payer looks for first */}
-      <div className="mt-[28px] flex flex-wrap items-end justify-between gap-[12px] border-y border-ink/10 py-[20px]">
+      <h1 className="store-heading mt-[10px] text-[36px] sm:text-[44px]">{st("pay_now_title")}</h1>
+      <div className="mb-[24px] mt-[24px] flex flex-wrap items-center justify-between gap-[16px] border-y border-ink/15 py-[20px]">
         <div>
-          <p className="eyebrow">{st("amount_due")}</p>
-          <p className="store-heading mt-[6px] text-[48px] leading-none">{order ? money(order.totalPrice) : "…"}</p>
+          <p className="text-[13px] text-taupe">{st("amount_due")}</p>
+          <p className="mt-[4px] text-[32px] font-medium leading-tight tracking-tight tabular-nums">{order ? money(order.totalPrice) : "…"}</p>
         </div>
         {mmss && (
-          <p className="flex items-center gap-[8px] text-[14px] text-ink/70">
-            <Clock className="h-[15px] w-[15px]" strokeWidth={1.3} />
+          <p className={`flex items-center gap-[8px] bg-sand px-[12px] py-[8px] text-[12px] tabular-nums ${left !== null && left < 120 ? "text-terracotta" : "text-ink"}`}>
+            <Clock className="h-[15px] w-[15px] shrink-0" strokeWidth={1.5} aria-hidden />
             {st("time_left", { t: mmss })}
           </p>
         )}
       </div>
-
-      {/* Phones can't scan their own screen: app button first */}
-      <div className="mt-[24px] sm:hidden">{openApp}</div>
-
-      <div className="mt-[28px] grid items-start gap-[28px] sm:grid-cols-[auto_1fr]">
-        <div>
-          <div className="flex h-[232px] w-[232px] items-center justify-center bg-white p-[14px] shadow-[0_24px_50px_-30px_rgba(28,23,20,0.35)] ring-1 ring-ink/10">
-            {qrText ? (
-              <QRCodeCanvas value={qrText} size={204} fgColor="#1c1714" />
-            ) : creating ? (
-              <Loader2 className="h-[26px] w-[26px] animate-spin text-ink/35" strokeWidth={1.1} />
-            ) : (
-              <div className="px-[12px] text-center text-[13px] text-ink/70">
-                {st("qr_failed")}
-                <button type="button" onClick={retryCreateInvoice} className="link-underline mt-[10px] block w-full text-ink">
-                  {st("retry")}
-                </button>
-              </div>
-            )}
-          </div>
-          <p className="mt-[10px] max-w-[232px] text-[12px] text-ink/65 sm:hidden">{st("scan_other")}</p>
+      <PaymentPanel qrText={qrText} creating={creating} onRetry={retryCreateInvoice} />
+      {qrText && (
+        <div role="status" className="mt-[20px] flex items-start gap-[12px] bg-sand/60 p-[16px] text-[13px] leading-relaxed text-taupe">
+          <Loader2 className="mt-[3px] h-[16px] w-[16px] shrink-0 animate-spin" strokeWidth={1.5} aria-hidden />
+          <p><span className="block font-medium text-ink">{st("waiting_status")}</span>{st("auto_check")}</p>
         </div>
-
-        <div className="hidden sm:block">
-          <p className="eyebrow">{st("how_to_pay")}</p>
-          <ol className="mt-[14px] space-y-[14px]">
-            {[st("qpay_step1"), st("qpay_step2"), st("qpay_step3")].map((s, i) => (
-              <li key={i} className="flex gap-[14px] text-[15px] leading-snug">
-                <span className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full text-[12px] ring-1 ring-ink/25">{i + 1}</span>
-                <span className="pt-[2px]">{s}</span>
-              </li>
-            ))}
-          </ol>
-          <div className="mt-[24px]">{openApp}</div>
-        </div>
-      </div>
-
-      <p className="mt-[32px] flex items-center gap-[10px] text-[13px] text-ink/60">
-        <Loader2 className="h-[14px] w-[14px] animate-spin text-ink/50" strokeWidth={1.4} />
-        {st("waiting_status")} {st("auto_check")}
-      </p>
+      )}
     </OrderStatusShell>
   );
 }

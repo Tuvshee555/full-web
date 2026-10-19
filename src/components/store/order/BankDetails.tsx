@@ -37,16 +37,16 @@ export function BankDetails({ orderNumber, amount }: { orderNumber: string; amou
 
 function Row({ label, value, onCopy, strong }: { label: string; value: string; onCopy?: () => void; strong?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-[12px] py-[14px] text-[15px]">
+    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] items-center gap-[12px] py-[14px] text-[14px]">
       <dt className="text-ink/60">{label}</dt>
-      <dd className="flex min-w-0 items-center gap-[6px] text-right">
-        <span className={`break-all ${strong ? "font-medium text-ink" : "text-ink"}`}>{value}</span>
+      <dd className="flex min-w-0 items-center justify-end gap-[6px] text-right">
+        <span className={`break-words [overflow-wrap:anywhere] ${strong ? "font-medium text-ink" : "text-ink"}`}>{value}</span>
         {onCopy && (
           <button
             type="button"
             onClick={onCopy}
             aria-label={`${label}: copy`}
-            className="flex h-[32px] w-[32px] shrink-0 items-center justify-center text-ink/50 transition-colors hover:text-ink"
+            className="flex h-[44px] w-[44px] shrink-0 items-center justify-center text-ink/50 transition-colors hover:text-ink"
           >
             <Copy className="h-[14px] w-[14px]" strokeWidth={1.3} />
           </button>

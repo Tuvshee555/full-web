@@ -1,20 +1,20 @@
 import { transporter } from "../../utils/mailer.js";
 import { saveOtp } from "../../utils/otp-store.js";
+import { randomInt } from "node:crypto";
+import { normalizeEmail } from "../../utils/authValidation.js";
 
 export const sendOtp = async (req, res) => {
   try {
-    let { email } = req.body;
+    const email = normalizeEmail(req.body?.email);
 
     if (!email) return res.status(400).json({ message: "Имэйл оруулна уу" });
 
-    email = email.trim().toLowerCase(); // NORMALIZE
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = randomInt(100000, 1000000).toString();
 
     await saveOtp(email, otp);
 
     await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
+      from: process.env.EMAIL_FROM || process.env.SMTP_FROM || process.env.SMTP_USER,
       to: email,
       subject: "Таны баталгаажуулах код",
       html: `<h1>${otp}</h1>`,

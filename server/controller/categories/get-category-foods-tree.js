@@ -23,27 +23,31 @@ export const getCategoryFoodsTree = async (req, res) => {
   }
 
   try {
-    const payload = await cached(`categories:foodsTree:${id}`, 20_000, async () => {
-      const categories = await prisma.category.findMany({
+    const [payload, settings] = await Promise.all([cached(`categories:foodsTree:${id}`, 20_000, async () => {
+      const categories = await cached("categories:ancestry", 30_000, () => prisma.category.findMany({
         select: {
           id: true,
           parentId: true,
           categoryName: true,
         },
-      });
+      }));
 
       const target = categories.find((c) => c.id === id);
       if (!target) return { notFound: true };
 
       const allIds = new Set([target.id]);
       const queue = [target.id];
-
-      while (queue.length > 0) {
-        const currentId = queue.shift();
-        for (const category of categories) {
-          if (category.parentId === currentId && !allIds.has(category.id)) {
-            allIds.add(category.id);
-            queue.push(category.id);
+      const childrenByParent = new Map();
+      for (const category of categories) {
+        const children = childrenByParent.get(category.parentId) ?? [];
+        children.push(category.id);
+        childrenByParent.set(category.parentId, children);
+      }
+      for (let index = 0; index < queue.length; index += 1) {
+        for (const childId of childrenByParent.get(queue[index]) ?? []) {
+          if (!allIds.has(childId)) {
+            allIds.add(childId);
+            queue.push(childId);
           }
         }
       }
@@ -68,7 +72,7 @@ export const getCategoryFoodsTree = async (req, res) => {
         },
         foods,
       };
-    });
+    }), getSettings()]);
 
     if (payload.notFound) {
       return res.status(404).json({
@@ -77,14 +81,12 @@ export const getCategoryFoodsTree = async (req, res) => {
       });
     }
 
-    const settings = await getSettings();
     return res.status(200).json({ ...payload, foods: payload.foods.map((food) => publicInventory(food, settings)) });
   } catch (error) {
     console.error("Error in getCategoryFoodsTree:", error);
     return res.status(500).json({
       success: false,
       message: "Error while fetching category foods",
-      error: error.message,
     });
   }
 };

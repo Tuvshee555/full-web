@@ -30,6 +30,7 @@ export default function AppShellClient({ children }: { children: ReactNode }) {
 
   return (
     <>
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-[16px] focus:top-[16px] focus:z-[1300] focus:bg-ink focus:px-[20px] focus:py-[12px] focus:text-paper">{pathname?.startsWith("/en") ? "Skip to content" : "Үндсэн хэсэг рүү"}</a>
       <TopLoader />
 
       {!isCheckout && (
@@ -39,14 +40,13 @@ export default function AppShellClient({ children }: { children: ReactNode }) {
         </>
       )}
 
-      <main className="min-h-[60vh]">{children}</main>
-      {!isCheckout && <div className="grain" aria-hidden />}
+      <main id="main-content" className="min-h-[60vh]">{children}</main>
 
       {!isCheckout && <StoreFooter />}
 
       <CartDrawer open={cartOpen} onClose={closeCart} />
       <Email open={accountOpen} onOpenChange={setAccountOpen} />
-      <ShopChatWidget />
+      {!isCheckout && <ShopChatWidget />}
     </>
   );
 }
