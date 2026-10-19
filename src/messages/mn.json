@@ -370,6 +370,7 @@
     "sale": "Хямдрал",
     "regular_price": "Үндсэн үнэ",
     "sale_price": "Хямдарсан үнэ",
+    "from_price": "{price}-өөс",
     "size": "Сонголт",
     "share": "Хуваалцах",
     "link_copied": "Холбоос хуулагдлаа",

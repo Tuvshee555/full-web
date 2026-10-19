@@ -14,7 +14,10 @@ export async function cleanupGuestUsers() {
 
     const result = await prisma.user.deleteMany({
       where: {
-        email: { startsWith: "guest-", endsWith: "@guest.com" },
+        OR: [
+          { email: { startsWith: "guest-", endsWith: "@guest.invalid" } },
+          { email: { startsWith: "guest-", endsWith: "@guest.com" } }, // guests created before 2026-10-19
+        ],
         createdAt: { lt: cutoff },
         password: null, // real accounts have a password/social identity
         FoodOrder: { none: {} },

@@ -1,6 +1,6 @@
 /** Source answer planner: requested topic sections, missing evidence and selection have one ordered path. */
 import { buildProductRequest, type ProductSelection, type ProductTopic } from "./productRequest";
-import { formatProductLine, formatVariantLine, productLink } from "./productPriceBlock";
+import { formatProductLine, formatVariantLine, productLink, variantOwnPrice } from "./productPriceBlock";
 import { contentOf, safeProductText } from "./productFacts";
 import type { CatalogProduct, CatalogueContext } from "./types";
 import type { FastPathRoute } from "./fastPathRouting";
@@ -8,6 +8,7 @@ export type ProductAnswerPlan = {
   status: "answered" | "clarify" | "handoff"; productIds: string[]; selection: ProductSelection | null;
   reply: string; answeredTopics: ProductTopic[]; missingTopics: ProductTopic[];
 };
+const NEWLINE = String.fromCharCode(10);
 export function buildProductAnswerPlan(input: { text: string; context: CatalogueContext; route: FastPathRoute; pendingTopics?: ProductTopic[] }): ProductAnswerPlan | null {
   const { context, route } = input;
   const say = (mn: string, en: string) => context.locale === "en" ? en : mn;
@@ -37,7 +38,9 @@ export function buildProductAnswerPlan(input: { text: string; context: Catalogue
     // One paragraph per product: its header line, then the answered sections.
     const block: string[] = [products.length > 1 ? `${index + 1}) ${header}` : header];
     const sections: Partial<Record<ProductTopic, string>> = {};
-    sections.price = "";
+    // A price question on a product whose sizes cost different amounts lists each size with its price.
+    const sizeLines = product.sizes.map((variant) => formatVariantLine(variant, context));
+    sections.price = product.sizes.some((variant) => variantOwnPrice(variant) !== null) ? sizeLines.join(NEWLINE) : "";
     if (topics.includes("price")) answered.add("price");
     if (topics.includes("variants") || topics.includes("availability")) {
       const variants = request.variant ? product.sizes.filter((variant) => variant.label === request.variant) : selected?.productId === product.id && selected.variantId ? product.sizes.filter((variant) => variant.id === selected.variantId) : product.sizes;

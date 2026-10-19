@@ -86,7 +86,7 @@ app.use(express.json({
 app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (_, res) => {
-  res.send("ðŸš€ Backend Running");
+  res.send("Backend Running");
 });
 
 app.use("/food", foodRouter);

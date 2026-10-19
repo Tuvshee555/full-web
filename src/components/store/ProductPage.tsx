@@ -10,7 +10,7 @@ import { STORE, productContent, type ProductContent } from "@/config/store";
 import { DELIVERY_FEE } from "@/data/mongoliaLocations";
 import { FoodReviews } from "@/components/review/FoodReviews";
 import { addToCart } from "./lib/cart";
-import { isSoldOut, money, onSale, rating, sizeLabel, sizeSoldOut } from "./lib/product";
+import { isSoldOut, money, onSale, ownSizePrice, rating, sizeLabel, sizeSoldOut } from "./lib/product";
 import { useStoreT } from "./lib/useStoreT";
 import { ProductCard } from "./ProductCard";
 import { Badge, CREAM, DevHint, Price, QuantityInput, salePercent, Stars } from "./ui";
@@ -112,9 +112,9 @@ export function ProductPage({ product, related }: { product: any; related: any[]
             )}
 
             <div className="mt-[14px] flex flex-wrap items-center gap-[12px]">
-              <Price product={product} className="text-[20px]" />
+              <Price product={product} size={sizes.length ? size : undefined} className="text-[20px]" />
               <StockBadge level={product.stockLevel} locale={locale} />
-              {soldOut ? <Badge kind="soldout">{st("sold_out")}</Badge> : onSale(product) && <Badge kind="sale">-{salePercent(product)}%</Badge>}
+              {soldOut ? <Badge kind="soldout">{st("sold_out")}</Badge> : onSale(product) && ownSizePrice(sizes.find((s) => sizeLabel(s) === size)) === null && <Badge kind="sale">-{salePercent(product)}%</Badge>}
             </div>
             <p className="mt-[6px] text-[13px]">{st("shipping_note")}</p>
 
@@ -243,7 +243,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
         >
           <div className="min-w-0 flex-1">
             <p className="truncate text-[14px] font-medium text-[#1c1714]">{product.foodName}</p>
-            <Price product={product} className="text-[14px]" />
+            <Price product={product} size={sizes.length ? size : undefined} className="text-[14px]" />
           </div>
           <button type="button" className="btn !min-h-[44px] !px-[18px]" onClick={() => addToCart(product, qty, size)}>
             {st("add_to_cart")}

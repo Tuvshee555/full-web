@@ -8,13 +8,16 @@
 import { askOpenAIChatParts } from "./openaiFallback";
 import { CHATBOT_REPLY_RULES } from "./chatbotReplyPolicy";
 import { contentOf, safeProductText } from "./productFacts";
-import { formatVariantLine, money, productLink } from "./productPriceBlock";
+import { formatVariantLine, money, productLink, productPrices } from "./productPriceBlock";
 import type { CatalogProduct, CatalogueContext, ChatMessage } from "./types";
 
 const WRITER_TIMEOUT_MS = 12_000;
 
 function productBlock(product: CatalogProduct, context: CatalogueContext, focused: boolean): string {
-  const lines = [`- ${product.foodName} | ${money(product.price)}${product.oldPrice && product.oldPrice > product.price ? ` (was ${money(product.oldPrice)})` : ""} | category: ${product.category?.categoryName || product.category?.name || "-"} | link: ${productLink(product, context)}`];
+  const prices = productPrices(product);
+  const varies = Math.min(...prices) !== Math.max(...prices);
+  const priceText = varies ? `price depends on the variant, ${money(Math.min(...prices))} – ${money(Math.max(...prices))}` : `${money(product.price)}${product.oldPrice && product.oldPrice > product.price ? ` (was ${money(product.oldPrice)})` : ""}`;
+  const lines = [`- ${product.foodName} | ${priceText} | category: ${product.category?.categoryName || product.category?.name || "-"} | link: ${productLink(product, context)}`];
   if (product.sizes.length) lines.push(`  variants: ${product.sizes.map((variant) => formatVariantLine(variant, context)).join("; ")}`);
   if (focused) {
     const content = contentOf(product, context);

@@ -14,7 +14,8 @@ export const createGuestUser = async (req, res) => {
       update: {}, // nothing to update
       create: {
         id: guestId,
-        email: `guest-${guestId}@guest.com`,
+        // .invalid can never receive mail (guest.com is a real domain someone else owns)
+        email: `guest-${guestId}@guest.invalid`,
         role: "USER",
       },
       select: USER_PUBLIC_SELECT,

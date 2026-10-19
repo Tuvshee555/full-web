@@ -3,8 +3,7 @@ import { prisma } from "../../prismaClient.js";
 import { generateOrderNumber } from "../../utils/generateOrderNumber.js";
 
 import { sendTelegramMessage, formatOrderMessage } from "../../utils/telegram.js";
-import { sendEmail } from "../../utils/sendEmail.js";
-import { orderCreatedEmail } from "../../utils/emailTemplates.js";
+import { notifyCustomer } from "../../utils/orderNotify.js";
 import { applyStockDecrements } from "../../utils/stock.js";
 import { background } from "../../utils/background.js";
 import { deliveryFee as currentDeliveryFee } from "../../utils/deliveryFee.js";
@@ -104,25 +103,26 @@ export const createFoodOrder = async (req, res) => {
     const foodIds = [...new Set(normalizedItems.map((i) => i.foodId))];
     const foods = await prisma.food.findMany({
       where: { id: { in: foodIds } },
-      select: { id: true, price: true },
+      select: { id: true, price: true, sizes: { select: { label: true, price: true } } },
     });
 
     if (foods.length !== foodIds.length) {
       return res.status(400).json({ message: "Some foods no longer exist" });
     }
 
-    const foodPriceMap = new Map(
-      foods.map((food) => [food.id, Number(food.price ?? 0)])
-    );
+    // One unit's price: the chosen size's own price, otherwise the product price.
+    // Computed here (never trusted from the client) and stored on the order line.
+    const foodById = new Map(foods.map((food) => [food.id, food]));
+    const unitPriceOf = (item) => {
+      const food = foodById.get(item.foodId);
+      const size = item.size ? food?.sizes.find((s) => s.label === item.size) : null;
+      const own = Number(size?.price);
+      return size && size.price != null && Number.isFinite(own) && own > 0 ? own : Number(food?.price ?? 0);
+    };
+    const pricedItems = normalizedItems.map((item) => ({ ...item, unitPrice: unitPriceOf(item) }));
 
     const itemsSubtotal = Number(
-      normalizedItems
-        .reduce(
-          (sum, item) =>
-            sum + (foodPriceMap.get(item.foodId) ?? 0) * item.quantity,
-          0
-        )
-        .toFixed(2)
+      pricedItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0).toFixed(2)
     );
 
     if (itemsSubtotal <= 0) {
@@ -172,7 +172,7 @@ export const createFoodOrder = async (req, res) => {
       // Reserve stock and create the order atomically: if any tracked size is
       // short, the whole thing rolls back and no order (or reservation) sticks.
       order = await prisma.$transaction(async (tx) => {
-        await applyStockDecrements(tx, normalizedItems);
+        await applyStockDecrements(tx, pricedItems);
 
         return tx.foodOrder.create({
           data: {
@@ -195,7 +195,7 @@ export const createFoodOrder = async (req, res) => {
             notes: safe(notes),
 
             foodOrderItems: {
-              create: normalizedItems,
+              create: pricedItems,
             },
           },
           select: orderSelect,
@@ -243,17 +243,10 @@ export const createFoodOrder = async (req, res) => {
 
         const alerts = [sendTelegramMessage(formatOrderMessage(fullOrder)).catch(() => {})];
 
-        const customerEmail = fullOrder.user?.email;
-        if (customerEmail) {
-          alerts.push(sendEmail({
-            to: customerEmail,
-            subject: `âœ… Ð—Ð°Ñ…Ð¸Ð°Ð»Ð³Ð° Ñ…Ò¯Ð»ÑÑÐ½ Ð°Ð²Ð»Ð°Ð° #${fullOrder.orderNumber}`,
-            html: orderCreatedEmail(fullOrder),
-          }).catch(() => {}));
-        }
+        alerts.push(notifyCustomer(order.id, "created"));
         await Promise.all(alerts);
       } catch (bgErr) {
-        console.error("âŒ Background notify failed:", bgErr);
+        console.error("Background notify failed:", bgErr);
       }
     })());
   } catch (err) {

@@ -99,9 +99,10 @@ export const updateFood = async (req, res) => {
 
       const existingSizes = await prisma.foodSize.findMany({
         where: { foodId: id },
-        select: { label: true, stock: true },
+        select: { label: true, stock: true, price: true },
       });
       const priorStock = new Map(existingSizes.map((s) => [s.label, s.stock]));
+      const priorPrice = new Map(existingSizes.map((s) => [s.label, s.price]));
 
       const merged = incoming.map((s) => ({
         label: s.label,
@@ -111,6 +112,8 @@ export const updateFood = async (req, res) => {
             : priorStock.has(s.label)
             ? priorStock.get(s.label)
             : null,
+        // same rule for a size's own price: an edit that doesn't send it keeps it
+        price: "price" in s ? s.price : priorPrice.get(s.label) ?? null,
       }));
 
       updateData.sizes = {

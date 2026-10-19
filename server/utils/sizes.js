@@ -1,5 +1,5 @@
 /**
- * Normalize a `sizes` payload into `[{ label, stock }]`.
+ * Normalize a `sizes` payload into `[{ label, stock, price? }]`.
  *
  * Accepts either the legacy shape (array of label strings) or the richer
  * `{ label, stock }` shape, so older admin clients keep working. `stock` is
@@ -22,7 +22,15 @@ export function normalizeSizeInput(sizes) {
         stock = Number.isFinite(n) && n >= 0 ? n : null;
       }
 
-      return { label, stock };
+      // price: a size's own price. Left out when the client did not send it (the
+      // caller then keeps the saved price); null clears it back to the product price.
+      let price;
+      if (s && Object.prototype.hasOwnProperty.call(s, "price")) {
+        const p = Number(s.price);
+        price = s.price === null || s.price === "" || !Number.isFinite(p) || p <= 0 ? null : Math.round(p * 100) / 100;
+      }
+
+      return price === undefined ? { label, stock } : { label, stock, price };
     })
     .filter((s) => s.label);
 }

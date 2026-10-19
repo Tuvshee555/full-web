@@ -78,7 +78,8 @@ export const getOrderById = async (req, res) => {
         food: {
           id: item.food.id,
           foodName: item.food.foodName,
-          price: item.food.price,
+          // what the customer paid for one unit (lines before 2026-10-19 have no stored price)
+          price: item.unitPrice ?? item.food.price,
           image: item.food.image,
         },
       })),

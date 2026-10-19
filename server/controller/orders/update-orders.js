@@ -3,8 +3,7 @@ import {
   sendTelegramMessage,
   formatOrderStatusMessage,
 } from "../../utils/telegram.js";
-import { sendEmail } from "../../utils/sendEmail.js";
-import { orderStatusChangedEmail } from "../../utils/emailTemplates.js";
+import { notifyCustomer } from "../../utils/orderNotify.js";
 import { restockOrder } from "../../utils/stock.js";
 
 const ALLOWED_TRANSITIONS = {
@@ -93,7 +92,7 @@ export const updatedFoodOrder = async (req, res) => {
       const allowed = ALLOWED_TRANSITIONS[existing.status] || [];
       if (!allowed.includes(status)) {
         return res.status(400).json({
-          message: `Invalid status transition: ${existing.status} â†’ ${status}`,
+          message: `Invalid status transition: ${existing.status} → ${status}`,
         });
       }
     }
@@ -123,7 +122,7 @@ export const updatedFoodOrder = async (req, res) => {
     const oldStatus = existing.status;
     const newStatus = updated.status;
 
-    console.log("STATUS CHANGE:", oldStatus, "â†’", newStatus);
+    console.log("STATUS CHANGE:", oldStatus, "->", newStatus);
 
     const shouldCountSale =
       status &&
@@ -144,11 +143,11 @@ export const updatedFoodOrder = async (req, res) => {
         }
 
         console.log(
-          "ðŸ“ˆ Sales count incremented for order:",
+          "Sales count incremented for order:",
           updated.orderNumber
         );
       } catch (salesErr) {
-        console.error("âŒ Failed to increment salesCount:", salesErr);
+        console.error("Failed to increment salesCount:", salesErr);
       }
     }
 
@@ -170,42 +169,16 @@ export const updatedFoodOrder = async (req, res) => {
           formatOrderStatusMessage(updated, oldStatus, newStatus)
         );
       } catch (tgErr) {
-        console.error("âŒ Telegram notify failed:", tgErr);
+        console.error("Telegram notify failed:", tgErr);
       }
     }
 
-    const EMAIL_STATUSES = new Set([
-      "DELIVERING",
-      "DELIVERED",
-      "CANCELLED",
-    ]);
+    // Customer email for every status a customer cares about. PAID covers a bank
+    // transfer the owner confirms here (QPay payments are emailed by the QPay controller).
+    const EMAIL_STATUSES = new Set(["PAID", "DELIVERING", "DELIVERED", "CANCELLED"]);
 
     if (status && oldStatus !== newStatus && EMAIL_STATUSES.has(newStatus)) {
-      try {
-        const user = await prisma.user.findUnique({
-          where: { id: updated.userId },
-          select: { email: true },
-        });
-
-        if (user?.email) {
-          await sendEmail({
-            to: user.email,
-            subject:
-              newStatus === "DELIVERING"
-                ? `ðŸšš Ð—Ð°Ñ…Ð¸Ð°Ð»Ð³Ð° Ð·Ð°Ð¼Ð´Ð°Ð° ÑÐ²Ð¶ Ð±Ð°Ð¹Ð½Ð° #${updated.orderNumber}`
-                : newStatus === "DELIVERED"
-                ? `ðŸ Ð—Ð°Ñ…Ð¸Ð°Ð»Ð³Ð° Ñ…Ò¯Ñ€Ð³ÑÐ³Ð´Ð»ÑÑ #${updated.orderNumber}`
-                : `âŒ Ð—Ð°Ñ…Ð¸Ð°Ð»Ð³Ð° Ñ†ÑƒÑ†Ð»Ð°Ð³Ð´Ð»Ð°Ð° #${updated.orderNumber}`,
-            html: orderStatusChangedEmail(
-              updated,
-              oldStatus,
-              newStatus
-            ),
-          });
-        }
-      } catch (mailErr) {
-        console.error("âŒ Customer email failed:", mailErr);
-      }
+      await notifyCustomer(updated.id, newStatus);
     }
 
     return res.status(200).json({

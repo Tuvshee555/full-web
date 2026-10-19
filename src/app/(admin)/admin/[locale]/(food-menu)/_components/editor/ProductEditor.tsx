@@ -32,7 +32,8 @@ type Form = {
   ingredients: string;
   categoryId: string;
   isFeatured: boolean;
-  sizes: string[];
+  /** price: the size's own price as digits, "" = same as the product price */
+  sizes: { label: string; price: string }[];
 };
 
 type Errors = Partial<Record<"foodName" | "price" | "oldPrice" | "categoryId" | "photos", string>>;
@@ -53,7 +54,14 @@ function initialForm(food: FoodType | null | undefined, defaultCategoryId?: stri
     ingredients: food?.ingredients ?? "",
     categoryId: food?.categoryId ?? defaultCategoryId ?? "",
     isFeatured: Boolean(food?.isFeatured),
-    sizes: Array.isArray(food?.sizes) ? food!.sizes.map(sizeLabel).filter(Boolean) : [],
+    sizes: Array.isArray(food?.sizes)
+      ? food!.sizes
+          .map((s) => {
+            const own = typeof s === "object" && s !== null ? Number((s as { price?: number | null }).price) : NaN;
+            return { label: sizeLabel(s), price: Number.isFinite(own) && own > 0 ? String(Math.round(own)) : "" };
+          })
+          .filter((s) => s.label)
+      : [],
   };
 }
 
@@ -122,7 +130,7 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
   const addSize = () => {
     const v = sizeDraft.trim();
     if (!v) return;
-    if (!form.sizes.includes(v)) set("sizes", [...form.sizes, v]);
+    if (!form.sizes.some((s) => s.label === v)) set("sizes", [...form.sizes, { label: v, price: "" }]);
     setSizeDraft("");
   };
 
@@ -177,7 +185,8 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
         ingredients: form.ingredients.trim(),
         categoryId: form.categoryId,
         isFeatured: form.isFeatured,
-        sizes: form.sizes,
+        // stock is not part of this form; the server keeps each size's stock
+        sizes: form.sizes.map((s) => ({ label: s.label, price: s.price ? Number(s.price) : null })),
         image: photoUrls[0],
         extraImages: photoUrls.slice(1),
         video: videoUrl,
@@ -384,21 +393,35 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
                   </button>
                 </div>
                 {form.sizes.length > 0 ? (
-                  <div className="mt-[10px] flex flex-wrap gap-[6px]">
-                    {form.sizes.map((s) => (
-                      <span key={s} className="inline-flex h-[32px] items-center gap-[6px] bg-sand pl-[12px] pr-[4px] text-[13px] text-ink">
-                        {s}
-                        <button
-                          type="button"
-                          onClick={() => set("sizes", form.sizes.filter((x) => x !== s))}
-                          aria-label={t("editor.remove")}
-                          className="flex h-[24px] w-[24px] items-center justify-center text-ink/50 hover:text-terracotta"
-                        >
-                          <X className="h-[13px] w-[13px]" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
+                  <>
+                    <ul className="mt-[10px] divide-y divide-ink/10 border border-ink/15 bg-white">
+                      {form.sizes.map((s, i) => (
+                        <li key={s.label} className="flex items-center gap-[10px] py-[6px] pl-[14px] pr-[4px]">
+                          <span className="min-w-0 flex-1 truncate text-[14px] text-ink">{s.label}</span>
+                          <label className="flex items-center gap-[6px] text-[13px] text-taupe">
+                            <span className="sr-only">{t("editor.size_price", { size: s.label })}</span>
+                            <input
+                              inputMode="numeric"
+                              value={s.price}
+                              onChange={(e) => set("sizes", form.sizes.map((x, j) => (j === i ? { ...x, price: digits(e.target.value) } : x)))}
+                              placeholder={form.price || "0"}
+                              className="h-[40px] w-[120px] border border-ink/20 bg-white px-[10px] text-right text-[14px] tabular-nums text-ink outline-none placeholder:text-ink/60 focus:border-ink"
+                            />
+                            ₮
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => set("sizes", form.sizes.filter((x) => x.label !== s.label))}
+                            aria-label={t("editor.remove")}
+                            className="flex h-[44px] w-[44px] items-center justify-center text-ink/50 hover:text-terracotta"
+                          >
+                            <X className="h-[14px] w-[14px]" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-[6px] text-[12px] text-taupe">{t("editor.size_price_hint")}</p>
+                  </>
                 ) : (
                   <p className="mt-[6px] text-[12px] text-taupe">{t("editor.sizes_hint")}</p>
                 )}

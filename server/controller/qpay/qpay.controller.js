@@ -6,8 +6,7 @@ import {
 } from "../../utils/telegram.js";
 import crypto from "crypto";
 
-import { sendEmail } from "../../utils/sendEmail.js";
-import { paymentConfirmedEmail } from "../../utils/emailTemplates.js";
+import { notifyCustomer } from "../../utils/orderNotify.js";
 import { incrementSalesForOrder } from "../../utils/orderPaid.js";
 import { apiUrl } from "../../utils/siteUrl.js";
 
@@ -54,11 +53,11 @@ export async function getAccessToken() {
     cachedToken = res.data.access_token;
     tokenExpiry = Date.now() + (res.data.expires_in - 30) * 1000;
 
-    console.log("âœ… New QPay token backend");
+    console.log("New QPay token backend");
     return cachedToken;
   } catch (err) {
     console.error(
-      "âŒ Failed to get QPay token:",
+      "Failed to get QPay token:",
       err.response?.data || err.message
     );
     throw err;
@@ -156,7 +155,7 @@ export const createInvoice = async (req, res) => {
     return res.json({ qr_text, qr_image, invoice_id, amount });
   } catch (err) {
     console.error(
-      "âŒ Create invoice error:",
+      "Create invoice error:",
       err.response?.data || err.message
     );
     return res.status(500).json({ error: "Create invoice failed" });
@@ -247,10 +246,10 @@ export const checkPayment = async (req, res) => {
     try {
       await incrementSalesForOrder(record.orderId);
     } catch (salesErr) {
-      console.error("âŒ Failed to increment salesCount (checkPayment):", salesErr);
+      console.error("Failed to increment salesCount (checkPayment):", salesErr);
     }
 
-    console.log("âœ… Order updated (checkPayment):", updatedOrder.id);
+    console.log("Order updated (checkPayment):", updatedOrder.id);
 
     try {
       await sendTelegramMessage(
@@ -261,30 +260,15 @@ export const checkPayment = async (req, res) => {
         )
       );
     } catch (tgErr) {
-      console.error("âŒ Telegram send error (checkPayment):", tgErr);
+      console.error("Telegram send error (checkPayment):", tgErr);
     }
 
-    try {
-      const user = await prisma.user.findUnique({
-        where: { id: updatedOrder.userId },
-        select: { email: true },
-      });
-
-      if (user?.email) {
-        await sendEmail({
-          to: user.email,
-          subject: `Payment confirmed #${updatedOrder.orderNumber}`,
-          html: paymentConfirmedEmail(updatedOrder),
-        });
-      }
-    } catch (mailErr) {
-      console.error("âŒ Email send error (checkPayment):", mailErr);
-    }
+    await notifyCustomer(updatedOrder.id, "PAID");
 
     return res.json({ paid: true, paidAmount, expectedAmount });
   } catch (err) {
     console.error(
-      "âŒ Check payment error:",
+      "Check payment error:",
       err.response?.data || err.message
     );
     return res.status(500).json({ error: "Check payment failed" });
@@ -293,7 +277,7 @@ export const checkPayment = async (req, res) => {
 
 export const webhook = async (req, res) => {
   try {
-    console.log("ðŸ”¥ QPay webhook received:", req.body);
+    console.log("QPay webhook received:", req.body);
 
     const secret = process.env.QPAY_WEBHOOK_SECRET;
     const signature =
@@ -303,7 +287,7 @@ export const webhook = async (req, res) => {
 
     if (secret) {
       if (!req.rawBody) {
-        console.error("âœ– Missing rawBody for QPay signature verification");
+        console.error("Missing rawBody for QPay signature verification");
         return res.status(400).json({ error: "Bad request" });
       }
       const computed = crypto
@@ -318,7 +302,7 @@ export const webhook = async (req, res) => {
         expected.length !== received.length ||
         !crypto.timingSafeEqual(expected, received)
       ) {
-        console.warn("âœ– Invalid QPay signature");
+        console.warn("Invalid QPay signature");
         return res.status(400).json({ error: "Invalid signature" });
       }
     }
@@ -405,10 +389,10 @@ export const webhook = async (req, res) => {
     try {
       await incrementSalesForOrder(payment.orderId);
     } catch (salesErr) {
-      console.error("âŒ Failed to increment salesCount (webhook):", salesErr);
+      console.error("Failed to increment salesCount (webhook):", salesErr);
     }
 
-    console.log(`âœ… Order ${updatedOrder.id} marked PAID via QPay webhook`);
+    console.log(`Order ${updatedOrder.id} marked PAID via QPay webhook`);
 
     try {
       await sendTelegramMessage(
@@ -419,29 +403,14 @@ export const webhook = async (req, res) => {
         )
       );
     } catch (tgErr) {
-      console.error("âŒ Telegram send error (webhook):", tgErr);
+      console.error("Telegram send error (webhook):", tgErr);
     }
 
-    try {
-      const user = await prisma.user.findUnique({
-        where: { id: updatedOrder.userId },
-        select: { email: true },
-      });
-
-      if (user?.email) {
-        await sendEmail({
-          to: user.email,
-          subject: `Payment confirmed #${updatedOrder.orderNumber}`,
-          html: paymentConfirmedEmail(updatedOrder),
-        });
-      }
-    } catch (mailErr) {
-      console.error("âŒ Email send error (webhook):", mailErr);
-    }
+    await notifyCustomer(updatedOrder.id, "PAID");
 
     return res.json({ received: true });
   } catch (err) {
-    console.error("âŒ Webhook error:", err.response?.data || err.message);
+    console.error("Webhook error:", err.response?.data || err.message);
     return res.status(500).json({ error: "Webhook failed" });
   }
 };

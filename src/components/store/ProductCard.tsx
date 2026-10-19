@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { addToCart } from "./lib/cart";
 import { productContent } from "@/config/store";
-import { firstLine, isBestseller, isSoldOut, onSale, productImages, productUrl, rating, sizeLabel, sizeSoldOut } from "./lib/product";
+import { firstLine, isBestseller, isSoldOut, onSale, priceRange, productImages, productUrl, rating, sizeLabel, sizeSoldOut } from "./lib/product";
 import { useStoreT } from "./lib/useStoreT";
 import { Badge, Price, salePercent, Stars } from "./ui";
 import { StockBadge } from "./StockBadge";
@@ -27,7 +27,7 @@ export function ProductCard({ product, quickAdd = true }: { product: any; quickA
   // ABH-style badges, all from real data: sale % and best seller (real sales).
   // No automatic "new" badge: in a young store every product is new, so it's noise.
   const badges = [
-    onSale(product) && <Badge key="sale" kind="sale">-{salePercent(product)}%</Badge>,
+    onSale(product) && priceRange(product).min === priceRange(product).max && <Badge key="sale" kind="sale">-{salePercent(product)}%</Badge>,
     isBestseller(product) && <Badge key="best" kind="label">{st("badge_best")}</Badge>,
   ].filter(Boolean);
 

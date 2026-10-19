@@ -50,6 +50,14 @@ export function ProductList({ foods, categoryName, showCategory, onEdit, onToggl
           const price = Number(f.price);
           const old = Number(f.oldPrice);
           const onSale = old > price;
+          // sizes with their own price: show the range, e.g. 59,900₮ – 89,900₮
+          const sizePrices = (Array.isArray(f.sizes) ? f.sizes : []).map((s) => {
+            const own = typeof s === "object" && s !== null ? Number((s as { price?: number | null }).price) : NaN;
+            return Number.isFinite(own) && own > 0 ? own : price;
+          });
+          const low = sizePrices.length ? Math.min(...sizePrices) : price;
+          const high = sizePrices.length ? Math.max(...sizePrices) : price;
+          const priceText = low === high ? formatMNT(low) : `${formatMNT(low)} – ${formatMNT(high)}`;
           return (
             <li key={String(f.id)}>
               <div
@@ -79,7 +87,7 @@ export function ProductList({ foods, categoryName, showCategory, onEdit, onToggl
                   </div>
                   <p className="mt-[2px] truncate text-[12px] text-taupe">
                     <span className="md:hidden">
-                      {formatMNT(price)}
+                      {priceText}
                       {onSale && <span className="ml-[6px] text-terracotta">−{Math.round((1 - price / old) * 100)}%</span>}
                     </span>
                     <span className="hidden md:inline">{f.ingredients || "—"}</span>
@@ -94,7 +102,7 @@ export function ProductList({ foods, categoryName, showCategory, onEdit, onToggl
                   {showCategory ? categoryName(f.categoryId) : ""}
                 </span>
                 <span className="hidden text-right tabular-nums md:block">
-                  <span className="block text-[14px] font-medium text-ink">{formatMNT(price)}</span>
+                  <span className="block text-[14px] font-medium text-ink">{priceText}</span>
                   {onSale && (
                     <span className="block text-[12px] text-taupe">
                       <span className="line-through">{formatMNT(old)}</span>

@@ -7,7 +7,7 @@ import { ChevronDown, SlidersHorizontal, X } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
 import { sanitizeFoodList } from "@/utils/catalogSanitizer";
 import { ProductCard, ProductCardSkeleton } from "./ProductCard";
-import { isSoldOut, money, onSale } from "./lib/product";
+import { isSoldOut, money, onSale, priceRange } from "./lib/product";
 import { useStoreT } from "./lib/useStoreT";
 import { Drawer } from "./ui";
 
@@ -67,7 +67,7 @@ export function CollectionPage({ id }: { id: string }) {
 
   useEffect(() => setPage(1), [sort, filters, q, id]);
 
-  const maxPrice = useMemo(() => Math.max(0, ...products.map((p) => Number(p.price) || 0)), [products]);
+  const maxPrice = useMemo(() => Math.max(0, ...products.map((p) => priceRange(p).max || 0)), [products]);
 
   const visible = useMemo(() => {
     const min = Number(filters.min) || 0;
@@ -78,8 +78,9 @@ export function CollectionPage({ id }: { id: string }) {
       const sold = isSoldOut(p);
       if (filters.inStock !== filters.outOfStock && (filters.inStock ? sold : !sold)) return false;
       if (filters.sale && !onSale(p)) return false;
-      const price = Number(p.price) || 0;
-      return price >= min && price <= max;
+      // any size within the range counts
+      const { min: low, max: high } = priceRange(p);
+      return high >= min && low <= max;
     });
     const time = (p: any) => new Date(p.createdAt).getTime() || 0;
     const sorters: Record<Sort, (a: any, b: any) => number> = {
@@ -87,8 +88,8 @@ export function CollectionPage({ id }: { id: string }) {
       best: (a, b) => (b.salesCount ?? 0) - (a.salesCount ?? 0),
       newest: (a, b) => time(b) - time(a),
       oldest: (a, b) => time(a) - time(b),
-      low: (a, b) => a.price - b.price,
-      high: (a, b) => b.price - a.price,
+      low: (a, b) => priceRange(a).min - priceRange(b).min,
+      high: (a, b) => priceRange(b).max - priceRange(a).max,
     };
     return [...list].sort(sorters[sort]);
   }, [products, filters, sort, q]);

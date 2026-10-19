@@ -1,6 +1,6 @@
 import type { CatalogProduct, CatalogueContext } from "./types";
 import type { ProductSelection } from "./productRequest";
-import { productEvidenceLines, productLink } from "./productPriceBlock";
+import { productEvidenceLines, productLink, productPrices } from "./productPriceBlock";
 import { quotablePrices, unsafeClaim } from "./productFacts";
 import { isReferReply } from "./reply";
 const AMOUNT = /(\d{1,3}(?:[.,]\d{3})+|\d+)\s*(?:₮|төгрөг|MNT)(?![\p{L}])/giu;
@@ -23,7 +23,7 @@ export function verifyProductReply(input: {
     for (const match of line.matchAll(AMOUNT)) {
       const amount = Number(match[1].replace(/[.,]/g, ""));
       if (!prices.has(amount)) return "REFER";
-      if (named.length && !named.some((product) => product.price === amount || product.oldPrice === amount)) return "REFER";
+      if (named.length && !named.some((product) => productPrices(product).includes(amount) || product.price === amount || product.oldPrice === amount)) return "REFER";
     }
     const variant = active.flatMap((product) => product.sizes).filter((size) => line.includes(size.label));
     for (const match of line.matchAll(STOCK)) {
@@ -72,7 +72,7 @@ export function explainFreeformReply(reply: string, context: CatalogueContext, c
       const amount = Number(match[1].replace(/[.,]/g, ""));
       if (!prices.has(amount)) return { ok: false, reason: `unknown_amount:${amount}` };
       // Uudam's wrong-trip guard: a line naming one product may not quote another product's price.
-      if (named.length === 1 && amount !== context.deliveryFee && named[0].price !== amount && named[0].oldPrice !== amount) return { ok: false, reason: `other_products_price:${amount}` };
+      if (named.length === 1 && amount !== context.deliveryFee && !productPrices(named[0]).includes(amount) && named[0].price !== amount && named[0].oldPrice !== amount) return { ok: false, reason: `other_products_price:${amount}` };
     }
     // Prose only claims scarcity with these labels; "available" is ordinary English ("more options are available").
     for (const match of line.matchAll(PROSE_STOCK)) {

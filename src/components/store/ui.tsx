@@ -4,7 +4,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Minus, Plus, X } from "lucide-react";
-import { money, onSale } from "./lib/product";
+import { money, onSale, ownSizePrice, priceRange, sizeLabel, sizePrice } from "./lib/product";
 import { useStoreT } from "./lib/useStoreT";
 
 export const SALE_RED = "#a8452f";
@@ -57,19 +57,24 @@ export function DevHint({ children }: { children: ReactNode }) {
 }
 
 /** Price, sale price in red, compare-at struck through after it. */
-export function Price({ product, className = "" }: { product: any; className?: string }) {
+export function Price({ product, size, className = "" }: { product: any; size?: string | null; className?: string }) {
   const { st } = useStoreT();
-  const sale = onSale(product);
+  const range = priceRange(product);
+  const own = size !== undefined ? ownSizePrice((product?.sizes ?? []).find((s: any) => sizeLabel(s) === size)) : null;
+  const varies = size === undefined && range.min !== range.max;
+  // The compare-at price belongs to the product price, so it only shows when that is the price on screen.
+  const sale = onSale(product) && own === null && !varies;
+  const shown = size !== undefined ? sizePrice(product, size) : varies ? range.min : Number(product.price);
   return (
     <div className={`flex flex-wrap items-baseline gap-x-[8px] ${className}`}>
       {sale && <span className="sr-only">{st("sale_price")}</span>}
       <span className="font-semibold" style={{ color: sale ? SALE_RED : "#1c1714" }}>
-        {money(product.price)}
+        {varies ? st("from_price", { price: money(shown) }) : money(shown)}
       </span>
       {sale && (
         <>
           <span className="sr-only">{st("regular_price")}</span>
-          <s className="text-[0.88em] text-[rgba(28,23,20,0.5)]">{money(product.oldPrice)}</s>
+          <s className="text-[0.88em] text-[rgba(28,23,20,0.62)]">{money(product.oldPrice)}</s>
         </>
       )}
     </div>

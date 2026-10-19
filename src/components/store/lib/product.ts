@@ -36,6 +36,27 @@ export function onSale(p: any) {
   return Number.isFinite(compare) && compare > price;
 }
 
+/** A size's own price, or null when it costs the same as the product. */
+export function ownSizePrice(s: any): number | null {
+  const n = Number(s?.price);
+  return s && s.price != null && Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/** Price of one unit in the chosen size (the size's own price, otherwise the product price). */
+export function sizePrice(p: any, size: string | null | undefined): number {
+  const sizes = Array.isArray(p?.sizes) ? p.sizes : [];
+  const chosen = size ? sizes.find((s: any) => sizeLabel(s) === size) : null;
+  return ownSizePrice(chosen) ?? Number(p?.price ?? 0);
+}
+
+/** Cheapest and dearest size (both the product price when no size has its own). */
+export function priceRange(p: any): { min: number; max: number } {
+  const base = Number(p?.price ?? 0);
+  const sizes = Array.isArray(p?.sizes) ? p.sizes : [];
+  const prices = sizes.length ? sizes.map((s: any) => ownSizePrice(s) ?? base) : [base];
+  return { min: Math.min(...prices), max: Math.max(...prices) };
+}
+
 /** Added in the last 30 days (real createdAt). */
 export const isNew = (p: any) => Date.now() - new Date(p?.createdAt).getTime() < 30 * 24 * 3600 * 1000;
 

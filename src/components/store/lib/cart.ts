@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import { ownSizePrice, sizeLabel, sizePrice } from "./product";
+
 // Cart lives in localStorage under "cart" (same shape checkout and the order
 // API already read). Every write fires "cart-updated"; "cart-open" asks the
 // cart drawer to slide in, like Shopify does after "Add to cart".
@@ -44,14 +46,20 @@ export function addToCart(food: any, quantity = 1, selectedSize: string | null =
       food: {
         id: food.id,
         foodName: food.foodName,
-        price: Number(food.price ?? 0),
-        oldPrice: food.oldPrice ?? null,
+        // unit price of the chosen size; a size with its own price shows no struck-through compare price
+        price: sizePrice(food, selectedSize),
+        oldPrice: hasOwnPrice(food, selectedSize) ? null : food.oldPrice ?? null,
         image: typeof food.image === "string" ? food.image : "",
       },
     });
   }
   writeCart(items);
   if (open) window.dispatchEvent(new Event("cart-open"));
+}
+
+function hasOwnPrice(food: any, selectedSize: string | null) {
+  const sizes = Array.isArray(food?.sizes) ? food.sizes : [];
+  return ownSizePrice(sizes.find((s: any) => sizeLabel(s) === selectedSize)) !== null;
 }
 
 export function setQuantity(foodId: string, selectedSize: string | null, quantity: number) {

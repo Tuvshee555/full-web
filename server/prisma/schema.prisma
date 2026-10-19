@@ -82,6 +82,8 @@ model FoodSize {
   foodId String
   label  String
   stock  Int?
+  /// Own price for this size; null = the product's price.
+  price  Float?
   food   Food   @relation(fields: [foodId], references: [id])
 
   @@index([foodId])
@@ -137,6 +139,8 @@ model OrderItem {
   foodId   String
   quantity Int
   size     String?
+  /// Price of one unit when the order was placed (the size's price). Null on orders from before 2026-10-19.
+  unitPrice Float?
   orderId  String
   userId   String?
   food     Food      @relation(fields: [foodId], references: [id])

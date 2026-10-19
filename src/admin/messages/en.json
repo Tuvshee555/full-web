@@ -210,6 +210,8 @@
     "sizes": "Sizes / variants",
     "sizes_placeholder": "e.g. 5 ml, Brown",
     "sizes_hint": "Leave empty if the product has no options.",
+    "size_price": "Price of {size}",
+    "size_price_hint": "If a size costs something else, type its price on the right. Leave it empty to sell it at the main price.",
     "featured_hint": "Shown first on the home page and in the shop.",
     "section_video": "Video",
     "discard_question": "You have unsaved changes. Close anyway?",
