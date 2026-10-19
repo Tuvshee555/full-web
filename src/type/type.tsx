@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export type FoodType = {
+export type ProductType = {
   oldPrice: number;
   discount: number;
   isFeatured: any;
-  foodId: string;
+  productId: string;
   salesCount: number;
   avgRating?: number;
   reviewCount?: number;
@@ -13,7 +13,7 @@ export type FoodType = {
   id: string;
   _id?: string;
   categoryId: string;
-  foodName: string;
+  productName: string;
   price: number;
   ingredients: string;
   address?: string;
@@ -28,19 +28,19 @@ export type FoodType = {
   sizes?: { label: string }[] | string[];
 
   // Optional helpers
-  refreshFood?: () => void;
-  foodData?: FoodType[];
+  refreshProduct?: () => void;
+  productData?: ProductType[];
   categories?: string;
 };
 
-// ✅ Food card prop
-export type FoodCardPropsType = {
-  food: FoodType;
+// ✅ Product card prop
+export type ProductCardPropsType = {
+  product: ProductType;
 };
 
-// ✅ Add food order prop
-export type AddFoodOrderProps = {
-  food: FoodType;
+// ✅ Add product order prop
+export type AddOrderProps = {
+  product: ProductType;
 };
 
 // ✅ Validation type for forms
@@ -70,7 +70,7 @@ export type Datas = {
   id: string;
   _id?: string;
   categoryName: string;
-  foodCount: number;
+  productCount: number;
 };
 
 // ✅ Props for category components
@@ -83,7 +83,7 @@ export type CategoryType = {
   categoryName: string;
   _id?: string;
   id?: string;
-  foodCount: number;
+  productCount: number;
 };
 
 // ✅ User structure
@@ -102,17 +102,17 @@ export type UserType = {
   user: User;
 };
 
-export type CartFood = {
+export type CartProduct = {
   id: string;
-  foodName: string;
+  productName: string;
   price: number;
   image: string;
 };
 
 export type CartItem = {
   id?: string;
-  foodId: string;
+  productId: string;
   quantity: number;
   selectedSize: string | null;
-  food: CartFood;
+  product: CartProduct;
 };

@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import * as Dialog from "@radix-ui/react-dialog";
 import { STORE, productContent, type ProductContent } from "@/config/store";
 import { DELIVERY_FEE } from "@/data/mongoliaLocations";
-import { FoodReviews } from "@/components/review/FoodReviews";
+import { ProductReviews } from "@/components/review/ProductReviews";
 import { addToCart } from "./lib/cart";
 import { isSoldOut, money, onSale, ownSizePrice, rating, sizeLabel, sizeSoldOut } from "./lib/product";
 import { useStoreT } from "./lib/useStoreT";
@@ -66,7 +66,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
   const share = async () => {
     const url = window.location.href;
     try {
-      if (navigator.share) await navigator.share({ title: product.foodName, url });
+      if (navigator.share) await navigator.share({ title: product.productName, url });
       else {
         await navigator.clipboard.writeText(url);
         toast.success(st("link_copied"));
@@ -82,7 +82,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
         <div className="grid gap-[20px] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-[48px]">
           {/* Media */}
           <div className="min-w-0">
-            <MobileSlider media={media} onOpen={setZoom} alt={product.foodName} />
+            <MobileSlider media={media} onOpen={setZoom} alt={product.productName} />
             <div className="hidden lg:grid grid-cols-2 gap-[10px]">
               {media.map((m, i) => (
                 <button
@@ -94,7 +94,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
                     i === 0 || (i === media.length - 1 && (media.length - 1) % 2 === 1) ? "col-span-2" : ""
                   } aspect-[4/5] overflow-hidden`}
                 >
-                  <MediaView m={m} alt={product.foodName} />
+                  <MediaView m={m} alt={product.productName} />
                 </button>
               ))}
             </div>
@@ -103,7 +103,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
           {/* Info */}
           <div className="min-w-0 lg:sticky lg:top-[104px] self-start">
             <span className="eyebrow">{STORE.name}</span>
-            <h1 className="store-heading mt-[10px] text-[36px] sm:text-[44px] xl:text-[52px]">{product.foodName}</h1>
+            <h1 className="store-heading mt-[10px] text-[36px] sm:text-[44px] xl:text-[52px]">{product.productName}</h1>
 
             {/* Grande / REFY: rating right under the title, jumps to reviews */}
             {stars.count > 0 && (
@@ -220,7 +220,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
         <DetailTabs content={content} />
 
         <section id="reviews" className="mt-[60px] scroll-mt-[90px]">
-          <FoodReviews foodId={product.id} />
+          <ProductReviews productId={product.id} />
         </section>
 
         {related.length > 0 && (
@@ -245,7 +245,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
           }`}
         >
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[14px] font-medium text-[#1c1714]">{product.foodName}</p>
+            <p className="truncate text-[14px] font-medium text-[#1c1714]">{product.productName}</p>
             <Price product={product} size={sizes.length ? size : undefined} className="text-[14px]" />
           </div>
           <button type="button" className="btn !min-h-[44px] !px-[18px]" onClick={() => addToCart(product, qty, size)}>
@@ -254,7 +254,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
         </div>
       )}
 
-      {zoom !== null && <Lightbox media={media} start={zoom} alt={product.foodName} onClose={() => setZoom(null)} />}
+      {zoom !== null && <Lightbox media={media} start={zoom} alt={product.productName} onClose={() => setZoom(null)} />}
     </>
   );
 }

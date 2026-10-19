@@ -36,14 +36,14 @@ const apply = (row, data) => {
   row.updatedAt = new Date((row.updatedAt?.getTime() || Date.now()) + 1);
 };
 const methods = (getState) => ({
-  foodOrder: {
+  order: {
     findUnique: async ({ where, include }) => {
       const db = getState();
       const found = db.orders.find((row) => matches(row, where));
       if (!found) return null;
       const result = clone(found);
-      if (include?.foodOrderItems) result.foodOrderItems = db.items.filter((item) => item.orderId === found.id)
-        .map((item) => ({ ...clone(item), food: clone(db.foods.find((food) => food.id === item.foodId)) }));
+      if (include?.orderItems) result.orderItems = db.items.filter((item) => item.orderId === found.id)
+        .map((item) => ({ ...clone(item), product: clone(db.products.find((product) => product.id === item.productId)) }));
       if (include?.user) result.user = { email: notificationEmail };
       return result;
     },
@@ -58,10 +58,10 @@ const methods = (getState) => ({
       if (data.idempotencyKey && db.orders.some((row) => row.idempotencyKey === data.idempotencyKey)) {
         throw Object.assign(new Error("Unique checkout key"), { code: "P2002" });
       }
-      const { foodOrderItems, ...fields } = data;
+      const { orderItems, ...fields } = data;
       const order = { id: `created-${db.orders.length}`, ...fields, createdAt: new Date(), updatedAt: new Date() };
       db.orders.push(order);
-      db.items.push(...foodOrderItems.create.map((item, i) => ({ id: `created-item-${i}`, orderId: order.id, ...item })));
+      db.items.push(...orderItems.create.map((item, i) => ({ id: `created-item-${i}`, orderId: order.id, ...item })));
       return clone(order);
     },
     delete: async ({ where }) => { getState().orders = getState().orders.filter((row) => !matches(row, where)); },
@@ -86,7 +86,7 @@ const methods = (getState) => ({
     findMany: async ({ where }) => clone(getState().items.filter((row) => matches(row, where))),
     deleteMany: async ({ where }) => { getState().items = getState().items.filter((row) => !matches(row, where)); },
   },
-  foodSize: {
+  productSize: {
     findMany: async ({ where }) => clone(getState().sizes.filter((row) => matches(row, where))),
     findFirst: async ({ where }) => clone(getState().sizes.find((row) => matches(row, where)) || null),
     updateMany: async ({ where, data }) => {
@@ -96,13 +96,13 @@ const methods = (getState) => ({
       return { count: rows.length };
     },
   },
-  food: {
-    findMany: async ({ where }) => clone(getState().foods.filter((row) => matches(row, where))),
+  product: {
+    findMany: async ({ where }) => clone(getState().products.filter((row) => matches(row, where))),
     update: async ({ where, data }) => {
       if (failSales) throw new Error("Temporary sales write failure");
-      const food = getState().foods.find((row) => matches(row, where));
-      apply(food, data);
-      return clone(food);
+      const product = getState().products.find((row) => matches(row, where));
+      apply(product, data);
+      return clone(product);
     },
   },
   user: { findUnique: async () => ({ email: notificationEmail }) },
@@ -142,9 +142,9 @@ axios.post = async (url, data, config) => {
 const { confirmPaidOrder } = await import("../../server/utils/orderPaid.js");
 const { expireUnpaidOrders } = await import("../../server/jobs/expireOrders.js");
 const { applyStockDecrements } = await import("../../server/utils/stock.js");
-const { createFoodOrder } = await import("../../server/controller/orders/create-orders.js");
-const { updatedFoodOrder } = await import("../../server/controller/orders/update-orders.js");
-const { deleteFoodOrder } = await import("../../server/controller/orders/delete-orders.js");
+const { createOrder } = await import("../../server/controller/orders/create-orders.js");
+const { updatedOrder } = await import("../../server/controller/orders/update-orders.js");
+const { deleteOrder } = await import("../../server/controller/orders/delete-orders.js");
 const { createInvoice, checkPayment, webhook, getAccessToken } = await import("../../server/controller/qpay/qpay.controller.js");
 const { backgroundSettled } = await import("../../server/utils/background.js");
 const { transporter } = await import("../../server/utils/mailer.js");
@@ -154,9 +154,9 @@ const reset = ({ status = "WAITING_PAYMENT", paymentMethod = "QPAY", expired = f
   state = {
     orders: [{ id: "order-1", orderNumber: "TEST-1", userId: "owner", paymentMethod, status, totalPrice: 200,
       deliveryFee: 0, createdAt: new Date(Date.now() - (expired ? 20 * 60000 : 60000)), updatedAt: new Date() }],
-    items: [{ id: "item-1", orderId: "order-1", foodId: "food-1", quantity: 2, size: "Small" }],
-    foods: [{ id: "food-1", price: 100, foodName: "Test product", salesCount: 0 }],
-    sizes: [{ id: "size-1", foodId: "food-1", label: "Small", stock: status === "CANCELLED" ? 5 : 3 }],
+    items: [{ id: "item-1", orderId: "order-1", productId: "product-1", quantity: 2, size: "Small" }],
+    products: [{ id: "product-1", price: 100, productName: "Test product", salesCount: 0 }],
+    sizes: [{ id: "size-1", productId: "product-1", label: "Small", stock: status === "CANCELLED" ? 5 : 3 }],
     payments: payment ? [{ id: "payment-1", invoiceId: "invoice-1", orderId: "order-1", amount: 200,
       status: "PENDING", qrText: "original-qr", qrImage: "original-image" }] : [],
   };
@@ -172,7 +172,7 @@ test("simultaneous confirmations count sales once and commit the receipt atomica
   reset();
   const results = await Promise.all([confirmation(), confirmation(), confirmation()]);
   assert.equal(results.filter((result) => result.changed).length, 1);
-  assert.equal(state.foods[0].salesCount, 2);
+  assert.equal(state.products[0].salesCount, 2);
   assert.equal(state.orders[0].status, "PAID");
   assert.equal(state.payments[0].status, "PAID");
   assert.equal(state.sizes[0].stock, 3);
@@ -183,7 +183,7 @@ test("a sales write failure rolls back both paid state and payment receipt", asy
   await assert.rejects(confirmation(), /sales write failure/);
   assert.equal(state.orders[0].status, "WAITING_PAYMENT");
   assert.equal(state.payments[0].status, "PENDING");
-  assert.equal(state.foods[0].salesCount, 0);
+  assert.equal(state.products[0].salesCount, 0);
 });
 
 test("late QPay funds preserve cancellation and released stock for manual resolution", async () => {
@@ -194,14 +194,14 @@ test("late QPay funds preserve cancellation and released stock for manual resolu
   assert.equal(state.orders[0].status, "CANCELLED");
   assert.equal(state.payments[0].status, "PAID");
   assert.equal(state.sizes[0].stock, 5);
-  assert.equal(state.foods[0].salesCount, 0);
+  assert.equal(state.products[0].salesCount, 0);
 });
 
 test("duplicate payment callbacks never move delivering orders backwards", async () => {
   reset({ status: "DELIVERING" });
   await confirmation();
   assert.equal(state.orders[0].status, "DELIVERING");
-  assert.equal(state.foods[0].salesCount, 0);
+  assert.equal(state.products[0].salesCount, 0);
 });
 
 test("concurrent expiry workers release one reservation only once", async () => {
@@ -235,10 +235,10 @@ test("racing payment and expiry either retain paid stock or flag late funds", as
     await Promise.all(paymentFirst ? [confirmation(), expireUnpaidOrders(client)] : [expireUnpaidOrders(client), confirmation()]);
     assert.equal(state.payments[0].status, "PAID");
     if (state.orders[0].status === "PAID") {
-      assert.equal(state.sizes[0].stock, 3); assert.equal(state.foods[0].salesCount, 2);
+      assert.equal(state.sizes[0].stock, 3); assert.equal(state.products[0].salesCount, 2);
     } else {
       assert.equal(state.orders[0].status, "CANCELLED"); assert.equal(state.sizes[0].stock, 5);
-      assert.equal(state.foods[0].salesCount, 0);
+      assert.equal(state.products[0].salesCount, 0);
     }
   }
 });
@@ -310,40 +310,40 @@ test("verified receipts return manual review for cancelled orders even on reload
 test("admin cancellation conflicts rather than overwriting a concurrent paid order", async () => {
   reset();
   beforeTransaction = async () => { state.orders[0].status = "PAID"; };
-  const res = response(); await updatedFoodOrder(request({ status: "CANCELLED" }, "ADMIN"), res);
+  const res = response(); await updatedOrder(request({ status: "CANCELLED" }, "ADMIN"), res);
   assert.equal(res.code, 409); assert.equal(state.orders[0].status, "PAID");
   assert.equal(state.sizes[0].stock, 3);
 });
 
 test("admin cannot manufacture a QPay payment and customers cannot change status", async () => {
   reset();
-  const admin = response(); await updatedFoodOrder(request({ status: "PAID" }, "ADMIN"), admin);
+  const admin = response(); await updatedOrder(request({ status: "PAID" }, "ADMIN"), admin);
   assert.equal(admin.code, 400);
-  const customer = response(); await updatedFoodOrder(request({ status: "PAID" }), customer);
+  const customer = response(); await updatedOrder(request({ status: "PAID" }), customer);
   assert.equal(customer.code, 403); assert.equal(state.orders[0].status, "WAITING_PAYMENT");
 });
 
 test("cancelled orders with a payable QR retain payment history", async () => {
   reset({ status: "CANCELLED" });
-  const res = response(); await deleteFoodOrder(request({ id: "order-1" }, "ADMIN"), res);
+  const res = response(); await deleteOrder(request({ id: "order-1" }, "ADMIN"), res);
   assert.equal(res.code, 409); assert.equal(state.orders.length, 1);
   assert.equal(state.payments.length, 1); assert.equal(state.sizes[0].stock, 5);
 });
 
 test("cash-on-delivery sales are counted once on completed delivery", async () => {
   reset({ status: "DELIVERING", paymentMethod: "COD", payment: false });
-  const res = response(); await updatedFoodOrder(request({ status: "DELIVERED" }, "ADMIN"), res);
-  assert.equal(res.code, 200); assert.equal(state.foods[0].salesCount, 2);
-  const again = response(); await updatedFoodOrder(request({ status: "DELIVERED" }, "ADMIN"), again);
-  assert.equal(again.code, 400); assert.equal(state.foods[0].salesCount, 2);
+  const res = response(); await updatedOrder(request({ status: "DELIVERED" }, "ADMIN"), res);
+  assert.equal(res.code, 200); assert.equal(state.products[0].salesCount, 2);
+  const again = response(); await updatedOrder(request({ status: "DELIVERED" }, "ADMIN"), again);
+  assert.equal(again.code, 400); assert.equal(state.products[0].salesCount, 2);
   await backgroundSettled();
 });
 
 const delivery = { firstName: "Test", lastName: "Buyer", phone: "99112233", city: "UB", district: "Test district", khoroo: "1", address: "Test address" };
 test("checkout rejects malformed rows and fractional/coerced quantities without stock changes", async () => {
-  for (const item of [null, { foodId: "food-1", quantity: "2garbage" }, { foodId: "food-1", quantity: 1.5 }, { foodId: "food-1", quantity: [] }, { foodId: "food-1", quantity: -2 }]) {
+  for (const item of [null, { productId: "product-1", quantity: "2garbage" }, { productId: "product-1", quantity: 1.5 }, { productId: "product-1", quantity: [] }, { productId: "product-1", quantity: -2 }]) {
     reset({ payment: false });
-    const res = response(); await createFoodOrder(request({ paymentMethod: "BANK", ...delivery, items: [item] }), res);
+    const res = response(); await createOrder(request({ paymentMethod: "BANK", ...delivery, items: [item] }), res);
     assert.equal(res.code, 400); assert.equal(state.orders.length, 1); assert.equal(state.sizes[0].stock, 3);
   }
 });
@@ -351,11 +351,11 @@ test("checkout rejects malformed rows and fractional/coerced quantities without 
 test("duplicate cart rows are combined and retrying checkout reserves stock once", async () => {
   reset({ payment: false });
   const req = request({ paymentMethod: "BANK", ...delivery, idempotencyKey: "checkout-key",
-    items: [{ foodId: "food-1", quantity: 1, size: "Small" }, { foodId: "food-1", quantity: 1, size: "Small" }] });
-  const res = response(); await createFoodOrder(req, res);
+    items: [{ productId: "product-1", quantity: 1, size: "Small" }, { productId: "product-1", quantity: 1, size: "Small" }] });
+  const res = response(); await createOrder(req, res);
   assert.equal(res.code, 201); assert.equal(state.sizes[0].stock, 1);
   assert.equal(state.items.filter((item) => item.orderId === res.body.orderId).length, 1);
-  const again = response(); await createFoodOrder(req, again);
+  const again = response(); await createOrder(req, again);
   assert.equal(again.code, 200); assert.equal(state.sizes[0].stock, 1);
   assert.equal(again.body.orderId, res.body.orderId);
   await backgroundSettled();
@@ -367,35 +367,35 @@ test("guest placeholders never receive order, status or payment notification ema
   await backgroundSettled(); assert.equal(sentEmails.length, 0);
 
   reset({ payment: false }); notificationEmail = "guest-test-identity@guest.com";
-  await createFoodOrder(request({ paymentMethod: "BANK", ...delivery,
-    items: [{ foodId: "food-1", quantity: 1, size: "Small" }] }), response());
+  await createOrder(request({ paymentMethod: "BANK", ...delivery,
+    items: [{ productId: "product-1", quantity: 1, size: "Small" }] }), response());
   await backgroundSettled(); assert.equal(sentEmails.length, 0);
 
   reset({ paymentMethod: "BANK", payment: false }); notificationEmail = "guest-test-identity@guest.com";
-  await updatedFoodOrder(request({ status: "CANCELLED" }, "ADMIN"), response());
+  await updatedOrder(request({ status: "CANCELLED" }, "ADMIN"), response());
   await backgroundSettled(); assert.equal(sentEmails.length, 0);
 });
 
 test("registered customers still receive order notification emails", async () => {
   reset({ payment: false }); notificationEmail = "buyer@example.test";
-  await createFoodOrder(request({ paymentMethod: "BANK", ...delivery,
-    items: [{ foodId: "food-1", quantity: 1, size: "Small" }] }), response());
+  await createOrder(request({ paymentMethod: "BANK", ...delivery,
+    items: [{ productId: "product-1", quantity: 1, size: "Small" }] }), response());
   await backgroundSettled(); assert.equal(sentEmails.length, 1);
   assert.equal(sentEmails[0].to, notificationEmail);
 });
 
 test("a multi-item stock shortfall rolls back every earlier reservation", async () => {
   reset({ payment: false });
-  state.sizes.push({ id: "size-2", foodId: "food-2", label: "Small", stock: 0 });
+  state.sizes.push({ id: "size-2", productId: "product-2", label: "Small", stock: 0 });
   await assert.rejects(client.$transaction((tx) => applyStockDecrements(tx, [
-    { foodId: "food-1", quantity: 1, size: "Small" }, { foodId: "food-2", quantity: 1, size: "Small" },
+    { productId: "product-1", quantity: 1, size: "Small" }, { productId: "product-2", quantity: 1, size: "Small" },
   ])), { code: "OUT_OF_STOCK" });
   assert.equal(state.sizes[0].stock, 3); assert.equal(state.sizes[1].stock, 0);
 });
 
 test("omitted variants and invalid quantities cannot bypass tracked inventory", async () => {
   reset();
-  await assert.rejects(applyStockDecrements(client, [{ foodId: "food-1", quantity: 1 }]), { code: "INVALID_SIZE" });
-  await assert.rejects(applyStockDecrements(client, [{ foodId: "food-1", quantity: -1, size: "Small" }]), { code: "INVALID_QUANTITY" });
+  await assert.rejects(applyStockDecrements(client, [{ productId: "product-1", quantity: 1 }]), { code: "INVALID_SIZE" });
+  await assert.rejects(applyStockDecrements(client, [{ productId: "product-1", quantity: -1, size: "Small" }]), { code: "INVALID_QUANTITY" });
   assert.equal(state.sizes[0].stock, 3);
 });

@@ -3,10 +3,10 @@ import { cached } from "../../utils/cache.js";
 import { getSettings } from "../../../src/chatbot/settings.mjs";
 import { publicInventory } from "../../utils/stockLevel.js";
 
-export const getFood = async (req, res) => {
+export const getProduct = async (req, res) => {
   try {
-    const [foods, settings] = await Promise.all([cached("foods:all", 20_000, () =>
-      prisma.food.findMany({
+    const [products, settings] = await Promise.all([cached("products:all", 20_000, () =>
+      prisma.product.findMany({
         include: {
           category: true,
           sizes: true,
@@ -17,11 +17,11 @@ export const getFood = async (req, res) => {
       })
     ), getSettings()]);
     if (req.user?.role === "ADMIN") res.set("Cache-Control", "private, no-store");
-    return res.status(200).json(foods.map((food) => publicInventory(food, settings, req.user?.role === "ADMIN")));
+    return res.status(200).json(products.map((product) => publicInventory(product, settings, req.user?.role === "ADMIN")));
   } catch (err) {
-    console.error("Error fetching foods:", err);
+    console.error("Error fetching products:", err);
     return res
       .status(500)
-      .json({ message: "Error while getting foods" });
+      .json({ message: "Error while getting products" });
   }
 };

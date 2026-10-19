@@ -3,26 +3,26 @@
 
 import { ChevronRight, ImageOff, PackageX, Pencil, Star } from "lucide-react";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
-import { FoodType } from "@admin/type/type";
+import { ProductType } from "@admin/type/type";
 import { formatMNT } from "@admin/utils/format";
 import { StockBadge } from "@/components/store/StockBadge";
 
 type Props = {
-  foods: FoodType[];
+  products: ProductType[];
   categoryName: (id: string) => string;
   showCategory: boolean;
-  onEdit: (food: FoodType) => void;
-  onToggleFeatured: (food: FoodType) => void;
+  onEdit: (product: ProductType) => void;
+  onToggleFeatured: (product: ProductType) => void;
   emptyText: string;
   busyFeatured?: string[];
 };
 
-const thumb = (f: FoodType) => (typeof f.image === "string" && f.image.trim() ? f.image : null);
+const thumb = (f: ProductType) => (typeof f.image === "string" && f.image.trim() ? f.image : null);
 
-export function ProductList({ foods, categoryName, showCategory, onEdit, onToggleFeatured, emptyText, busyFeatured = [] }: Props) {
+export function ProductList({ products, categoryName, showCategory, onEdit, onToggleFeatured, emptyText, busyFeatured = [] }: Props) {
   const { t, locale } = useI18n();
 
-  if (foods.length === 0) {
+  if (products.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-[10px] border border-ink/10 bg-white px-[24px] py-[64px] text-center">
         <PackageX className="h-[28px] w-[28px] text-taupe" strokeWidth={1.2} />
@@ -39,14 +39,14 @@ export function ProductList({ foods, categoryName, showCategory, onEdit, onToggl
         <span>{t("editor.name")}</span>
         <span>{showCategory ? t("category.title") : ""}</span>
         <span className="text-right">{t("editor.price")}</span>
-        <span className="text-center" title={t("food.fields.featured")}>
+        <span className="text-center" title={t("product.fields.featured")}>
           <Star className="mx-auto h-[13px] w-[13px]" strokeWidth={1.6} />
         </span>
         <span />
       </div>
 
       <ul className="divide-y divide-ink/10">
-        {foods.map((f) => {
+        {products.map((f) => {
           const img = thumb(f);
           const price = Number(f.price);
           const old = Number(f.oldPrice);
@@ -64,7 +64,7 @@ export function ProductList({ foods, categoryName, showCategory, onEdit, onToggl
               <div
                 className="relative grid grid-cols-[56px_minmax(0,1fr)_auto] items-center gap-[14px] px-[12px] py-[10px] transition-colors hover:bg-paper 2xl:grid-cols-[64px_minmax(0,1fr)_150px_130px_56px_92px] 2xl:gap-[16px] 2xl:px-[16px]"
               >
-                <button type="button" onClick={() => onEdit(f)} aria-label={`${t("editor.edit")}: ${f.foodName}`} className="absolute inset-0 z-[1]" />
+                <button type="button" onClick={() => onEdit(f)} aria-label={`${t("editor.edit")}: ${f.productName}`} className="absolute inset-0 z-[1]" />
                 <div className="h-[56px] w-[56px] overflow-hidden bg-sand 2xl:h-[64px] 2xl:w-[64px]">
                   {img ? (
                     <img src={img} alt="" loading="lazy" className="h-full w-full object-cover" />
@@ -77,7 +77,7 @@ export function ProductList({ foods, categoryName, showCategory, onEdit, onToggl
 
                 <div className="min-w-0">
                   <div className="flex items-center gap-[8px]">
-                    <p className="truncate text-[14px] font-medium text-ink">{f.foodName}</p>
+                    <p className="truncate text-[14px] font-medium text-ink">{f.productName}</p>
                     <StockBadge level={f.stockLevel} locale={locale} />
                     {f.isFeatured && (
                       <Star className="h-[12px] w-[12px] shrink-0 fill-ink text-ink 2xl:hidden" strokeWidth={1.6} />
@@ -117,7 +117,7 @@ export function ProductList({ foods, categoryName, showCategory, onEdit, onToggl
                     }}
                     title={f.isFeatured ? t("editor.unfeature") : t("editor.feature")}
                     aria-pressed={f.isFeatured}
-                    aria-label={`${f.isFeatured ? t("editor.unfeature") : t("editor.feature")}: ${f.foodName}`}
+                    aria-label={`${f.isFeatured ? t("editor.unfeature") : t("editor.feature")}: ${f.productName}`}
                     disabled={busyFeatured.includes(String(f.id))}
                     className="flex h-[44px] w-[44px] items-center justify-center hover:bg-sand disabled:opacity-40"
                   >

@@ -61,7 +61,7 @@ type Props = {
 export function OrderDetails({ order, t, busy, copy, onChange }: Props) {
   const [confirmCancel, setConfirmCancel] = useState(false);
   const status = (order.status ?? "PENDING") as OrderStatus;
-  const items = order.foodOrderItems ?? order.items ?? [];
+  const items = order.orderItems ?? order.items ?? [];
   const d = normalizeDelivery(order);
   const name = [d?.lastName, d?.firstName].filter(Boolean).join(" ") || order.user?.email || "—";
   const addressLine = [d?.city, d?.district, d?.khoroo && t("orders_ui.khoroo_n", { n: d.khoroo }), d?.address].filter(Boolean).join(", ");
@@ -86,13 +86,13 @@ export function OrderDetails({ order, t, busy, copy, onChange }: Props) {
           {items.map((it, i) => (
             <li key={`${order.id}-${i}`} className="flex items-center gap-[12px] py-[10px]">
               <img
-                src={it.food?.image || PLACEHOLDER}
+                src={it.product?.image || PLACEHOLDER}
                 alt=""
                 onError={(e) => (e.currentTarget.src = PLACEHOLDER)}
                 className="h-[48px] w-[48px] shrink-0 object-cover"
               />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium text-ink">{it.food?.foodName ?? "—"}</p>
+                <p className="truncate text-[13px] font-medium text-ink">{it.product?.productName ?? "—"}</p>
                 <p className="text-[12px] text-taupe tabular-nums">
                   {t("quantity")}: {it.quantity}
                   {"size" in it && (it as { size?: string }).size ? ` · ${(it as { size?: string }).size}` : ""}

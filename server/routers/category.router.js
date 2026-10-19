@@ -4,7 +4,7 @@ import { createCategories } from "../controller/categories/create-categories.js"
 import { getCategories } from "../controller/categories/get-catagories.js";
 import { updateCategories } from "../controller/categories/update-categories.js";
 import { getCategoryTree } from "../controller/categories/get-category-tree.js";
-import { getCategoryFoodsTree } from "../controller/categories/get-category-foods-tree.js";
+import { getCategoryProductsTree } from "../controller/categories/get-category-products-tree.js";
 import { requireAdmin } from "../middleware/requireAdmin.js";
 import { publicCache } from "../middleware/publicCache.js";
 
@@ -19,4 +19,4 @@ categoryRouter.get("/tree", publicCache(), getCategoryTree);
 categoryRouter.put("/", requireAdmin, updateCategories);
 
 // ⚠ order matters: more specific routes first
-categoryRouter.get("/:id/foods-tree", publicCache(0, 0), getCategoryFoodsTree);
+categoryRouter.get("/:id/products-tree", publicCache(0, 0), getCategoryProductsTree);

@@ -1,10 +1,10 @@
 import type { CatalogProduct, CatalogueContext, BotSettings } from "../../../src/chatbot/types";
 
 export const products: CatalogProduct[] = [
-  { id: "test-serum-a", foodName: "Test Serum A", price: 1000, oldPrice: null, discount: null, ingredients: "Test ingredient A", category: { name: "Test serum" }, sizes: [{ id: "test-size-a", label: "Test Size A", price: 1000, stock: null }] },
-  { id: "test-pencil-b", foodName: "Test Pencil B", price: 2000, oldPrice: null, category: { name: "Test pencil" }, sizes: [{ id: "test-colour-b", label: "Test Brown B", price: 2000, stock: 1 }, { id: "test-colour-c", label: "Test Brown C", price: 2000, stock: 0 }] },
-  { id: "test-pencil-c", foodName: "Test Pencil C", price: 3000, oldPrice: null, category: { name: "Test pencil" }, sizes: [{ id: "test-colour-d", label: "Test Brown D", price: 3000, stock: 20 }] },
-  { id: "test-balm-d", foodName: "Test Balm D", price: 4000, oldPrice: 5000, discount: 20, category: { name: "Test balm" }, sizes: [{ id: "test-size-d", label: "Test Size D", price: 4000, stock: 3 }] },
+  { id: "test-serum-a", productName: "Test Serum A", price: 1000, oldPrice: null, discount: null, ingredients: "Test ingredient A", category: { name: "Test serum" }, sizes: [{ id: "test-size-a", label: "Test Size A", price: 1000, stock: null }] },
+  { id: "test-pencil-b", productName: "Test Pencil B", price: 2000, oldPrice: null, category: { name: "Test pencil" }, sizes: [{ id: "test-colour-b", label: "Test Brown B", price: 2000, stock: 1 }, { id: "test-colour-c", label: "Test Brown C", price: 2000, stock: 0 }] },
+  { id: "test-pencil-c", productName: "Test Pencil C", price: 3000, oldPrice: null, category: { name: "Test pencil" }, sizes: [{ id: "test-colour-d", label: "Test Brown D", price: 3000, stock: 20 }] },
+  { id: "test-balm-d", productName: "Test Balm D", price: 4000, oldPrice: 5000, discount: 20, category: { name: "Test balm" }, sizes: [{ id: "test-size-d", label: "Test Size D", price: 4000, stock: 3 }] },
 ];
 export const settings: BotSettings = {
   enabled: true, metaOutbound: false,

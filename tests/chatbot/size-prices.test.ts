@@ -9,7 +9,7 @@ import type { CatalogProduct } from "../../src/chatbot/types";
 
 // A product whose second size has its own price (fake fixture values only).
 const oil: CatalogProduct = {
-  id: "test-oil-e", foodName: "Test Oil E", price: 1000, oldPrice: null, category: { name: "Test oil" },
+  id: "test-oil-e", productName: "Test Oil E", price: 1000, oldPrice: null, category: { name: "Test oil" },
   sizes: [{ id: "test-oil-small", label: "Test Small", price: null, stock: null }, { id: "test-oil-large", label: "Test Large", price: 1700, stock: null }],
 };
 const context = (locale: "mn" | "en" = "mn") => { const c = baseContext(locale); c.products = [...c.products, structuredClone(oil)]; return c; };

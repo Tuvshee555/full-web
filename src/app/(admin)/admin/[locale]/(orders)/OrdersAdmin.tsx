@@ -18,7 +18,7 @@ const customerName = (o: RawOrder, fallback: string) =>
   [o.lastName, o.firstName].filter(Boolean).join(" ") || o.user?.email || fallback;
 
 function ItemThumbs({ order }: { order: RawOrder }) {
-  const items = order.foodOrderItems ?? order.items ?? [];
+  const items = order.orderItems ?? order.items ?? [];
   const qty = items.reduce((s, it) => s + it.quantity, 0);
   return (
     <div className="flex items-center gap-[8px]">
@@ -26,7 +26,7 @@ function ItemThumbs({ order }: { order: RawOrder }) {
         {items.slice(0, 3).map((it, i) => (
           <img
             key={i}
-            src={it.food?.image || PLACEHOLDER}
+            src={it.product?.image || PLACEHOLDER}
             alt=""
             onError={(e) => (e.currentTarget.src = PLACEHOLDER)}
             className="h-[32px] w-[32px] border-2 border-white object-cover"

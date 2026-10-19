@@ -5,8 +5,8 @@ import { use, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { notFound } from "next/navigation";
 import { API_BASE_URL } from "@/lib/api";
-import { useFood } from "@/hooks/useFood";
-import { sanitizeFood } from "@/utils/catalogSanitizer";
+import { useProducts } from "@/hooks/useProducts";
+import { sanitizeProduct } from "@/utils/catalogSanitizer";
 import { ProductPage } from "@/components/store/ProductPage";
 import { useStoreT } from "@/components/store/lib/useStoreT";
 
@@ -17,15 +17,15 @@ class ProductRequestError extends Error {
 export default function Product({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { st } = useStoreT();
-  const { data: all = [] } = useFood();
+  const { data: all = [] } = useProducts();
   const query = useQuery<any, ProductRequestError>({
-    queryKey: ["food", id],
+    queryKey: ["product", id],
     queryFn: async ({ signal }) => {
-      const res = await fetch(`${API_BASE_URL}/food/${encodeURIComponent(id)}`, { signal, cache: "no-store" });
+      const res = await fetch(`${API_BASE_URL}/products/${encodeURIComponent(id)}`, { signal, cache: "no-store" });
       if (!res.ok) throw new ProductRequestError(res.status);
       const data = await res.json();
       if (!data || data.id !== id) throw new ProductRequestError(502);
-      return sanitizeFood(data);
+      return sanitizeProduct(data);
     },
     // The grid can render immediately while a fresh inventory check runs.
     placeholderData: all.find((p) => p.id === id),

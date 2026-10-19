@@ -12,7 +12,7 @@ test("stock is per size; untracked sizes cannot create urgency", () => {
   assert.equal(productStockLevel([{ stock: 0 }, { stock: 0 }]), "soldout");
 });
 test("public counts respect owner setting and admin retains editing data", () => {
-  const p = { foodName: "Test Serum A", sizes: [{ stock: 2 }] };
+  const p = { productName: "Test Serum A", sizes: [{ stock: 2 }] };
   const settings = { lowStockThreshold: 5, showExactStock: false };
   assert.equal(publicInventory(p, settings).sizes[0].stock, undefined);
   assert.equal(publicInventory(p, settings).sizes[0].stockLevel, "low");
@@ -22,7 +22,7 @@ test("public counts respect owner setting and admin retains editing data", () =>
 test("an omitted or invented variant cannot bypass sold-out stock", async () => {
   process.env.DATABASE_URL ||= "postgresql://test:test@localhost:5432/test";
   const { applyStockDecrements } = await import("../../server/utils/stock.js");
-  const tx = { foodSize: { findMany: async () => [{ id: "fake-size", foodId: "fake-product", label: "Test size", stock: 0 }], updateMany: async () => ({ count: 0 }) } };
-  for (const size of [undefined, "Test invented size"]) await assert.rejects(applyStockDecrements(tx, [{ foodId: "fake-product", quantity: 1, size }]), { code: "INVALID_SIZE" });
-  await assert.rejects(applyStockDecrements(tx, [{ foodId: "fake-product", quantity: 1, size: "Test size" }]), { code: "OUT_OF_STOCK" });
+  const tx = { productSize: { findMany: async () => [{ id: "fake-size", productId: "fake-product", label: "Test size", stock: 0 }], updateMany: async () => ({ count: 0 }) } };
+  for (const size of [undefined, "Test invented size"]) await assert.rejects(applyStockDecrements(tx, [{ productId: "fake-product", quantity: 1, size }]), { code: "INVALID_SIZE" });
+  await assert.rejects(applyStockDecrements(tx, [{ productId: "fake-product", quantity: 1, size: "Test size" }]), { code: "OUT_OF_STOCK" });
 });

@@ -41,22 +41,22 @@ const toOrderDto = (order) => ({
         address: order.user.address,
       }
     : null,
-  foodOrderItems: (order.foodOrderItems ?? []).map((item) => ({
+  orderItems: (order.orderItems ?? []).map((item) => ({
     id: item.id,
     quantity: item.quantity,
     size: item.size,
-    food: item.food
+    product: item.product
       ? {
-          id: item.food.id,
-          foodName: item.food.foodName,
-          image: item.food.image,
+          id: item.product.id,
+          productName: item.product.productName,
+          image: item.product.image,
           // what the customer paid for one unit (lines before 2026-10-19 have no stored price)
-          price: item.unitPrice ?? item.food.price,
-          categoryId: item.food.categoryId,
+          price: item.unitPrice ?? item.product.price,
+          categoryId: item.product.categoryId,
         }
       : null,
   })),
-  itemsCount: order.foodOrderItems?.length ?? 0,
+  itemsCount: order.orderItems?.length ?? 0,
 });
 
 export const getAllOrder = async (req, res) => {
@@ -78,25 +78,25 @@ export const getAllOrder = async (req, res) => {
         recentRevenueOrders,
         recentPayments,
       ] = await Promise.all([
-        prisma.foodOrder.aggregate({
+        prisma.order.aggregate({
           where: REVENUE_WHERE,
           _sum: { totalPrice: true },
         }),
-        prisma.foodOrder.aggregate({
+        prisma.order.aggregate({
           where: {
             ...REVENUE_WHERE,
             createdAt: { gte: weekStart },
           },
           _sum: { totalPrice: true },
         }),
-        prisma.foodOrder.aggregate({
+        prisma.order.aggregate({
           where: {
             ...REVENUE_WHERE,
             createdAt: { gte: monthStart },
           },
           _sum: { totalPrice: true },
         }),
-        prisma.foodOrder.findMany({
+        prisma.order.findMany({
           where: {
             ...REVENUE_WHERE,
             createdAt: { gte: chartStart },
@@ -110,7 +110,7 @@ export const getAllOrder = async (req, res) => {
             createdAt: true,
           },
         }),
-        prisma.foodOrder.findMany({
+        prisma.order.findMany({
           where: REVENUE_WHERE,
           orderBy: { createdAt: "desc" },
           take: 20,
@@ -181,14 +181,14 @@ export const getAllOrder = async (req, res) => {
       : searchWhere;
 
     const [total, statusGroups, orders] = await Promise.all([
-      prisma.foodOrder.count({ where }),
+      prisma.order.count({ where }),
       // Per-status counts for the admin's filter tabs (search applied, status not)
-      prisma.foodOrder.groupBy({
+      prisma.order.groupBy({
         by: ["status"],
         where: searchWhere,
         _count: { _all: true },
       }),
-      prisma.foodOrder.findMany({
+      prisma.order.findMany({
         where,
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
@@ -201,12 +201,12 @@ export const getAllOrder = async (req, res) => {
               address: true,
             },
           },
-          foodOrderItems: {
+          orderItems: {
             include: {
-              food: {
+              product: {
                 select: {
                   id: true,
-                  foodName: true,
+                  productName: true,
                   image: true,
                   price: true,
                   categoryId: true,

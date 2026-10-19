@@ -11,9 +11,9 @@ function clampRating(value) {
   return r;
 }
 
-export const createFoodReview = async (req, res) => {
+export const createProductReview = async (req, res) => {
   try {
-    const { foodId } = req.params;
+    const { productId } = req.params;
     const userId = req.user?.id;
 
     if (!userId) {
@@ -41,7 +41,7 @@ export const createFoodReview = async (req, res) => {
     // ✅ VERIFIED PURCHASE CHECK:
     const bought = await prisma.orderItem.findFirst({
       where: {
-        foodId,
+        productId,
         order: {
           userId,
           status: { in: ["PAID", "DELIVERING", "DELIVERED"] },
@@ -52,7 +52,7 @@ export const createFoodReview = async (req, res) => {
 
     if (!bought) {
       return res.status(403).json({
-        message: "You can only review foods you purchased.",
+        message: "You can only review products you purchased.",
       });
     }
 
@@ -60,7 +60,7 @@ export const createFoodReview = async (req, res) => {
     // If the user already reviewed -> update instead of throwing unique constraint
     const review = await prisma.review.upsert({
       where: {
-        foodId_userId: { foodId, userId }, // ✅ requires @@unique([foodId, userId])
+        productId_userId: { productId, userId }, // ✅ requires @@unique([productId, userId])
       },
       update: {
         rating,
@@ -69,7 +69,7 @@ export const createFoodReview = async (req, res) => {
         verifiedPurchase: true,
       },
       create: {
-        foodId,
+        productId,
         userId,
         rating,
         comment,
@@ -78,15 +78,15 @@ export const createFoodReview = async (req, res) => {
       },
     });
 
-    // update cached stats in Food
+    // update cached stats in Product
     const stats = await prisma.review.aggregate({
-      where: { foodId },
+      where: { productId },
       _avg: { rating: true },
       _count: { rating: true },
     });
 
-    await prisma.food.update({
-      where: { id: foodId },
+    await prisma.product.update({
+      where: { id: productId },
       data: {
         avgRating: stats._avg.rating ?? 0,
         reviewCount: stats._count.rating ?? 0,
@@ -104,11 +104,11 @@ export const createFoodReview = async (req, res) => {
       if (err.code === "P2002") {
         return res
           .status(409)
-          .json({ message: "You already reviewed this food." });
+          .json({ message: "You already reviewed this product." });
       }
     }
 
-    console.error("createFoodReview error:", err);
+    console.error("createProductReview error:", err);
     return res.status(500).json({ message: "Internal server error" });
   }
 };

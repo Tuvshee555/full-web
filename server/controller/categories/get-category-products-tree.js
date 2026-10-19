@@ -4,15 +4,15 @@ import { getSettings } from "../../../src/chatbot/settings.mjs";
 import { publicInventory } from "../../utils/stockLevel.js";
 
 /**
- * GET /category/:id/foods-tree
+ * GET /category/:id/products-tree
  * Returns:
  * {
  *   success: true,
  *   category: { id, categoryName },
- *   foods: Food[]
+ *   products: Product[]
  * }
  */
-export const getCategoryFoodsTree = async (req, res) => {
+export const getCategoryProductsTree = async (req, res) => {
   const { id } = req.params;
 
   if (!id) {
@@ -23,7 +23,7 @@ export const getCategoryFoodsTree = async (req, res) => {
   }
 
   try {
-    const [payload, settings] = await Promise.all([cached(`categories:foodsTree:${id}`, 20_000, async () => {
+    const [payload, settings] = await Promise.all([cached(`categories:productsTree:${id}`, 20_000, async () => {
       const categories = await cached("categories:ancestry", 30_000, () => prisma.category.findMany({
         select: {
           id: true,
@@ -52,7 +52,7 @@ export const getCategoryFoodsTree = async (req, res) => {
         }
       }
 
-      const foods = await prisma.food.findMany({
+      const products = await prisma.product.findMany({
         include: { sizes: true },
         where: {
           categoryId: {
@@ -70,7 +70,7 @@ export const getCategoryFoodsTree = async (req, res) => {
           id: target.id,
           categoryName: target.categoryName,
         },
-        foods,
+        products,
       };
     }), getSettings()]);
 
@@ -81,12 +81,12 @@ export const getCategoryFoodsTree = async (req, res) => {
       });
     }
 
-    return res.status(200).json({ ...payload, foods: payload.foods.map((food) => publicInventory(food, settings)) });
+    return res.status(200).json({ ...payload, products: payload.products.map((product) => publicInventory(product, settings)) });
   } catch (error) {
-    console.error("Error in getCategoryFoodsTree:", error);
+    console.error("Error in getCategoryProductsTree:", error);
     return res.status(500).json({
       success: false,
-      message: "Error while fetching category foods",
+      message: "Error while fetching category products",
     });
   }
 };

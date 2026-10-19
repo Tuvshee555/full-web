@@ -43,7 +43,7 @@ export const Sidebar = ({ active, onNavigate, openOrders = 0, isMobile, open, on
   };
 
   const nav: { id: AdminView; label: string; icon: typeof Package; badge?: number }[] = [
-    { id: "products", label: t("sidebar.food_menu"), icon: Package },
+    { id: "products", label: t("sidebar.product_catalog"), icon: Package },
     { id: "orders", label: t("sidebar.orders"), icon: ClipboardList, badge: openOrders },
     { id: "revenue", label: t("sidebar.revenue"), icon: BarChart3 },
     { id: "chatbot", label: t("chatbot.title"), icon: MessageCircle },

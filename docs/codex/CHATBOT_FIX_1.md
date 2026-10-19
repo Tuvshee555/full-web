@@ -48,7 +48,7 @@ failure was that it **goes silent**.
    apology + contact line. Never a handoff loop, never `reply: null` (except admin takeover / global off).
 2. **Find and fix the real failure behind "харандаа ямар өнгөтэй байгаа".** The `catch` block hides which
    error happened. Log the error code with the turn, reproduce it, and fix the root cause. Variant questions
-   (colours, sizes, "is dark brown available") must answer from `FoodSize` + the stock helper. Two matching
+   (colours, sizes, "is dark brown available") must answer from `ProductSize` + the stock helper. Two matching
    products (two pencils) → list both with their colours.
 3. **Follow-ups after a list.** When the bot showed several products and the customer says "how do I use
    it?", "the first one", "1", "тэр помад", or "хар хүрэн нь", resolve against the remembered list. If it is

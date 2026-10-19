@@ -1,6 +1,6 @@
 {
   "sidebar": {
-    "food_menu": "Product catalog",
+    "product_catalog": "Product catalog",
     "orders": "Orders",
     "revenue": "Revenue dashboard",
     "home": "Home",
@@ -24,7 +24,7 @@
     "adding": "Adding...",
     "loading": "Loading..."
   },
-  "food": {
+  "product": {
     "add_to_category": "Add new product to {category}",
     "validation": {
       "name": "Please provide product name.",
@@ -59,7 +59,7 @@
   "category_with_count": "{name} ({count})",
   "error_loading": "Error loading categories",
   "select_category": "Select category",
-  "dish_count": "{count} products",
+  "product_count": "{count} products",
   "close": "Close",
   "select_category_hint": "Please create a category and select it to manage products.",
   "orders": "Orders",
@@ -168,16 +168,16 @@
   "updated": "Updated successfully",
   "update_failed": "Update failed",
   "deleted": "Deleted successfully",
-  "edit_food": "Edit product item",
+  "edit_product": "Edit product item",
   "update_item_details": "Update item details below",
-  "delete_food_title": "Delete product item?",
-  "delete_food_description": "This action cannot be undone. The item will be permanently removed.",
+  "delete_product_title": "Delete product item?",
+  "delete_product_description": "This action cannot be undone. The item will be permanently removed.",
   "confirm_delete": "Delete",
   "vs_last_period": "vs last period",
   "sidebar.title": "Admin navigation",
   "sidebar.logout": "Log out",
-  "no_category_foods": "No items in this category yet.",
-  "add_first_food": "Add the first item",
+  "no_category_products": "No items in this category yet.",
+  "add_first_product": "Add the first item",
   "nav": {
     "open_orders": "{count} orders need attention"
   },

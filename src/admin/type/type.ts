@@ -1,16 +1,16 @@
 import type { Key } from "react";
 
-// -------------------- FOOD TYPES --------------------
+// -------------------- PRODUCT TYPES --------------------
 
-// Represents a single food item
-export type FoodType = {
+// Represents a single product item
+export type ProductType = {
   stockLevel?: "untracked" | "soldout" | "low" | "available";
   oldPrice: string;
   discount: string;
   isFeatured: boolean;
   salesCount: number;
   id: Key | null | undefined;
-  foodName: string;
+  productName: string;
   price: string | number;
   ingredients: string;
   categoryId: string;
@@ -29,49 +29,49 @@ export type FoodType = {
   sizes?: { label: string; stock?: number | null; stockLevel?: "untracked" | "soldout" | "low" | "available" }[] | string[];
 
   // Misc frontend-only helper fields
-  foodData?: [];
+  productData?: [];
   categories?: string;
 };
 
-// Form state for the UpdateFood dialog (prices kept as strings for input binding)
-export type FoodFormState = Omit<FoodType, "price" | "oldPrice" | "discount" | "sizes"> & {
+// Form state for the UpdateProduct dialog (prices kept as strings for input binding)
+export type ProductFormState = Omit<ProductType, "price" | "oldPrice" | "discount" | "sizes"> & {
   price: string;
   oldPrice: string;
   discount: string;
   sizes: string[];
 };
 
-// Props for FoodCard component
-export type FoodCardPropsType = {
-  food: FoodType;
-  refreshFood: () => void;
+// Props for ProductCard component
+export type ProductCardPropsType = {
+  product: ProductType;
+  refreshProduct: () => void;
   category?: CategoryType;
 };
 
-// Props for AddFood modal/component
-export type FoodData = {
-  foodName: string;
+// Props for AddProduct modal/component
+export type ProductData = {
+  productName: string;
   price: string;
   ingredients: string;
   image: File | null;
   category: string;
 };
 
-// Props for FoodModel (add/edit food modal)
-export type FoodModelProps = {
+// Props for ProductModel (add/edit product modal)
+export type ProductModelProps = {
   category: {
     id: string;
     categoryName: string;
   };
   closeModal: () => void;
-  refreshFood: () => void;
+  refreshProduct: () => void;
 };
 
-// Props for FoodCategoryList component
-export type FoodCategoryListPropsType = {
+// Props for ProductCategoryList component
+export type ProductCategoryListPropsType = {
   category: CategoryType & { _id?: string }; // support _id from backend if exists
-  foodData: FoodType[];
-  refreshFood: () => void;
+  productData: ProductType[];
+  refreshProduct: () => void;
 };
 
 // -------------------- CATEGORY TYPES --------------------
@@ -80,13 +80,13 @@ export type FoodCategoryListPropsType = {
 export type CategoryType = {
   id: string;
   categoryName: string;
-  foodCount: number;
+  productCount: number;
 };
 
 // Props for SelectCategory component
 export type SelectCategoryProps = {
   handleChange: (e: { name: string; value: string }) => void;
-  updatedFood?: FoodType;
+  updatedProduct?: ProductType;
 };
 
 // -------------------- USER TYPES --------------------
@@ -119,5 +119,5 @@ export type Datas = {
   username: string | number | readonly string[] | undefined;
   categoryName: string;
   _id: string;
-  foodCount: number;
+  productCount: number;
 };

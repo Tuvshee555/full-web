@@ -13,7 +13,7 @@ export const getLatestReviews = async (req, res) => {
       take: limit,
       include: {
         user: { select: { firstName: true, lastName: true } },
-        food: { select: { id: true, foodName: true, image: true } },
+        product: { select: { id: true, productName: true, image: true } },
       },
     }));
 
@@ -25,7 +25,7 @@ export const getLatestReviews = async (req, res) => {
         verifiedPurchase: r.verifiedPurchase,
         createdAt: r.createdAt,
         name: [r.user?.firstName, r.user?.lastName ? `${r.user.lastName[0]}.` : ""].filter(Boolean).join(" ") || null,
-        product: r.food ? { id: r.food.id, name: r.food.foodName, image: r.food.image } : null,
+        product: r.product ? { id: r.product.id, name: r.product.productName, image: r.product.image } : null,
       })),
     );
   } catch (err) {

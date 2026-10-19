@@ -6,8 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { ChevronDown, SlidersHorizontal, X } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
-import { useFood } from "@/hooks/useFood";
-import { sanitizeFoodList } from "@/utils/catalogSanitizer";
+import { useProducts } from "@/hooks/useProducts";
+import { sanitizeProductList } from "@/utils/catalogSanitizer";
 import { ProductCard, ProductCardSkeleton } from "./ProductCard";
 import { isSoldOut, money, onSale, priceRange } from "./lib/product";
 import { useStoreT } from "./lib/useStoreT";
@@ -23,16 +23,16 @@ function useCollection(id: string) {
   const { st } = useStoreT();
   const virtual = VIRTUAL.includes(id);
   // Home, search and virtual collections share one request and one cache.
-  const catalog = useFood(virtual);
+  const catalog = useProducts(virtual);
   const category = useQuery({
-    queryKey: ["category-foods", id],
+    queryKey: ["category-products", id],
     enabled: !virtual,
     queryFn: async ({ signal }) => {
-      const res = await fetch(`${API_BASE_URL}/category/${encodeURIComponent(id)}/foods-tree`, { signal });
+      const res = await fetch(`${API_BASE_URL}/category/${encodeURIComponent(id)}/products-tree`, { signal });
       if (!res.ok) throw new Error("CATALOGUE_UNAVAILABLE");
       const json = await res.json();
-      if (!Array.isArray(json?.foods)) throw new Error("Invalid catalog response");
-      return { products: sanitizeFoodList(json.foods), title: String(json?.category?.categoryName ?? "") };
+      if (!Array.isArray(json?.products)) throw new Error("Invalid catalog response");
+      return { products: sanitizeProductList(json.products), title: String(json?.category?.categoryName ?? "") };
     },
     staleTime: 15_000,
     refetchInterval: 60_000,
@@ -72,7 +72,7 @@ export function CollectionPage({ id }: { id: string }) {
     const max = filters.max === "" ? Infinity : Number(filters.max);
     const term = q.toLowerCase();
     const list = products.filter((p) => {
-      if (term && !String(p.foodName ?? "").toLowerCase().includes(term)) return false;
+      if (term && !String(p.productName ?? "").toLowerCase().includes(term)) return false;
       const sold = isSoldOut(p);
       if (filters.inStock !== filters.outOfStock && (filters.inStock ? sold : !sold)) return false;
       if (filters.sale && !onSale(p)) return false;

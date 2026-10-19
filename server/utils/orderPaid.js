@@ -9,16 +9,16 @@ export async function incrementSalesForOrder(orderId, tx) {
   if (!tx) throw new Error("Sales accounting requires an order transaction");
   const items = await tx.orderItem.findMany({
     where: { orderId },
-    select: { foodId: true, quantity: true },
+    select: { productId: true, quantity: true },
   });
 
   const quantities = new Map();
   for (const item of items) {
-    quantities.set(item.foodId, (quantities.get(item.foodId) || 0) + item.quantity);
+    quantities.set(item.productId, (quantities.get(item.productId) || 0) + item.quantity);
   }
-  for (const [foodId, quantity] of [...quantities].sort(([a], [b]) => a.localeCompare(b))) {
-    await tx.food.update({
-      where: { id: foodId },
+  for (const [productId, quantity] of [...quantities].sort(([a], [b]) => a.localeCompare(b))) {
+    await tx.product.update({
+      where: { id: productId },
       data: { salesCount: { increment: quantity } },
     });
   }
@@ -31,11 +31,11 @@ export async function incrementSalesForOrder(orderId, tx) {
  */
 export async function confirmPaidOrder({ orderId, invoiceId }, client = prisma) {
   const result = await client.$transaction(async (tx) => {
-    const claimed = await tx.foodOrder.updateMany({
+    const claimed = await tx.order.updateMany({
       where: { id: orderId, paymentMethod: "QPAY", status: { in: PAYABLE_STATUSES } },
       data: { status: "PAID" },
     });
-    const order = await tx.foodOrder.findUnique({ where: { id: orderId } });
+    const order = await tx.order.findUnique({ where: { id: orderId } });
     if (!order) return { order: null, changed: false, requiresReview: true };
     await tx.payment.updateMany({
       where: { orderId, invoiceId },

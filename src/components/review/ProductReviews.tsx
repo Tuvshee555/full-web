@@ -88,7 +88,7 @@ const RatingBar = ({
   );
 };
 
-export const FoodReviews = ({ foodId }: { foodId: string }) => {
+export const ProductReviews = ({ productId }: { productId: string }) => {
   const { t } = useI18n();
 
   const [data, setData] = useState<ReviewsResponse | null>(null);
@@ -103,7 +103,7 @@ export const FoodReviews = ({ foodId }: { foodId: string }) => {
     setLoading(true);
     try {
       const res = await fetch(
-        `${API_BASE_URL}/review/food/${foodId}`,
+        `${API_BASE_URL}/review/products/${productId}`,
         {
           cache: "no-store",
         },
@@ -128,7 +128,7 @@ export const FoodReviews = ({ foodId }: { foodId: string }) => {
   useEffect(() => {
     fetchReviews();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [foodId]);
+  }, [productId]);
 
   const avg = data?.avgRating ?? 0;
   const count = data?.reviewCount ?? 0;

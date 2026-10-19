@@ -17,10 +17,14 @@ afterwards, so leave a clear trail (see "Final report").
 - Locally `npm run dev` runs `server.mjs` (Next + Express on :3000).
   On Vercel, `/api/*` is served by `src/pages/api/[[...slug]].js`, which hands requests to the
   Express app (`server/app.js`). **Any new API must work in both runtimes.**
-- Products are the `Food` model (legacy name from a food-delivery past; do not rename tables).
-  Sizes/variants are `FoodSize` with `stock Int?` (`null` = unlimited, not tracked).
-  Orders are `FoodOrder` + `OrderItem`. Order statuses: PENDING, WAITING_PAYMENT, COD_PENDING,
+- Products use the `Product` model and table.
+  Sizes/variants are `ProductSize` with `stock Int?` (`null` = unlimited, not tracked).
+  Orders are `Order` + `OrderItem`. Order statuses: PENDING, WAITING_PAYMENT, COD_PENDING,
   PAID, DELIVERING, DELIVERED, CANCELLED. Stock logic: `server/utils/stock.js`.
+- Migration `20261019010000_product_terminology` renames the previous catalog/order tables,
+  columns, constraints and indexes in place while preserving their data. Run `npm run db:migrate`
+  against the target database before starting the new application or using its regenerated Prisma
+  client. This refactor has not applied the migration to a live database.
 - Store facts and copy live in `src/config/store.ts` (`STORE`, `BRAND_COPY`, `PRODUCT_CONTENT`,
   bank details, contact, delivery info). Delivery fee is server-side (`DELIVERY_FEE`, default 9000₮).
 - Payments: **QPay and bank transfer only. No cards, ever.** QPay is the LIVE merchant
@@ -93,7 +97,7 @@ Uudam's own `qpay.ts`: do not port, full-web already has QPay.
 ## 4. Stock: "Дуусаж байна" (running out)
 
 In Uudam, "Цөөн суудал" is a flag on ONE departure date, shown only beside that date, never trip-wide.
-The Lorentz equivalent is per **size** (`FoodSize`), computed from real stock:
+The Lorentz equivalent is per **size** (`ProductSize`), computed from real stock:
 
 - `stock === null` → untracked → show nothing.
 - `stock === 0` → "Дууссан" / "Sold out" (cannot be ordered; this should already be enforced).
@@ -107,8 +111,8 @@ Lorentz design (see section 6).
 
 ## 5. What the bot must do
 
-Data it may use (read at request time): `Food` (name, price, oldPrice, discount, images, ingredients,
-category, avgRating, reviewCount), `FoodSize` + stock level, `Category`, `PRODUCT_CONTENT` (how to use,
+Data it may use (read at request time): `Product` (name, price, oldPrice, discount, images, ingredients,
+category, avgRating, reviewCount), `ProductSize` + stock level, `Category`, `PRODUCT_CONTENT` (how to use,
 key ingredients, FAQ per product), `STORE` / `BRAND_COPY` (delivery, payments, bank details, contact,
 returns, about), and admin-written extra knowledge from bot settings.
 
@@ -129,7 +133,7 @@ Model name comes from env (`OPENAI_MODEL`) with a sensible default.
 
 ## 6. Admin and widget (design)
 
-Admin lives in `src/app/(admin)/admin/[locale]/` (route groups `(food-menu)`, `(orders)`, `(revenue)`),
+Admin lives in `src/app/(admin)/admin/[locale]/` (route groups `(products)`, `(orders)`, `(revenue)`),
 messages in `src/admin/messages/{mn,en}.json`. Add a **Chatbot** section in the sidebar with:
 - **Inbox:** conversation list (channel, last message, unread, needs-human flag), thread view,
   "take over / give back to bot" toggle, reply as human from the admin (widget shows it live by polling).
@@ -203,7 +207,7 @@ failures. Target: ≥ 95% pass, 0 invented facts, 0 privacy leaks.
 - Windows: PowerShell 5.1, and `curl` mangles inline Cyrillic. Send Mongolian test messages with Node
   `fetch` or a JSON file, not inline curl.
 - Run checks before every push: `npx tsc --noEmit`, `npm run lint`, unit tests, and a local run.
-  The Vercel build must stay green. After pushing, confirm the live site still serves `/mn` and `/api/food`.
+  The Vercel build must stay green. After pushing, confirm the live site still serves `/mn` and `/api/products`.
 
 ## 10. Env
 

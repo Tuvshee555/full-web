@@ -2,17 +2,17 @@ import { prisma } from "../../prismaClient.js";
 import { getSettings } from "../../../src/chatbot/settings.mjs";
 import { publicInventory } from "../../utils/stockLevel.js";
 
-export const getFoodById = async (req, res) => {
+export const getProductById = async (req, res) => {
   const { id } = req.params;
   try {
-    const [food, settings] = await Promise.all([prisma.food.findUnique({
+    const [product, settings] = await Promise.all([prisma.product.findUnique({
       where: { id },
       include: { category: true, sizes: true },
     }), getSettings()]);
-    if (!food) return res.status(404).json({ message: "Food not found" });
-    res.json(publicInventory(food, settings));
+    if (!product) return res.status(404).json({ message: "Product not found" });
+    res.json(publicInventory(product, settings));
   } catch (error) {
-    console.error("Error fetching food by ID:", error);
+    console.error("Error fetching product by ID:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

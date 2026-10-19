@@ -19,15 +19,15 @@ export const deleteReview = async (req, res) => {
       where: { id: reviewId },
     });
 
-    // refresh food stats
+    // refresh product stats
     const stats = await prisma.review.aggregate({
-      where: { foodId: existing.foodId },
+      where: { productId: existing.productId },
       _avg: { rating: true },
       _count: { rating: true },
     });
 
-    await prisma.food.update({
-      where: { id: existing.foodId },
+    await prisma.product.update({
+      where: { id: existing.productId },
       data: {
         avgRating: stats._avg.rating ?? 0,
         reviewCount: stats._count.rating ?? 0,

@@ -3,6 +3,13 @@ import { deliveryFee } from "./server/utils/deliveryFee.js";
 const nextConfig = {
   env: { NEXT_PUBLIC_DELIVERY_FEE: String(deliveryFee()) },
   reactStrictMode: true,
+  async redirects() {
+    return [{
+      source: "/:locale/food/:id",
+      destination: "/:locale/products/:id",
+      permanent: true,
+    }];
+  },
   images: {
     remotePatterns: [
       {

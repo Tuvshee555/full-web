@@ -20,8 +20,8 @@ export async function cleanupGuestUsers() {
         ],
         createdAt: { lt: cutoff },
         password: null, // real accounts have a password/social identity
-        FoodOrder: { none: {} },
-        orderedFoods: { none: {} },
+        Order: { none: {} },
+        orderedProducts: { none: {} },
         reviews: { none: {} },
       },
     });

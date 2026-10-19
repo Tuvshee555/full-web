@@ -3,7 +3,7 @@ import { prisma } from "../../prismaClient.js";
 import { restockOrder } from "../../utils/stock.js";
 import { invalidateCatalog } from "../../utils/cache.js";
 
-export const deleteFoodOrder = async (req, res) => {
+export const deleteOrder = async (req, res) => {
   const { id } = req.body ?? {};
 
   if (!id) {
@@ -16,7 +16,7 @@ export const deleteFoodOrder = async (req, res) => {
       return res.status(403).json({ message: "Forbidden" });
     }
 
-    const order = await prisma.foodOrder.findUnique({
+    const order = await prisma.order.findUnique({
       where: { id },
       select: { status: true },
     });
@@ -33,7 +33,7 @@ export const deleteFoodOrder = async (req, res) => {
     }
 
     const deleted = await prisma.$transaction(async (tx) => {
-      const claimed = await tx.foodOrder.updateMany({
+      const claimed = await tx.order.updateMany({
         where: { id, status: order.status },
         data: { updatedAt: new Date() },
       });
@@ -51,7 +51,7 @@ export const deleteFoodOrder = async (req, res) => {
       }
       if (order.status !== "CANCELLED") await restockOrder(id, tx);
       await tx.orderItem.deleteMany({ where: { orderId: id } });
-      await tx.foodOrder.delete({ where: { id } });
+      await tx.order.delete({ where: { id } });
       return true;
     });
     if (!deleted) return res.status(409).json({ message: "This order changed. Refresh and try again." });

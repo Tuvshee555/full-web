@@ -61,7 +61,7 @@ export const OrderReviewSection = ({ order, token }: Props) => {
   const initialDrafts = useMemo(() => {
     const map: Record<string, Draft> = {};
     for (const item of order.items) {
-      map[item.food.id] = {
+      map[item.product.id] = {
         rating: 5,
         comment: "",
         posting: false,
@@ -79,8 +79,8 @@ export const OrderReviewSection = ({ order, token }: Props) => {
     setDrafts((prev) => {
       const next = { ...prev };
       for (const item of order.items) {
-        if (!next[item.food.id]) {
-          next[item.food.id] = {
+        if (!next[item.product.id]) {
+          next[item.product.id] = {
             rating: 5,
             comment: "",
             posting: false,
@@ -90,7 +90,7 @@ export const OrderReviewSection = ({ order, token }: Props) => {
           };
         }
       }
-      const ids = new Set(order.items.map((x) => x.food.id));
+      const ids = new Set(order.items.map((x) => x.product.id));
       for (const k of Object.keys(next)) {
         if (!ids.has(k)) delete next[k];
       }
@@ -98,13 +98,13 @@ export const OrderReviewSection = ({ order, token }: Props) => {
     });
   }, [order.items]);
 
-  const setRating = (foodId: string, rating: number) => {
-    setDrafts((prev) => ({ ...prev, [foodId]: { ...prev[foodId], rating } }));
+  const setRating = (productId: string, rating: number) => {
+    setDrafts((prev) => ({ ...prev, [productId]: { ...prev[productId], rating } }));
   };
 
-  const addImages = (foodId: string, files: File[]) => {
+  const addImages = (productId: string, files: File[]) => {
     setDrafts((prev) => {
-      const cur = prev[foodId];
+      const cur = prev[productId];
       if (!cur) return prev;
       const spaceLeft = MAX_IMAGES - cur.imageFiles.length;
       const picked = files.slice(0, Math.max(0, spaceLeft));
@@ -115,7 +115,7 @@ export const OrderReviewSection = ({ order, token }: Props) => {
       const previews = picked.map((f) => URL.createObjectURL(f));
       return {
         ...prev,
-        [foodId]: {
+        [productId]: {
           ...cur,
           imageFiles: [...cur.imageFiles, ...picked].slice(0, MAX_IMAGES),
           imagePreviews: [...cur.imagePreviews, ...previews].slice(0, MAX_IMAGES),
@@ -124,13 +124,13 @@ export const OrderReviewSection = ({ order, token }: Props) => {
     });
   };
 
-  const removeImage = (foodId: string, index: number) => {
+  const removeImage = (productId: string, index: number) => {
     setDrafts((prev) => {
-      const cur = prev[foodId];
+      const cur = prev[productId];
       if (!cur) return prev;
       return {
         ...prev,
-        [foodId]: {
+        [productId]: {
           ...cur,
           imageFiles: cur.imageFiles.filter((_, i) => i !== index),
           imagePreviews: cur.imagePreviews.filter((_, i) => i !== index),
@@ -140,8 +140,8 @@ export const OrderReviewSection = ({ order, token }: Props) => {
     });
   };
 
-  const submit = async (foodId: string) => {
-    const d = drafts[foodId];
+  const submit = async (productId: string) => {
+    const d = drafts[productId];
     if (!usableToken) {
       toast.error(t("login_to_review") ?? "Please login to leave a review.");
       return;
@@ -154,17 +154,17 @@ export const OrderReviewSection = ({ order, token }: Props) => {
       return;
     }
 
-    setDrafts((prev) => ({ ...prev, [foodId]: { ...prev[foodId], posting: true } }));
+    setDrafts((prev) => ({ ...prev, [productId]: { ...prev[productId], posting: true } }));
 
     try {
       let urls = d.uploadedUrls;
       if (d.imageFiles.length > 0 && urls.length !== d.imageFiles.length) {
         urls = await uploadMedia(d.imageFiles);
-        setDrafts((prev) => ({ ...prev, [foodId]: { ...prev[foodId], uploadedUrls: urls } }));
+        setDrafts((prev) => ({ ...prev, [productId]: { ...prev[productId], uploadedUrls: urls } }));
       }
 
       const res = await fetch(
-        `${API_BASE_URL}/review/food/${foodId}`,
+        `${API_BASE_URL}/review/products/${productId}`,
         {
           method: "POST",
           headers: {
@@ -184,14 +184,14 @@ export const OrderReviewSection = ({ order, token }: Props) => {
       toast.success(t("review_posted") ?? "Review posted");
       setDrafts((prev) => ({
         ...prev,
-        [foodId]: { rating: 5, comment: "", posting: false, imageFiles: [], imagePreviews: [], uploadedUrls: [] },
+        [productId]: { rating: 5, comment: "", posting: false, imageFiles: [], imagePreviews: [], uploadedUrls: [] },
       }));
     } catch {
       toast.error(t("server_error") ?? "Server error");
     } finally {
       setDrafts((prev) => ({
         ...prev,
-        [foodId]: prev[foodId] ? { ...prev[foodId], posting: false } : prev[foodId],
+        [productId]: prev[productId] ? { ...prev[productId], posting: false } : prev[productId],
       }));
     }
   };
@@ -216,8 +216,8 @@ export const OrderReviewSection = ({ order, token }: Props) => {
 
       <div className="space-y-4">
         {order.items.map((item) => {
-          const foodId = item.food.id;
-          const d = drafts[foodId];
+          const productId = item.product.id;
+          const d = drafts[productId];
           if (!d) return null;
 
           return (
@@ -225,7 +225,7 @@ export const OrderReviewSection = ({ order, token }: Props) => {
               {/* Item header */}
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="store-heading truncate text-[22px]">{item.food.foodName}</div>
+                  <div className="store-heading truncate text-[22px]">{item.product.productName}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">
                     {t("quantity") ?? "Qty"}: {item.quantity}
                   </div>
@@ -237,7 +237,7 @@ export const OrderReviewSection = ({ order, token }: Props) => {
                     <button
                       key={star}
                       type="button"
-                      onClick={() => setRating(foodId, star)}
+                      onClick={() => setRating(productId, star)}
                       className="transition-transform hover:scale-110"
                     >
                       <Star
@@ -256,7 +256,7 @@ export const OrderReviewSection = ({ order, token }: Props) => {
               <textarea
                 value={d.comment}
                 onChange={(e) =>
-                  setDrafts((prev) => ({ ...prev, [foodId]: { ...prev[foodId], comment: e.target.value } }))
+                  setDrafts((prev) => ({ ...prev, [productId]: { ...prev[productId], comment: e.target.value } }))
                 }
                 className="min-h-[110px] w-full resize-none bg-white p-[14px] text-[15px] text-ink outline-none shadow-[inset_0_0_0_1px_rgba(28,23,20,0.15)] focus:shadow-[inset_0_0_0_1px_#1c1714]"
                 placeholder={t("review_placeholder") ?? "Share your experience..."}
@@ -270,7 +270,7 @@ export const OrderReviewSection = ({ order, token }: Props) => {
                 </label>
 
                 <div
-                  onClick={() => fileRefs.current[foodId]?.click()}
+                  onClick={() => fileRefs.current[productId]?.click()}
                   className="flex cursor-pointer flex-col items-center gap-[8px] border border-dashed border-ink/25 bg-white/60 p-[18px] text-center transition-colors hover:border-ink/50"
                 >
                   <ImagePlus className="h-[22px] w-[22px] text-ink/50" strokeWidth={1.2} />
@@ -280,7 +280,7 @@ export const OrderReviewSection = ({ order, token }: Props) => {
                   </div>
                   <input
                     type="file"
-                    ref={(el) => { fileRefs.current[foodId] = el; }}
+                    ref={(el) => { fileRefs.current[productId] = el; }}
                     className="hidden"
                     multiple
                     accept="image/*"
@@ -288,7 +288,7 @@ export const OrderReviewSection = ({ order, token }: Props) => {
                       const files = Array.from(e.target.files || []);
                       e.currentTarget.value = "";
                       if (!files.length) return;
-                      addImages(foodId, files);
+                      addImages(productId, files);
                     }}
                   />
                 </div>
@@ -309,7 +309,7 @@ export const OrderReviewSection = ({ order, token }: Props) => {
                           className="w-full aspect-square object-cover rounded-none border border-border"
                         />
                         <button
-                          onClick={() => removeImage(foodId, idx)}
+                          onClick={() => removeImage(productId, idx)}
                           className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-foreground text-background text-xs flex items-center justify-center hover:bg-destructive transition-colors"
                         >
                           ✕
@@ -322,7 +322,7 @@ export const OrderReviewSection = ({ order, token }: Props) => {
 
               {/* Submit */}
               <button
-                onClick={() => submit(foodId)}
+                onClick={() => submit(productId)}
                 disabled={d.posting || d.comment.trim().length < 2}
                 className="btn w-full"
               >

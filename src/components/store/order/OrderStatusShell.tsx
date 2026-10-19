@@ -75,16 +75,16 @@ export function OrderSummary({ order }: { order: any }) {
         {(order?.items ?? []).map((it: any, i: number) => (
           <li key={it.id ?? i} className="flex items-center gap-[14px]">
             <div className="relative h-[64px] w-[64px] shrink-0 bg-paper">
-              {it.food?.image ? <img src={it.food.image} alt="" className="h-full w-full object-cover" /> : null}
+              {it.product?.image ? <img src={it.product.image} alt="" className="h-full w-full object-cover" /> : null}
               <span className="absolute -right-[8px] -top-[8px] flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-ink px-[5px] text-[11px] text-paper">
                 {it.quantity}
               </span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="break-words font-medium leading-snug">{it.food?.foodName}</p>
+              <p className="break-words font-medium leading-snug">{it.product?.productName}</p>
               {it.size && <p className="text-[12px] text-taupe">{it.size}</p>}
             </div>
-            <span className="shrink-0 whitespace-nowrap tabular-nums">{money(Number(it.food?.price ?? 0) * Number(it.quantity ?? 0))}</span>
+            <span className="shrink-0 whitespace-nowrap tabular-nums">{money(Number(it.product?.price ?? 0) * Number(it.quantity ?? 0))}</span>
           </li>
         ))}
       </ul>

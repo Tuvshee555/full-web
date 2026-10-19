@@ -1,18 +1,18 @@
 import { prisma } from "../../prismaClient.js";
 
 export const createItems = async (req, res) => {
-  const { foodId, orderId, quantity } = req.body;
+  const { productId, orderId, quantity } = req.body;
 
-  if (!foodId || !orderId || !quantity) {
+  if (!productId || !orderId || !quantity) {
     return res
       .status(400)
-      .json({ success: false, message: "foodId, orderId, and quantity are required" });
+      .json({ success: false, message: "productId, orderId, and quantity are required" });
   }
 
   try {
     const item = await prisma.orderItem.create({
       data: {
-        foodId,
+        productId,
         orderId,
         quantity,
       },

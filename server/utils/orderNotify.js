@@ -21,11 +21,11 @@ export function isDeliverableEmail(email) {
 /** kind: "created" | "PAID" | "DELIVERING" | "DELIVERED" | "CANCELLED". Returns true when an email was sent. */
 export async function notifyCustomer(orderId, kind) {
   try {
-    const order = await prisma.foodOrder.findUnique({
+    const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
         user: { select: { email: true } },
-        foodOrderItems: { include: { food: { select: { foodName: true, price: true } } } },
+        orderItems: { include: { product: { select: { productName: true, price: true } } } },
       },
     });
     const to = order?.user?.email;

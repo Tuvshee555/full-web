@@ -80,7 +80,7 @@ const NUMBERED_BUTTON_LINE = /^\s*\d{1,2}\s*[.)]\s*(.+?)\s*(?:\.\.\.|…)?\s*$/u
  * only — never for deciding which product the message is about.
  */
 export function stripProductNamesForIntent(text: string, products: CatalogProduct[]): string {
-  const names = Array.from(new Set(products.map((product) => product.foodName).filter(Boolean)))
+  const names = Array.from(new Set(products.map((product) => product.productName).filter(Boolean)))
     .sort((a, b) => b.length - a.length);
   const looseNames = names.map(looseNorm);
   return text

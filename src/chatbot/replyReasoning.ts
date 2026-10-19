@@ -51,11 +51,11 @@ export function shouldAnalyzeBeforeReply(userText: string): boolean {
 
 /** Compact one-line-per-product index so vague references can be resolved to a real product name. */
 export function buildProductIndexLines(
-  products: Array<{ foodName?: string | null; category?: string | null; ingredients?: string | null }>,
+  products: Array<{ productName?: string | null; category?: string | null; ingredients?: string | null }>,
 ): string[] {
   const lines: string[] = [];
   for (const product of products) {
-    const name = (product.foodName || "").trim();
+    const name = (product.productName || "").trim();
     if (!name) continue;
     const extras = [
       product.category,

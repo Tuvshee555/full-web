@@ -1,12 +1,12 @@
 import { prisma } from "../../utils/prisma.js";
 import { cached } from "../../utils/cache.js";
 
-export const getFoodReviews = async (req, res) => {
+export const getProductReviews = async (req, res) => {
   try {
-    const { foodId } = req.params;
+    const { productId } = req.params;
 
-    const reviews = await cached(`reviews:food:${foodId}`, 15_000, () => prisma.review.findMany({
-      where: { foodId },
+    const reviews = await cached(`reviews:product:${productId}`, 15_000, () => prisma.review.findMany({
+      where: { productId },
       orderBy: { createdAt: "desc" },
       include: {
         user: { select: { id: true, firstName: true, lastName: true } },
@@ -43,7 +43,7 @@ export const getFoodReviews = async (req, res) => {
       })),
     });
   } catch (err) {
-    console.error("getFoodReviews error:", err);
+    console.error("getProductReviews error:", err);
     return res.status(500).json({ message: "Internal server error" });
   }
 };

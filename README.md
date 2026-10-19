@@ -34,6 +34,7 @@ npm run lint
 npm run typecheck
 npm test
 npm run test:commerce:db
+npm run test:product-migration
 npm run build
 ```
 
@@ -50,6 +51,26 @@ client. Start production with `npm start` after a successful build.
 GitHub Actions runs lint, types, isolated tests and a production build on pull
 requests and main/master pushes. It does not deploy the application or run live
 merchant transactions.
+
+## Product terminology migration
+
+The catalog uses `Product`, `ProductSize`, `productId`, and `productName`.
+Orders use `Order` and `orderItems`; catalog endpoints live at `/api/products`.
+Migration `20261019010000_product_terminology` renames the existing database
+tables, columns, constraints and indexes in place, preserving products, stock,
+reviews and purchase history. Historical migration files remain unchanged.
+
+Apply `npm run db:migrate` as part of the release before starting the updated
+application. The old and new application versions use different database names,
+so coordinate the migration with the application restart. This code change does
+not run migrations against an existing development or production database.
+
+Existing product bookmarks redirect to `/[locale]/products/[id]`. Previous API
+paths and checkout payloads are translated at the HTTP boundary, and saved
+browser carts normalize to the new product fields when read or updated.
+`npm run test:product-migration` verifies data preservation using the complete
+migration history in a temporary PostgreSQL cluster; it never uses your store's
+database credentials.
 
 ## Deploying a store
 

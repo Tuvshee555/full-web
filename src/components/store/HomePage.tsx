@@ -8,7 +8,7 @@ import { ArrowRight, ArrowUpRight, Check, CreditCard, PackageSearch, Truck } fro
 import { STORE, brandFor } from "@/config/store";
 import { DELIVERY_FEE } from "@/data/mongoliaLocations";
 import { API_BASE_URL } from "@/lib/api";
-import { useFood } from "@/hooks/useFood";
+import { useProducts } from "@/hooks/useProducts";
 import { useCategoryTree } from "@/hooks/useCategoryTree";
 import { ProductCard, ProductCardSkeleton } from "./ProductCard";
 import { Reveal } from "./Reveal";
@@ -24,7 +24,7 @@ type LatestReview = { id: string; rating: number; comment: string; verifiedPurch
 export function HomePage() {
   const { st, locale } = useStoreT();
   const BRAND = brandFor(locale);
-  const { data: products = [], isLoading, isError, refetch } = useFood();
+  const { data: products = [], isLoading, isError, refetch } = useProducts();
   const { data: tree = [] } = useCategoryTree();
   const [reviews, setReviews] = useState<LatestReview[]>([]);
 
@@ -87,7 +87,7 @@ export function HomePage() {
             </Link>
             {hero && (
               <Link href={productUrl(locale, hero.id)} className="group inline-flex items-center gap-[6px] text-[14px] text-ink">
-                <span className="link-underline">{hero.foodName}</span>
+                <span className="link-underline">{hero.productName}</span>
                 <ArrowUpRight className="h-[15px] w-[15px] transition-transform duration-500 ease-silk group-hover:-translate-y-[2px] group-hover:translate-x-[2px]" strokeWidth={1.3} />
               </Link>
             )}
@@ -103,7 +103,7 @@ export function HomePage() {
           <Reveal>
             <div className="relative aspect-[5/4] w-full overflow-hidden bg-sand lg:aspect-[4/5] lg:max-h-[620px]">
               {hero ? (
-                <img src={productImages(hero)[0]} alt={hero.foodName} fetchPriority="high" className="h-full w-full object-cover" />
+                <img src={productImages(hero)[0]} alt={hero.productName} fetchPriority="high" className="h-full w-full object-cover" />
               ) : (
                 <img src="/product-image-coming-soon.svg" alt="" className="h-full w-full object-contain" />
               )}
@@ -117,7 +117,7 @@ export function HomePage() {
               >
                 <div className="min-w-0">
                   <p className="text-[11px] uppercase tracking-[0.16em] text-taupe">{st("best_sellers")}</p>
-                  <p className="mt-[2px] text-[15px] font-medium leading-snug text-ink">{hero.foodName}</p>
+                  <p className="mt-[2px] text-[15px] font-medium leading-snug text-ink">{hero.productName}</p>
                 </div>
                 <Price product={hero} className="flex-col !items-end !gap-0 text-[13px]" />
               </Link>
@@ -201,7 +201,7 @@ export function HomePage() {
               <Link href={productUrl(locale, spotlight.id)} className="group block aspect-[4/5] overflow-hidden bg-ink">
                 <img
                   src={productImages(spotlight)[0]}
-                  alt={spotlight.foodName}
+                  alt={spotlight.productName}
                   className="h-full w-full object-cover transition-transform duration-500 ease-silk group-hover:scale-[1.04]"
                 />
               </Link>
@@ -211,7 +211,7 @@ export function HomePage() {
                 <span className="eyebrow !text-paper/50">{STORE.name}</span>
               </Reveal>
               <Reveal delay={120}>
-                <h2 className="store-heading section-title mt-[16px] !text-paper">{spotlight.foodName}</h2>
+                <h2 className="store-heading section-title mt-[16px] !text-paper">{spotlight.productName}</h2>
               </Reveal>
               <Reveal delay={200}>
                 <Stars avg={Number(spotlight.avgRating ?? 0)} count={Number(spotlight.reviewCount ?? 0)} className="mt-[14px] [&_*]:!text-paper" />

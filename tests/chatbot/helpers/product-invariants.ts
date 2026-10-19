@@ -10,9 +10,9 @@ import { runFlow } from "./flow";
 export function priceInvariants(origin: string) {
   test(`${origin}: one formatter and verifier agree on each product price`, () => {
     const c = context();
-    for (const p of products) { const text = formatProductLine(p, c); assert.match(text, new RegExp(p.foodName)); assert.equal(verifyProductReply({ reply: text, products: [p], context: c, approvedReply: text }), text); }
+    for (const p of products) { const text = formatProductLine(p, c); assert.match(text, new RegExp(p.productName)); assert.equal(verifyProductReply({ reply: text, products: [p], context: c, approvedReply: text }), text); }
     const text = formatProductLine(products[0], c);
-    for (const bad of [text.replace("1,000₮", "777₮"), text.replace(products[0].foodName, "Test Invented Product"), `${text}\nGuaranteed regrowth`, text.replace(products[0].id, "test-invented-link")]) assert.equal(verifyProductReply({ reply: bad, products: [products[0]], context: c, approvedReply: text }), "REFER");
+    for (const bad of [text.replace("1,000₮", "777₮"), text.replace(products[0].productName, "Test Invented Product"), `${text}\nGuaranteed regrowth`, text.replace(products[0].id, "test-invented-link")]) assert.equal(verifyProductReply({ reply: bad, products: [products[0]], context: c, approvedReply: text }), "REFER");
   });
   test(`${origin}: wrong product's otherwise real price is still rejected`, () => {
     const c = context(), approved = formatProductLine(products[0], c);

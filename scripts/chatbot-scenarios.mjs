@@ -1,11 +1,11 @@
 // Each product, variant, price and order credential is supplied by the caller.
 // The same conversations run against fake fixtures and the request-time catalogue.
 export function multiTurnScenarios({ products, orderNumber, phone, wrongPhone }) {
-  const serum = products.find(p => /serum|серум/i.test(p.foodName)) || products[0];
-  const pencils = products.filter(p => /pencil|харандаа/i.test(p.foodName));
+  const serum = products.find(p => /serum|серум/i.test(p.productName)) || products[0];
+  const pencils = products.filter(p => /pencil|харандаа/i.test(p.productName));
   const pencil = pencils[0] || products[1] || products[0];
   const variant = pencil.sizes?.[0]?.label || "";
-  const name = serum.foodName;
+  const name = serum.productName;
   const lookupMn = `Захиалгын дугаар ${orderNumber}, утас ${phone}`;
   const lookupEn = `Order ${orderNumber}, phone ${phone}`;
   const turn = (text, intents, options = {}) => ({ text, intents: Array.isArray(intents) ? intents : [intents], ...options });
@@ -13,7 +13,7 @@ export function multiTurnScenarios({ products, orderNumber, phone, wrongPhone })
   return [
     scenario("review-1-mn-handoff-then-shop", "mn", [turn("Сайн байна уу", "greeting"), turn("Хөмсөг нимгэн, ургуулах юм байна уу?", ["medical", "recommend"]), turn("Үнэ хэд вэ?", ["price", "clarify"]), turn("Хэд хоногт хүргэх вэ?", "delivery"), turn("Хотын төвд хүргэлт хэд вэ", "delivery"), turn("За тэгвэл яаж захиалах вэ", ["ordering", "payment"])]),
     scenario("review-2-latin-growth-then-price", "mn", [turn("hömsögnii serum bgaa yu", ["catalogue", "availability", "product"]), turn("une ni hed ve", ["price", "clarify"]), turn("hed hongiin dotor urgah ve", "medical"), turn("hurgelt hed ve", "delivery"), turn("yaj zahialah ve", ["ordering", "payment"])]),
-    scenario("review-3-colours-and-discount", "mn", [turn("харандаа ямар өнгөтэй байгаа", ["variants", "sizes"]), turn(variant ? `${variant} нь байна уу` : `${pencil.foodName} байна уу`, ["availability", "variants", "clarify"]), turn("2-ыг авбал хямдрах уу", "discount"), turn("Яаж захиалах вэ", ["ordering", "payment"])]),
+    scenario("review-3-colours-and-discount", "mn", [turn("харандаа ямар өнгөтэй байгаа", ["variants", "sizes"]), turn(variant ? `${variant} нь байна уу` : `${pencil.productName} байна уу`, ["availability", "variants", "clarify"]), turn("2-ыг авбал хямдрах уу", "discount"), turn("Яаж захиалах вэ", ["ordering", "payment"])]),
     scenario("review-4-english-product-and-card", "en", [turn("do you have something for sparse brows?", "recommend"), turn("how do I use it?", ["howTo", "clarify"]), turn("the first one", ["product", "price", "clarify"]), turn("can I pay by card?", "payment", { card: true }), turn("What does delivery cost?", "delivery")]),
     scenario("review-5-complaint-then-private-order", "mn", [turn("Би 2 хоногийн өмнө захиалсан ирэхгүй байна", ["order", "orderComplaint"]), turn(lookupMn, "order", { order: "correct" }), turn("Хүргэлтийн төлбөр хэд вэ", "delivery"), turn("За баярлалаа", "thanks")]),
     scenario("review-6-chitchat-and-missing-product", "mn", [turn("Чамайг хэн хийсэн бэ", ["chitchat", "unknown"]), turn("нүүрний тос байгаа юу", ["notInCatalog", "unknown"]), turn("Ямар бүтээгдэхүүн байгаа вэ", "catalogue"), turn("Үнэ хэд вэ", ["price", "clarify"])]),
@@ -31,6 +31,6 @@ export function multiTurnScenarios({ products, orderNumber, phone, wrongPhone })
     scenario("en-order-wrong-and-right-phone", "en", [turn("My order hasn't arrived", ["order", "orderComplaint"]), turn(`Order ${orderNumber}, phone ${wrongPhone}`, "order", { order: "wrong" }), turn(lookupEn, "order", { order: "correct" }), turn("Thanks", "thanks")]),
     scenario("mn-order-credentials-separated", "mn", [turn("Захиалгын төлөв шалгамаар байна", "order"), turn(`Захиалгын дугаар ${orderNumber}`, "order", { order: "missing" }), turn(`Утас ${phone}`, "order", { order: "correct" }), turn("Баярлалаа", "thanks")]),
     scenario("en-chitchat-topic-change", "en", [turn("Who made you?", ["chitchat", "unknown"]), turn("Hello", "greeting"), turn(`What is the price of ${name}?`, "price"), turn("Thank you", "thanks")]),
-    scenario("mn-colour-followup-topic-change", "mn", [turn(`${pencil.foodName} ямар өнгөтэй вэ`, ["variants", "sizes"]), turn(variant ? `${variant} байна уу` : "Бэлэн байгаа юу", ["availability", "variants"]), turn(`${name} үнэ хэд вэ`, "price"), turn("хэрхэн хэрэглэх вэ", "howTo")]),
+    scenario("mn-colour-followup-topic-change", "mn", [turn(`${pencil.productName} ямар өнгөтэй вэ`, ["variants", "sizes"]), turn(variant ? `${variant} байна уу` : "Бэлэн байгаа юу", ["availability", "variants"]), turn(`${name} үнэ хэд вэ`, "price"), turn("хэрхэн хэрэглэх вэ", "howTo")]),
   ];
 }

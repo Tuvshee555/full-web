@@ -1,4 +1,4 @@
-// Inventory helpers for size-level stock (FoodSize.stock).
+// Inventory helpers for size-level stock (ProductSize.stock).
 //
 // Model: stock is RESERVED when an order is placed and RESTOCKED if the order
 // is later cancelled / expired / refunded. A size with stock === null is
@@ -13,13 +13,13 @@
  * Throws an error with `.code === "OUT_OF_STOCK"` if any item can't be filled.
  */
 export async function applyStockDecrements(tx, items) {
-  const allSizes = await tx.foodSize.findMany({
-    where: { foodId: { in: [...new Set(items.map((item) => item.foodId))] } },
-    select: { id: true, foodId: true, stock: true, label: true },
+  const allSizes = await tx.productSize.findMany({
+    where: { productId: { in: [...new Set(items.map((item) => item.productId))] } },
+    select: { id: true, productId: true, stock: true, label: true },
   });
   // Lock variants in a stable order even when carts list them differently.
   const sorted = [...items].sort((a, b) =>
-    `${a.foodId}:${a.size ?? ""}`.localeCompare(`${b.foodId}:${b.size ?? ""}`)
+    `${a.productId}:${a.size ?? ""}`.localeCompare(`${b.productId}:${b.size ?? ""}`)
   );
   for (const item of sorted) {
     if (!Number.isSafeInteger(item.quantity) || item.quantity <= 0) {
@@ -27,7 +27,7 @@ export async function applyStockDecrements(tx, items) {
       err.code = "INVALID_QUANTITY";
       throw err;
     }
-    const sizes = allSizes.filter((size) => size.foodId === item.foodId);
+    const sizes = allSizes.filter((size) => size.productId === item.productId);
     const sizeRow = sizes.find((size) => size.label === item.size);
     // Omitting or inventing a variant must never bypass tracked inventory.
     if (sizes.length && !sizeRow) {
@@ -39,7 +39,7 @@ export async function applyStockDecrements(tx, items) {
 
     // Atomic compare-and-decrement: only succeeds if enough stock remains,
     // which prevents two concurrent orders from overselling the same size.
-    const result = await tx.foodSize.updateMany({
+    const result = await tx.productSize.updateMany({
       where: { id: sizeRow.id, stock: { gte: item.quantity } },
       data: { stock: { decrement: item.quantity } },
     });
@@ -48,7 +48,7 @@ export async function applyStockDecrements(tx, items) {
       const err = new Error("OUT_OF_STOCK");
       err.code = "OUT_OF_STOCK";
       err.size = item.size;
-      err.foodId = item.foodId;
+      err.productId = item.productId;
       throw err;
     }
   }
@@ -63,21 +63,21 @@ export async function restockOrder(orderId, tx) {
   if (!tx) throw new Error("Restocking requires an order transaction");
   const items = await tx.orderItem.findMany({
     where: { orderId },
-    select: { foodId: true, quantity: true, size: true },
+    select: { productId: true, quantity: true, size: true },
   });
   if (!items.length) return;
-  const sizes = await tx.foodSize.findMany({
-    where: { foodId: { in: [...new Set(items.map((item) => item.foodId))] }, stock: { not: null } },
-    select: { id: true, foodId: true, label: true, stock: true },
+  const sizes = await tx.productSize.findMany({
+    where: { productId: { in: [...new Set(items.map((item) => item.productId))] }, stock: { not: null } },
+    select: { id: true, productId: true, label: true, stock: true },
   });
   const sorted = [...items].sort((a, b) =>
-    `${a.foodId}:${a.size ?? ""}`.localeCompare(`${b.foodId}:${b.size ?? ""}`)
+    `${a.productId}:${a.size ?? ""}`.localeCompare(`${b.productId}:${b.size ?? ""}`)
   );
   for (const item of sorted) {
     if (!item.size) continue;
-    const sizeRow = sizes.find((size) => size.foodId === item.foodId && size.label === item.size);
+    const sizeRow = sizes.find((size) => size.productId === item.productId && size.label === item.size);
     if (!sizeRow || sizeRow.stock == null) continue;
-    await tx.foodSize.updateMany({
+    await tx.productSize.updateMany({
       where: { id: sizeRow.id, stock: { not: null } },
       data: { stock: { increment: item.quantity } },
     });

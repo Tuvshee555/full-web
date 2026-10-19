@@ -6,7 +6,7 @@ const { prisma } = await import("../server/utils/prisma.js");
 const base = process.env.CHATBOT_SMOKE_URL || "http://localhost:3000";
 let session;
 try {
-  for (const path of ["/mn", "/en", "/api/food"]) assert.equal((await fetch(base + path)).status, 200, path);
+  for (const path of ["/mn", "/en", "/api/products"]) assert.equal((await fetch(base + path)).status, 200, path);
   let response = await fetch(base + "/api/chat/conversations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ locale: "en" }) });
   assert.equal(response.status, 201); session = await response.json();
   const url = `${base}/api/chat/conversations/${session.conversationId}`;

@@ -53,8 +53,8 @@ export function invalidate(prefix) {
   }
 }
 
-/** Clear all cached catalog reads — call after any food/category mutation. */
+/** Clear all cached catalog reads — call after any product/category mutation. */
 export function invalidateCatalog() {
-  invalidate("foods");
+  invalidate("products");
   invalidate("categories");
 }

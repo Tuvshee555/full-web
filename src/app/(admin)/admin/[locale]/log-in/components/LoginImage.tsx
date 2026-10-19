@@ -2,7 +2,7 @@
 
 import { STORE } from "@/config/store";
 
-/** Editorial brand panel for the admin login (replaces the food-delivery illustration). */
+/** Editorial brand panel for the admin login (replaces the product-delivery illustration). */
 export const LoginImage = () => (
   <div className="relative flex h-full min-h-[100dvh] flex-col justify-between overflow-hidden bg-espresso p-[48px] text-paper">
     <span className="eyebrow !text-paper/60">Admin</span>

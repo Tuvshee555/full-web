@@ -77,7 +77,7 @@ export const createInvoice = async (req, res) => {
     if (typeof orderId !== "string" || !orderId.trim() || orderId.length > 100) {
       return res.status(400).json({ error: "A valid orderId is required" });
     }
-    const order = await prisma.foodOrder.findUnique({ where: { id: orderId } });
+    const order = await prisma.order.findUnique({ where: { id: orderId } });
     if (!order) return res.status(404).json({ error: "Order not found" });
     if (!canAccessOrder(req, order)) return res.status(403).json({ error: "Forbidden" });
     if (order.paymentMethod !== "QPAY") {
@@ -102,12 +102,12 @@ export const createInvoice = async (req, res) => {
     const payment = await prisma.$transaction(async (tx) => {
       // Updating the same value takes the row lock across workers. The second
       // request reuses the first request's invoice rather than orphaning its QR.
-      const locked = await tx.foodOrder.updateMany({
+      const locked = await tx.order.updateMany({
         where: { id: orderId, status: { in: ["PENDING", "WAITING_PAYMENT"] } },
         data: { updatedAt: new Date() },
       });
       if (locked.count !== 1) throw invoiceError(409, "Order is no longer payable", "ORDER_NOT_PAYABLE");
-      const current = await tx.foodOrder.findUnique({ where: { id: orderId } });
+      const current = await tx.order.findUnique({ where: { id: orderId } });
       assertPayable(current);
       const saved = await tx.payment.findUnique({ where: { orderId } });
       if (saved?.status === "PENDING") return saved;
@@ -154,7 +154,7 @@ export const checkPayment = async (req, res) => {
     }
     const payment = await prisma.payment.findUnique({ where: { invoiceId } });
     if (!payment) return res.status(404).json({ error: "Payment record not found" });
-    const beforeOrder = await prisma.foodOrder.findUnique({ where: { id: payment.orderId } });
+    const beforeOrder = await prisma.order.findUnique({ where: { id: payment.orderId } });
     if (!beforeOrder) return res.status(404).json({ error: "Order not found" });
     if (!canAccessOrder(req, beforeOrder)) return res.status(403).json({ error: "Forbidden" });
     const expectedAmount = toMoney(payment.amount);
@@ -198,7 +198,7 @@ export const webhook = async (req, res) => {
     }
     const payment = await prisma.payment.findUnique({ where: { invoiceId } });
     if (!payment) return res.json({ received: true, skipped: true });
-    const beforeOrder = await prisma.foodOrder.findUnique({ where: { id: payment.orderId } });
+    const beforeOrder = await prisma.order.findUnique({ where: { id: payment.orderId } });
     if (!beforeOrder) return res.json({ received: true, skipped: true });
     const paidAmount = payment.status === "PAID" ? toMoney(payment.amount) : await verifyPayment(invoiceId);
     if (!isPaidEnough(paidAmount, toMoney(payment.amount))) return res.json({ received: true });

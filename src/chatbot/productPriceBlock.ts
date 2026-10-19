@@ -25,7 +25,7 @@ export function formatProductLine(product: CatalogProduct, context: CatalogueCon
   const prices = productPrices(product);
   const low = Math.min(...prices), high = Math.max(...prices);
   const priceText = low === high ? money(low) : `${money(low)} – ${money(high)}`;
-  return `${product.foodName} — ${priceText}${low === high ? original : ""}${label ? ` · ${label}` : ""}${options.link === false ? "" : `\n${productLink(product, context)}`}`;
+  return `${product.productName} — ${priceText}${low === high ? original : ""}${label ? ` · ${label}` : ""}${options.link === false ? "" : `\n${productLink(product, context)}`}`;
 }
 /** The verifier reads the same writer's canonical price/stock fragments, never its own interpretation. */
 export function productEvidenceLines(product: CatalogProduct, context: CatalogueContext): string[] {

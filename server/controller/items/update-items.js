@@ -12,7 +12,7 @@ export const updateItems = async (req, res) => {
       where: { id },
       data: { quantity },
       include: {
-        food: true,   // include related food details
+        product: true,   // include related product details
         order: true,  // include related order details
       },
     });

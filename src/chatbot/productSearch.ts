@@ -14,7 +14,7 @@ export function getAliases(product: CatalogProduct): string[] {
   return [product.category?.categoryName || product.category?.name || "", ...product.sizes.map((variant) => variant.label)].filter(Boolean);
 }
 export function getProductSearchHaystack(product: CatalogProduct): string {
-  return [product.foodName, ...getAliases(product)].join(" ");
+  return [product.productName, ...getAliases(product)].join(" ");
 }
 export function getProductNameHaystack(product: CatalogProduct): string { return normText(getProductSearchHaystack(product)); }
 
@@ -26,7 +26,7 @@ const vocabularyCache = new WeakMap<CatalogProduct[], CatalogVocabulary>();
 function catalogVocabulary(products: CatalogProduct[]): CatalogVocabulary {
   const cached = vocabularyCache.get(products);
   if (cached) return cached;
-  const names = products.flatMap((product) => [product.foodName, ...getAliases(product)]);
+  const names = products.flatMap((product) => [product.productName, ...getAliases(product)]);
   const entries = unique(names.flatMap((name) => keywordTokens(name))).filter((word) => !/\d/.test(word))
     .map((word) => ({ word, phonetic: phoneticLatinText(word).replace(/\s+/g, "") }));
   const vocabulary = { entries, known: new Set(entries.map((entry) => entry.word)), knownPhonetic: new Set(entries.map((entry) => entry.phonetic)) };
@@ -77,7 +77,7 @@ function sameWordStem(a: string, b: string): boolean {
 }
 function splitGluedWords(words: string[], products: CatalogProduct[]): string[] {
   if (!words.some((word) => word.length >= 8)) return words;
-  const vocabulary = unique(products.flatMap((product) => keywordTokens(product.foodName)));
+  const vocabulary = unique(products.flatMap((product) => keywordTokens(product.productName)));
   const known = new Set(vocabulary); const extra: string[] = [];
   for (const word of words) {
     if (word.length < 8 || known.has(word)) continue;
@@ -99,8 +99,8 @@ export function findProductMatches(text: string, products: CatalogProduct[]): Pr
   if (!queryWords.length && !queryPhoneticWords.length) return [];
   const matches: ProductMatch[] = [];
   for (const product of products) {
-    const routeNorm = normText(product.foodName); const routePhonetic = phoneticLatinText(product.foodName);
-    const routeKeywords = unique(keywordTokens(product.foodName)); const routePhoneticKeywords = unique(phoneticKeywordTokens(product.foodName));
+    const routeNorm = normText(product.productName); const routePhonetic = phoneticLatinText(product.productName);
+    const routeKeywords = unique(keywordTokens(product.productName)); const routePhoneticKeywords = unique(phoneticKeywordTokens(product.productName));
     if (!routeKeywords.length && !routePhoneticKeywords.length) continue;
     let aliasHit = 0;
     for (const alias of getAliases(product)) {
@@ -124,7 +124,7 @@ export function findProductMatches(text: string, products: CatalogProduct[]): Pr
     const score = exactRouteHit * 100 + aliasHit * 80 + matchedWords.length * 20 + coverage * 10 - Math.max(0, routeKeywords.length - matchedWords.length) - unknown.length * 15;
     matches.push({ product, matchedWords, keywordCoverage: coverage, score });
   }
-  return matches.sort((a, b) => b.score - a.score || b.matchedWords.length - a.matchedWords.length || a.product.foodName.localeCompare(b.product.foodName, "mn"));
+  return matches.sort((a, b) => b.score - a.score || b.matchedWords.length - a.matchedWords.length || a.product.productName.localeCompare(b.product.productName, "mn"));
 }
 
 const MAX_PRODUCT_CANDIDATES = 8;
@@ -133,7 +133,7 @@ export function resolveProductFromUserMessage(text: string, products: CatalogPro
   if (!matches.length) return { status: "not_found", product: null, candidates: [] };
   const [best, second] = matches;
   const normalizedQuery = normText(text);
-  const fullNameMentions = matches.filter((match) => normText(match.product.foodName).length >= 8 && normalizedQuery.includes(normText(match.product.foodName)));
+  const fullNameMentions = matches.filter((match) => normText(match.product.productName).length >= 8 && normalizedQuery.includes(normText(match.product.productName)));
   if (fullNameMentions.length === 1) return { status: "verified", product: fullNameMentions[0].product, candidates: [] };
   const queryTokens = unique(phoneticKeywordTokens(text));
   const indistinguishable = matches.filter((match) => {

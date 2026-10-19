@@ -10,8 +10,8 @@ type Props = {
   open: boolean;
   onClose: () => void;
   token: string;
-  foodId: string;
-  foodName: string;
+  productId: string;
+  productName: string;
   onSuccess: () => void;
 };
 
@@ -21,8 +21,8 @@ export const AddReviewModal = ({
   open,
   onClose,
   token,
-  foodId,
-  foodName,
+  productId,
+  productName,
   onSuccess,
 }: Props) => {
   const { t } = useI18n();
@@ -68,7 +68,7 @@ export const AddReviewModal = ({
     setSubmitting(true);
     try {
       const res = await fetch(
-        `${API_BASE_URL}/review/food/${foodId}`,
+        `${API_BASE_URL}/review/products/${productId}`,
         {
           method: "POST",
           headers: {
@@ -116,7 +116,7 @@ export const AddReviewModal = ({
             <div className="text-sm font-semibold">
               {t("write_review") ?? "Write a review"}
             </div>
-            <div className="text-xs text-muted-foreground mt-1">{foodName}</div>
+            <div className="text-xs text-muted-foreground mt-1">{productName}</div>
           </div>
           <button
             onClick={onClose}

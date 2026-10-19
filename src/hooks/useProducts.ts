@@ -1,19 +1,19 @@
-// src/hooks/useFoods.ts
+// src/hooks/useProducts.ts
 import { API_BASE_URL } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { FoodType } from "@/type/type";
-import { sanitizeFoodList } from "@/utils/catalogSanitizer";
+import { ProductType } from "@/type/type";
+import { sanitizeProductList } from "@/utils/catalogSanitizer";
 
-export function useFood(enabled = true) {
-  return useQuery<FoodType[]>({
-    queryKey: ["foods"],
+export function useProducts(enabled = true) {
+  return useQuery<ProductType[]>({
+    queryKey: ["products"],
     queryFn: async ({ signal }) => {
       const { data } = await axios.get(
-        `${API_BASE_URL}/food`, { signal, timeout: 15_000 }
+        `${API_BASE_URL}/products`, { signal, timeout: 15_000 }
       );
       if (!Array.isArray(data)) throw new Error("Invalid catalog response");
-      return sanitizeFoodList(data);
+      return sanitizeProductList(data);
     },
     enabled,
     staleTime: 15_000,

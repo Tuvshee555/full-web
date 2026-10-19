@@ -1,7 +1,7 @@
 export type Locale = "mn" | "en";
 export type ProductVariant = { id: string; label: string; price?: number | null; stock: number | null };
 export type CatalogProduct = {
-  id: string; foodName: string; price: number; oldPrice?: number | null; discount?: number | null;
+  id: string; productName: string; price: number; oldPrice?: number | null; discount?: number | null;
   ingredients?: string | null; sizes: ProductVariant[];
   category?: { categoryName?: string; name?: string } | null;
 };

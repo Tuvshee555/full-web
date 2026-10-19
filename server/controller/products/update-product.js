@@ -1,15 +1,15 @@
-// controller/foods/update-food.js
+// controller/products/update-product.js
 import { prisma } from "../../prismaClient.js";
 import { normalizeSizeInput } from "../../utils/sizes.js";
 import { invalidateCatalog } from "../../utils/cache.js";
-import { validateFoodInput } from "./validate-food.js";
+import { validateProductInput } from "./validate-product.js";
 
-export const updateFood = async (req, res) => {
-  const invalid = validateFoodInput(req.body);
+export const updateProduct = async (req, res) => {
+  const invalid = validateProductInput(req.body);
   if (invalid) return res.status(400).json({ error: invalid });
   const { id } = req.params;
   const {
-    foodName,
+    productName,
     price: rawPrice,
     oldPrice: rawOldPrice,
     discount: rawDiscount,
@@ -24,7 +24,7 @@ export const updateFood = async (req, res) => {
     salesCount, // optional manual override
   } = req.body;
 
-  if (!id) return res.status(400).json({ error: "Missing food ID" });
+  if (!id) return res.status(400).json({ error: "Missing product ID" });
 
   try {
     // Parse numbers if present
@@ -80,7 +80,7 @@ export const updateFood = async (req, res) => {
 
     // Build update payload, only including fields that were explicitly provided or computed above.
     const updateData = {
-      foodName: typeof foodName === "string" ? foodName.trim() : undefined,
+      productName: typeof productName === "string" ? productName.trim() : undefined,
       price: typeof computedPrice === "number" ? Number(computedPrice) : undefined,
       oldPrice: rawOldPrice === null ? null : typeof computedOldPrice === "number" ? Number(computedOldPrice) : undefined,
       discount: typeof computedDiscount === "number" ? computedDiscount : undefined,
@@ -94,14 +94,14 @@ export const updateFood = async (req, res) => {
       salesCount: salesCount != null && salesCount !== "" ? Number(salesCount) : undefined,
     };
 
-    const updatedFood = await prisma.$transaction(async (tx) => {
+    const updatedProduct = await prisma.$transaction(async (tx) => {
       // Legacy label-only edits preserve the current inventory. Explicit null
       // switches an option back to untracked stock.
       if (Array.isArray(sizes)) {
         const incoming = normalizeSizeInput(sizes);
 
-        const existingSizes = await tx.foodSize.findMany({
-          where: { foodId: id },
+        const existingSizes = await tx.productSize.findMany({
+          where: { productId: id },
           select: { label: true, stock: true, price: true },
         });
         const priorStock = new Map(existingSizes.map((s) => [s.label, s.stock]));
@@ -139,7 +139,7 @@ export const updateFood = async (req, res) => {
         if (structuralChanges.size) {
           const activeOrder = await tx.orderItem.findFirst({
             where: {
-              foodId: id,
+              productId: id,
               size: { in: [...structuralChanges] },
               order: { status: { in: ["PENDING", "WAITING_PAYMENT", "COD_PENDING", "PAID", "DELIVERING"] } },
             },
@@ -154,7 +154,7 @@ export const updateFood = async (req, res) => {
         };
       }
 
-      return tx.food.update({
+      return tx.product.update({
         where: { id },
         data: updateData,
         include: { category: true, sizes: true },
@@ -163,16 +163,16 @@ export const updateFood = async (req, res) => {
 
     invalidateCatalog();
 
-    return res.json(updatedFood);
+    return res.json(updatedProduct);
   } catch (error) {
     if (error.code === "P2025") return res.status(404).json({ error: "Product not found" });
     if (error.code === "P2034") return res.status(409).json({ error: "Inventory changed while saving. Refresh the product and try again." });
     if (error.code === "P2003") return res.status(400).json({ error: "Category not found" });
     if (error.code === "ACTIVE_VARIANT_ORDERS") return res.status(409).json({ error: error.message });
     if (error.code === "STALE_INVENTORY") return res.status(409).json({ error: error.message });
-    console.error("Error updating food:", error);
+    console.error("Error updating product:", error);
     return res.status(500).json({
-      error: "Failed to update food",
+      error: "Failed to update product",
     });
   }
 };

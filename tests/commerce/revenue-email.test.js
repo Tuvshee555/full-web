@@ -14,7 +14,7 @@ test("revenue windows and chart buckets share Ulaanbaatar midnight/month boundar
 });
 
 test("order emails escape customer/product HTML and use a working localized order link", () => {
-  const { html, subject } = orderEmail("created", { id: "test-id", orderNumber: "<img src=x>", firstName: "<script>alert(1)</script>", lastName: "Test", address: "<iframe>bad</iframe>", notes: "<img src=x onerror=evil>", totalPrice: 100, foodOrderItems: [{ food: { foodName: "<script>product</script>" }, quantity: 1 }] });
+  const { html, subject } = orderEmail("created", { id: "test-id", orderNumber: "<img src=x>", firstName: "<script>alert(1)</script>", lastName: "Test", address: "<iframe>bad</iframe>", notes: "<img src=x onerror=evil>", totalPrice: 100, orderItems: [{ product: { productName: "<script>product</script>" }, quantity: 1 }] });
   assert.ok(subject.length > 0);
   assert.equal(html.includes("<script>"), false);
   assert.equal(html.includes("<iframe>"), false);

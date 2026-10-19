@@ -1,6 +1,6 @@
 import { prisma } from "../prismaClient.js";
 
-export const validateFoodOrder = async (req, res, next) => {
+export const validateOrder = async (req, res, next) => {
   const { id } = req.body;
 
   try {
@@ -10,7 +10,7 @@ export const validateFoodOrder = async (req, res, next) => {
         .json({ success: false, message: "Order ID not provided." });
     }
 
-    const order = await prisma.foodOrder.findUnique({
+    const order = await prisma.order.findUnique({
       where: { id },
     });
 

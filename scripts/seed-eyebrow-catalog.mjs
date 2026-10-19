@@ -68,7 +68,7 @@ const SHADES = ["Цайвар хүрэн", "Хүрэн", "Хар хүрэн"];
 const PRODUCTS = [
   {
     id: "1a0e5e00-0000-4000-8000-0000000000a1",
-    foodName: "Хөмсөгний сэрум",
+    productName: "Хөмсөгний сэрум",
     categoryId: CAT.care,
     price: 59900,
     isFeatured: true,
@@ -80,7 +80,7 @@ const PRODUCTS = [
   },
   {
     id: "1a0e5e00-0000-4000-8000-0000000000a2",
-    foodName: "Хөмсөгний тос",
+    productName: "Хөмсөгний тос",
     categoryId: CAT.care,
     price: 39900,
     image: PHOTO.amberBottle,
@@ -91,7 +91,7 @@ const PRODUCTS = [
   },
   {
     id: "1a0e5e00-0000-4000-8000-0000000000a3",
-    foodName: "Тунгалаг хөмсөгний гель",
+    productName: "Тунгалаг хөмсөгний гель",
     categoryId: CAT.shape,
     price: 29900,
     image: PHOTO.wandPink,
@@ -102,7 +102,7 @@ const PRODUCTS = [
   },
   {
     id: "1a0e5e00-0000-4000-8000-0000000000a4",
-    foodName: "Хөмсөгний помад",
+    productName: "Хөмсөгний помад",
     categoryId: CAT.define,
     price: 34900,
     image: PHOTO.browKitPink,
@@ -113,7 +113,7 @@ const PRODUCTS = [
   },
   {
     id: "1a0e5e00-0000-4000-8000-0000000000a5",
-    foodName: "Нарийн үзүүртэй хөмсөгний харандаа",
+    productName: "Нарийн үзүүртэй хөмсөгний харандаа",
     categoryId: CAT.define,
     price: 24900,
     image: PHOTO.pencilBlack,
@@ -124,7 +124,7 @@ const PRODUCTS = [
   },
   {
     id: "1a0e5e00-0000-4000-8000-0000000000a6",
-    foodName: "Модон хөмсөгний харандаа",
+    productName: "Модон хөмсөгний харандаа",
     categoryId: CAT.define,
     price: 19900,
     image: PHOTO.pencilsGold,
@@ -134,7 +134,7 @@ const PRODUCTS = [
   },
   {
     id: "1a0e5e00-0000-4000-8000-0000000000a7",
-    foodName: "Нарийн хясаа",
+    productName: "Нарийн хясаа",
     categoryId: CAT.tools,
     price: 19900,
     image: PHOTO.tweezers,
@@ -144,7 +144,7 @@ const PRODUCTS = [
   },
   {
     id: "1a0e5e00-0000-4000-8000-0000000000a8",
-    foodName: "Хөмсөгний сойзны иж бүрдэл",
+    productName: "Хөмсөгний сойзны иж бүрдэл",
     categoryId: CAT.tools,
     price: 34900,
     image: PHOTO.brushesGold,
@@ -154,7 +154,7 @@ const PRODUCTS = [
   },
   {
     id: "1a0e5e00-0000-4000-8000-0000000000a9",
-    foodName: "Налуу сойз",
+    productName: "Налуу сойз",
     categoryId: CAT.tools,
     price: 14900,
     image: PHOTO.brushFan,
@@ -164,7 +164,7 @@ const PRODUCTS = [
   },
   {
     id: "1a0e5e00-0000-4000-8000-0000000000b1",
-    foodName: "Хөмсөгний арчилгааны багц",
+    productName: "Хөмсөгний арчилгааны багц",
     categoryId: CAT.sets,
     // Bundle of serum + gel + fine pencil; compare-at = their real separate prices
     price: 99900,
@@ -178,12 +178,12 @@ const PRODUCTS = [
 ];
 
 async function backup() {
-  const [foods, foodSizes, categories, reviews, orders, orderItems, payments, lemonPayments] = await Promise.all([
-    prisma.food.findMany(),
-    prisma.foodSize.findMany(),
+  const [products, productSizes, categories, reviews, orders, orderItems, payments, lemonPayments] = await Promise.all([
+    prisma.product.findMany(),
+    prisma.productSize.findMany(),
     prisma.category.findMany(),
     prisma.review.findMany(),
-    prisma.foodOrder.findMany(),
+    prisma.order.findMany(),
     prisma.orderItem.findMany(),
     prisma.payment.findMany(),
     prisma.lemonPayment.findMany(),
@@ -191,15 +191,15 @@ async function backup() {
   const dir = path.resolve(".local-backups");
   fs.mkdirSync(dir, { recursive: true });
   const file = path.join(dir, `catalog-before-eyebrow-${new Date().toISOString().replace(/[:.]/g, "-")}.json`);
-  fs.writeFileSync(file, JSON.stringify({ foods, foodSizes, categories, reviews, orders, orderItems, payments, lemonPayments }, null, 2));
-  return { file, counts: { foods: foods.length, categories: categories.length, reviews: reviews.length, orders: orders.length } };
+  fs.writeFileSync(file, JSON.stringify({ products, productSizes, categories, reviews, orders, orderItems, payments, lemonPayments }, null, 2));
+  return { file, counts: { products: products.length, categories: categories.length, reviews: reviews.length, orders: orders.length } };
 }
 
 async function main() {
   const now = {
-    foods: await prisma.food.count(),
+    products: await prisma.product.count(),
     categories: await prisma.category.count(),
-    orders: await prisma.foodOrder.count(),
+    orders: await prisma.order.count(),
     reviews: await prisma.review.count(),
   };
   console.log("Database now:", now);
@@ -214,21 +214,21 @@ async function main() {
 
   await prisma.$transaction(
     async (tx) => {
-      const orderIds = (await tx.foodOrder.findMany({ select: { id: true } })).map((o) => o.id);
+      const orderIds = (await tx.order.findMany({ select: { id: true } })).map((o) => o.id);
       await tx.review.deleteMany({});
       await tx.orderItem.deleteMany({});
       await tx.lemonPayment.deleteMany({});
       await tx.payment.deleteMany({ where: { orderId: { in: orderIds } } });
-      await tx.foodOrder.deleteMany({});
-      await tx.foodSize.deleteMany({});
-      await tx.food.deleteMany({});
+      await tx.order.deleteMany({});
+      await tx.productSize.deleteMany({});
+      await tx.product.deleteMany({});
       await tx.category.updateMany({ data: { parentId: null } });
       await tx.category.deleteMany({});
 
       await tx.category.createMany({ data: CATEGORIES });
       for (const p of PRODUCTS) {
         const { sizes, ...data } = p;
-        await tx.food.create({
+        await tx.product.create({
           data: {
             ...data,
             sizes: { create: sizes.map((label) => ({ label })) },
@@ -241,8 +241,8 @@ async function main() {
 
   console.log("Seeded:", {
     categories: await prisma.category.count(),
-    products: await prisma.food.count(),
-    orders: await prisma.foodOrder.count(),
+    products: await prisma.product.count(),
+    orders: await prisma.order.count(),
   });
 }
 

@@ -10,7 +10,7 @@ for (const scenario of scenarios) test(`multi-turn acceptance: ${scenario.id}`, 
   const results = await runFlow(scenario.turns.map((turn: { text: string }) => turn.text), scenario.locale as "mn" | "en");
   for (let i = 0; i < results.length; i++) {
     const text = results[i].text, item = scenario.turns[i];
-    const prose = products.reduce((result, product) => result.replaceAll(product.foodName, ""), text);
+    const prose = products.reduce((result, product) => result.replaceAll(product.productName, ""), text);
     if (scenario.locale === "en") assert.doesNotMatch(prose, /[А-Яа-яӨҮөү]{4,}/);
     else assert.match(prose, /[А-Яа-яӨҮөү]/);
     if (item.card) assert.match(text, /QPay/);

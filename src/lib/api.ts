@@ -9,7 +9,7 @@ import axios from "axios";
  * directly:
  *
  *   import { api } from "@/lib/api";
- *   const { data } = await api.get(`/food/${id}`);
+ *   const { data } = await api.get(`/products/${id}`);
  *   await api.post("/order", payload);
  *
  * The bearer token (if the user is logged in) is attached automatically.

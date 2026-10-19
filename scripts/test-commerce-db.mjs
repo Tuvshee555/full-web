@@ -71,9 +71,9 @@ try {
   const { applyStockDecrements } = await import("../server/utils/stock.js");
   const { confirmPaidOrder } = await import("../server/utils/orderPaid.js");
   const { expireUnpaidOrders } = await import("../server/jobs/expireOrders.js");
-  const { createFoodOrder } = await import("../server/controller/orders/create-orders.js");
-  const { updatedFoodOrder } = await import("../server/controller/orders/update-orders.js");
-  const { deleteFoodOrder } = await import("../server/controller/orders/delete-orders.js");
+  const { createOrder } = await import("../server/controller/orders/create-orders.js");
+  const { updatedOrder } = await import("../server/controller/orders/update-orders.js");
+  const { deleteOrder } = await import("../server/controller/orders/delete-orders.js");
   const { backgroundSettled } = await import("../server/utils/background.js");
   const user = await prisma.user.create({ data: { email: "integration@example.invalid", isVerified: true } });
   const request = (body, id, role = "USER") => ({ body, params: { id }, user: { id: user.id, role } });
@@ -86,62 +86,62 @@ try {
   const fixture = async ({ stock = 5 } = {}) => {
     await backgroundSettled();
     await prisma.$transaction([
-      prisma.payment.deleteMany(), prisma.orderItem.deleteMany(), prisma.foodOrder.deleteMany(),
-      prisma.foodSize.deleteMany(), prisma.food.deleteMany(),
+      prisma.payment.deleteMany(), prisma.orderItem.deleteMany(), prisma.order.deleteMany(),
+      prisma.productSize.deleteMany(), prisma.product.deleteMany(),
     ]);
-    return prisma.food.create({ data: {
-      foodName: "Isolated integration product", price: 100, image: "/test-only.png", ingredients: "Test",
+    return prisma.product.create({ data: {
+      productName: "Isolated integration product", price: 100, image: "/test-only.png", ingredients: "Test",
       sizes: { create: { label: "Small", stock } },
     } });
   };
   const reserveOrder = async ({ expired = false, quantity = 2, stock = 5 } = {}) => {
-    const food = await fixture({ stock });
+    const product = await fixture({ stock });
     const order = await prisma.$transaction(async (tx) => {
-      await applyStockDecrements(tx, [{ foodId: food.id, size: "Small", quantity }]);
-      return tx.foodOrder.create({ data: {
+      await applyStockDecrements(tx, [{ productId: product.id, size: "Small", quantity }]);
+      return tx.order.create({ data: {
         userId: user.id, orderNumber: crypto.randomUUID(), totalPrice: quantity * 100,
         status: "WAITING_PAYMENT", paymentMethod: "QPAY",
         createdAt: new Date(Date.now() - (expired ? 20 * 60000 : 60000)),
-        foodOrderItems: { create: { foodId: food.id, quantity, size: "Small" } },
+        orderItems: { create: { productId: product.id, quantity, size: "Small" } },
       } });
     });
     const payment = await prisma.payment.create({ data: { orderId: order.id, invoiceId: crypto.randomUUID(), amount: order.totalPrice } });
-    return { food, order, payment };
+    return { product, order, payment };
   };
-  const inspect = async ({ food, order, payment }) => ({
-    order: await prisma.foodOrder.findUnique({ where: { id: order.id } }),
+  const inspect = async ({ product, order, payment }) => ({
+    order: await prisma.order.findUnique({ where: { id: order.id } }),
     payment: await prisma.payment.findUnique({ where: { id: payment.id } }),
-    food: await prisma.food.findUnique({ where: { id: food.id }, include: { sizes: true } }),
+    product: await prisma.product.findUnique({ where: { id: product.id }, include: { sizes: true } }),
   });
   const confirm = (sample) => confirmPaidOrder({ orderId: sample.order.id, invoiceId: sample.payment.invoiceId });
 
   await check("concurrent checkouts cannot oversell real PostgreSQL variant stock", async () => {
-    const food = await fixture({ stock: 5 });
+    const product = await fixture({ stock: 5 });
     const replies = await Promise.all(Array.from({ length: 15 }, async (_, i) => {
       const res = response();
-      await createFoodOrder(request({ ...delivery, paymentMethod: "BANK", idempotencyKey: `reservation-${i}`,
-        items: [{ foodId: food.id, quantity: 1, size: "Small" }] }), res);
+      await createOrder(request({ ...delivery, paymentMethod: "BANK", idempotencyKey: `reservation-${i}`,
+        items: [{ productId: product.id, quantity: 1, size: "Small" }] }), res);
       return res;
     }));
     assert.equal(replies.filter((res) => res.code === 201).length, 5);
     assert.ok(replies.every((res) => [201, 409].includes(res.code)));
-    assert.equal(await prisma.foodOrder.count(), 5);
-    assert.equal((await prisma.foodSize.findFirst({ where: { foodId: food.id } })).stock, 0);
+    assert.equal(await prisma.order.count(), 5);
+    assert.equal((await prisma.productSize.findFirst({ where: { productId: product.id } })).stock, 0);
   });
 
   await check("concurrent duplicate checkout keys reserve stock once", async () => {
-    const food = await fixture({ stock: 10 });
+    const product = await fixture({ stock: 10 });
     const replies = await Promise.all(Array.from({ length: 12 }, async () => {
       const res = response();
-      await createFoodOrder(request({ ...delivery, paymentMethod: "BANK", idempotencyKey: "same-checkout",
-        items: [{ foodId: food.id, quantity: 2, size: "Small" }] }), res);
+      await createOrder(request({ ...delivery, paymentMethod: "BANK", idempotencyKey: "same-checkout",
+        items: [{ productId: product.id, quantity: 2, size: "Small" }] }), res);
       return res;
     }));
     assert.equal(replies.filter((res) => res.code === 201).length, 1);
     assert.ok(replies.every((res) => [200, 201].includes(res.code)));
     assert.equal(new Set(replies.map((res) => res.body.orderId)).size, 1);
-    assert.equal(await prisma.foodOrder.count(), 1);
-    assert.equal((await prisma.foodSize.findFirst({ where: { foodId: food.id } })).stock, 8);
+    assert.equal(await prisma.order.count(), 1);
+    assert.equal((await prisma.productSize.findFirst({ where: { productId: product.id } })).stock, 8);
   });
 
   await check("simultaneous payment confirmation counts sales exactly once", async () => {
@@ -150,7 +150,7 @@ try {
     const actual = await inspect(sample);
     assert.equal(results.filter((result) => result.changed).length, 1);
     assert.equal(actual.order.status, "PAID"); assert.equal(actual.payment.status, "PAID");
-    assert.equal(actual.food.salesCount, 2); assert.equal(actual.food.sizes[0].stock, 3);
+    assert.equal(actual.product.salesCount, 2); assert.equal(actual.product.sizes[0].stock, 3);
   });
 
   await check("duplicate expiry workers release one reservation once", async () => {
@@ -158,14 +158,14 @@ try {
     const results = await Promise.all(Array.from({ length: 10 }, () => expireUnpaidOrders(prisma)));
     assert.equal(results.reduce((sum, value) => sum + value, 0), 1);
     const actual = await inspect(sample);
-    assert.equal(actual.order.status, "CANCELLED"); assert.equal(actual.food.sizes[0].stock, 5);
+    assert.equal(actual.order.status, "CANCELLED"); assert.equal(actual.product.sizes[0].stock, 5);
   });
 
   await check("expiry rechecks status after a stale candidate scan", async () => {
     const sample = await reserveOrder({ expired: true });
     const staleReader = {
-      foodOrder: { findMany: async (args) => {
-        const selected = await prisma.foodOrder.findMany(args);
+      order: { findMany: async (args) => {
+        const selected = await prisma.order.findMany(args);
         await confirm(sample);
         return selected;
       } },
@@ -173,7 +173,7 @@ try {
     };
     assert.equal(await expireUnpaidOrders(staleReader), 0);
     const actual = await inspect(sample);
-    assert.equal(actual.order.status, "PAID"); assert.equal(actual.food.sizes[0].stock, 3);
+    assert.equal(actual.order.status, "PAID"); assert.equal(actual.product.sizes[0].stock, 3);
   });
 
   await check("payment versus expiry races preserve receipt, inventory and sales invariants", async () => {
@@ -183,8 +183,8 @@ try {
       const actual = await inspect(sample);
       assert.equal(actual.payment.status, "PAID");
       assert.ok(["PAID", "CANCELLED"].includes(actual.order.status));
-      assert.equal(actual.food.sizes[0].stock, actual.order.status === "PAID" ? 3 : 5);
-      assert.equal(actual.food.salesCount, actual.order.status === "PAID" ? 2 : 0);
+      assert.equal(actual.product.sizes[0].stock, actual.order.status === "PAID" ? 3 : 5);
+      assert.equal(actual.product.salesCount, actual.order.status === "PAID" ? 2 : 0);
     }
   });
 
@@ -192,26 +192,26 @@ try {
     for (let i = 0; i < 8; i += 1) {
       const sample = await reserveOrder();
       const res = response();
-      await Promise.all([updatedFoodOrder(request({ status: "CANCELLED" }, sample.order.id, "ADMIN"), res), confirm(sample)]);
+      await Promise.all([updatedOrder(request({ status: "CANCELLED" }, sample.order.id, "ADMIN"), res), confirm(sample)]);
       assert.ok([200, 400, 409].includes(res.code));
       const actual = await inspect(sample);
       assert.equal(actual.payment.status, "PAID");
       assert.ok(["PAID", "CANCELLED"].includes(actual.order.status));
-      assert.equal(actual.food.sizes[0].stock, actual.order.status === "PAID" ? 3 : 5);
-      assert.equal(actual.food.salesCount, actual.order.status === "PAID" ? 2 : 0);
+      assert.equal(actual.product.sizes[0].stock, actual.order.status === "PAID" ? 3 : 5);
+      assert.equal(actual.product.salesCount, actual.order.status === "PAID" ? 2 : 0);
     }
   });
 
   await check("real transaction rolls back payment receipt when sales accounting fails", async () => {
     const sample = await reserveOrder();
     const brokenAccounting = { $transaction: (callback) => prisma.$transaction((tx) => callback({
-      foodOrder: tx.foodOrder, payment: tx.payment, orderItem: tx.orderItem,
-      food: { update: async () => { throw new Error("Injected sales write failure"); } },
+      order: tx.order, payment: tx.payment, orderItem: tx.orderItem,
+      product: { update: async () => { throw new Error("Injected sales write failure"); } },
     })) };
     await assert.rejects(confirmPaidOrder({ orderId: sample.order.id, invoiceId: sample.payment.invoiceId }, brokenAccounting), /Injected sales/);
     const actual = await inspect(sample);
     assert.equal(actual.order.status, "WAITING_PAYMENT"); assert.equal(actual.payment.status, "PENDING");
-    assert.equal(actual.food.salesCount, 0);
+    assert.equal(actual.product.salesCount, 0);
   });
 
   await check("late verified funds retain a cancelled order and its payment history", async () => {
@@ -220,9 +220,9 @@ try {
     assert.equal((await confirm(sample)).requiresReview, true);
     const actual = await inspect(sample);
     assert.equal(actual.order.status, "CANCELLED"); assert.equal(actual.payment.status, "PAID");
-    assert.equal(actual.food.sizes[0].stock, 5); assert.equal(actual.food.salesCount, 0);
-    const res = response(); await deleteFoodOrder(request({ id: sample.order.id }, sample.order.id, "ADMIN"), res);
-    assert.equal(res.code, 409); assert.ok(await prisma.foodOrder.findUnique({ where: { id: sample.order.id } }));
+    assert.equal(actual.product.sizes[0].stock, 5); assert.equal(actual.product.salesCount, 0);
+    const res = response(); await deleteOrder(request({ id: sample.order.id }, sample.order.id, "ADMIN"), res);
+    assert.equal(res.code, 409); assert.ok(await prisma.order.findUnique({ where: { id: sample.order.id } }));
   });
 
   console.log(`Commerce integration: ${passed} checks passed against isolated PostgreSQL on 127.0.0.1:${port}.`);

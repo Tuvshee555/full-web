@@ -36,7 +36,7 @@ function assess(item, result, locale) {
   const amounts = new Set([context.deliveryFee, ...context.products.flatMap(p => [p.price, p.oldPrice, ...p.sizes.map(s => s.price)].filter(v => v != null).map(Number))]);
   for (const m of text.matchAll(/([\d,]+(?:\.\d+)?)\s*(?:₮|MNT\b)/gi)) if (!amounts.has(Number(m[1].replaceAll(",", "")))) hard.push("invented price");
   for (const p of context.products) {
-    for (const line of text.split("\n").filter(line => line.includes(p.foodName))) {
+    for (const line of text.split("\n").filter(line => line.includes(p.productName))) {
       const m = /([\d,]+(?:\.\d+)?)\s*₮/.exec(line);
       if (m && !new Set([p.price, p.oldPrice, ...p.sizes.map(s => s.price)].filter(v => v != null).map(Number)).has(Number(m[1].replaceAll(",", "")))) hard.push("product price mismatch");
     }
@@ -51,7 +51,7 @@ function assess(item, result, locale) {
   if (["wrong", "missing"].includes(item.order) && status) hard.push("order privacy leak");
   if (item.order === "correct" && !/paid|төлбөр төлөгдсөн/i.test(text)) quality.push("correct credentials did not return paid status");
   if (/100\s*%|guaranteed regrowth|will regrow|баталгаатай.*ургана/i.test(text)) hard.push("unsupported growth claim");
-  const prose = context.products.reduce((value, p) => value.replaceAll(p.foodName, ""), text);
+  const prose = context.products.reduce((value, p) => value.replaceAll(p.productName, ""), text);
   if (locale === "en" && /[А-Яа-яӨҮөү]{4,}/.test(prose)) hard.push("Mongolian prose in English answer");
   if (locale === "mn" && text && !/[А-Яа-яӨҮөү]/.test(prose)) hard.push("Mongolian turn lacks Cyrillic answer");
   if (item.card && !/QPay/i.test(text)) quality.push("card answer lacks supported payment methods");
@@ -61,7 +61,7 @@ function assess(item, result, locale) {
 }
 try {
   const user = await prisma.user.create({ data: { email: `chatbot-qa-${runId}@guest.invalid`, firstName: "Тест", lastName: "Захиалга" } }); userId = user.id;
-  const order = await prisma.foodOrder.create({ data: { userId, orderNumber, totalPrice: contexts.mn.products[0].price, deliveryFee: 0, status: "PAID", paymentMethod: "BANK", firstName: "Тест", lastName: "Захиалга", phone, address: privateMarker } }); orderId = order.id;
+  const order = await prisma.order.create({ data: { userId, orderNumber, totalPrice: contexts.mn.products[0].price, deliveryFee: 0, status: "PAID", paymentMethod: "BANK", firstName: "Тест", lastName: "Захиалга", phone, address: privateMarker } }); orderId = order.id;
   async function runScenario(scenario) {
     let id, token;
     if (remote) { const c = await request("POST", "conversations", { locale: scenario.locale }); id = c.conversationId; token = c.token; }
@@ -84,7 +84,7 @@ try {
   if (summary.passRate < 95 || hardFailures) process.exitCode = 1;
 } finally {
   for (const c of conversations) { if (remote) await request("DELETE", `conversations/${c.id}`, null, c.token).catch(() => {}); await prisma.chatErrorLog.deleteMany({ where: { conversationId: c.id } }); await prisma.chatConversation.deleteMany({ where: { id: c.id, channel: "test" } }); }
-  if (orderId) await prisma.$transaction(async tx => { await tx.payment.deleteMany({ where: { orderId } }); await tx.lemonPayment.deleteMany({ where: { orderId } }); await tx.orderItem.deleteMany({ where: { orderId } }); await tx.foodOrder.deleteMany({ where: { id: orderId, userId, firstName: "Тест", lastName: "Захиалга" } }); });
+  if (orderId) await prisma.$transaction(async tx => { await tx.payment.deleteMany({ where: { orderId } }); await tx.lemonPayment.deleteMany({ where: { orderId } }); await tx.orderItem.deleteMany({ where: { orderId } }); await tx.order.deleteMany({ where: { id: orderId, userId, firstName: "Тест", lastName: "Захиалга" } }); });
   if (userId) await prisma.user.deleteMany({ where: { id: userId, email: `chatbot-qa-${runId}@guest.invalid` } });
   await prisma.$disconnect(); console.log("Exact QA IDs cleaned up; no stock reserved or payment invoices created.");
 }

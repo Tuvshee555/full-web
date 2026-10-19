@@ -15,7 +15,7 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-  // This route sees "/api/food"; the Express app serves "/food".
+  // This route sees "/api/products"; the Express app serves "/products".
   req.url = req.url.replace(/^\/api(?=\/|\?|$)/, "") || "/";
 
   // Next pre-fills req.query (including this route's own "slug"); let Express

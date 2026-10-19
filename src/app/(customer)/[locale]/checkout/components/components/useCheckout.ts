@@ -73,7 +73,7 @@ export function useCheckout(cart: StoreCartItem[]) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const idempotencyKey = useRef(newKey());
 
-  const productTotal = useMemo(() => cart.reduce((s, i) => s + Number(i.food?.price ?? 0) * (Number(i.quantity) || 0), 0), [cart]);
+  const productTotal = useMemo(() => cart.reduce((s, i) => s + Number(i.product?.price ?? 0) * (Number(i.quantity) || 0), 0), [cart]);
   const deliveryFee = DELIVERY_FEE;
   const total = productTotal + deliveryFee;
 
@@ -148,8 +148,8 @@ export function useCheckout(cart: StoreCartItem[]) {
       `${API_BASE_URL}/order`,
       {
         items: cart
-          .map((i) => ({ foodId: i.food?.id ?? i.foodId, quantity: Number(i.quantity) || 0, size: i.selectedSize ?? null }))
-          .filter((i) => i.foodId && i.quantity > 0),
+          .map((i) => ({ productId: i.product?.id ?? i.productId, quantity: Number(i.quantity) || 0, size: i.selectedSize ?? null }))
+          .filter((i) => i.productId && i.quantity > 0),
         totalPrice: total,
         paymentMethod,
         deliveryZone: form.deliveryZone ?? "UB",

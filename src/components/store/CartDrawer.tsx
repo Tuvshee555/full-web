@@ -41,7 +41,7 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
           </div>
           <ul className="flex-1 overflow-y-auto px-[20px] md:px-[30px]">
             {items.map((item) => (
-              <CartLine key={`${item.foodId}-${item.selectedSize ?? ""}`} item={item} onNavigate={onClose} locale={locale} />
+              <CartLine key={`${item.productId}-${item.selectedSize ?? ""}`} item={item} onNavigate={onClose} locale={locale} />
             ))}
           </ul>
           <div className="border-t border-[rgba(28,23,20,0.08)] px-[20px] md:px-[30px] pt-[20px] pb-[25px]">
@@ -69,34 +69,34 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
 
 function CartLine({ item, onNavigate, locale }: { item: StoreCartItem; onNavigate: () => void; locale: string }) {
   const { st } = useStoreT();
-  const href = productUrl(locale, item.foodId);
+  const href = productUrl(locale, item.productId);
   return (
     <li className="flex gap-[15px] py-[20px] border-b border-[rgba(28,23,20,0.08)] last:border-0">
       <Link href={href} onClick={onNavigate} className="h-[76px] w-[64px] sm:h-[96px] sm:w-[80px] shrink-0 bg-[#efe7dd]">
-        {item.food?.image ? <img src={item.food.image} alt="" className="h-full w-full object-cover" /> : null}
+        {item.product?.image ? <img src={item.product.image} alt="" className="h-full w-full object-cover" /> : null}
       </Link>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-start justify-between gap-x-[10px] gap-y-[4px]">
           <Link href={href} onClick={onNavigate} className="font-medium text-ink text-[15px] link-underline">
-            {item.food?.foodName}
+            {item.product?.productName}
           </Link>
           <span className="shrink-0 text-[15px] tracking-normal text-[#1c1714]">
-            {money(Number(item.food?.price ?? 0) * item.quantity)}
+            {money(Number(item.product?.price ?? 0) * item.quantity)}
           </span>
         </div>
-        <p className="mt-[2px] text-[14px]">{money(item.food?.price)}</p>
+        <p className="mt-[2px] text-[14px]">{money(item.product?.price)}</p>
         {item.selectedSize && (
           <p className="text-[14px]">
             {st("size")}: {item.selectedSize}
           </p>
         )}
         <div className="mt-[10px] flex items-center gap-[10px]">
-          <QuantityInput small value={item.quantity} onChange={(v) => setQuantity(item.foodId, item.selectedSize, v)} />
+          <QuantityInput small value={item.quantity} onChange={(v) => setQuantity(item.productId, item.selectedSize, v)} />
           <button
             type="button"
             aria-label={st("remove")}
             className="flex h-[44px] w-[44px] items-center justify-center text-[#1c1714]"
-            onClick={() => setQuantity(item.foodId, item.selectedSize, 0)}
+            onClick={() => setQuantity(item.productId, item.selectedSize, 0)}
           >
             <Trash2 className="h-[16px] w-[16px]" strokeWidth={1.5} />
           </button>

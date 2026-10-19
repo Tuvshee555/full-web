@@ -59,7 +59,7 @@ sample. Timings include HTTP response work and database network latency.
 
 | Endpoint | Cold median / p95 | Warm median / p95 | SQL across 12 warm requests |
 | --- | --- | --- | --- |
-| `/food` | 843.57 / 4473.28 ms | 21.47 / 55.99 ms | 0 |
+| `/food` (now `/products`) | 843.57 / 4473.28 ms | 21.47 / 55.99 ms | 0 |
 | `/category/tree` | 281.16 / 557.18 ms | 11.05 / 19.17 ms | 0 |
 
 The first cold product sample includes connection startup. These figures show

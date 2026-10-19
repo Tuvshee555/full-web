@@ -5,7 +5,7 @@
 import express from "express";
 import cors from "cors";
 import { userRouter } from "./routers/user.router.js";
-import { foodRouter } from "./routers/food.router.js";
+import { productRouter } from "./routers/product.router.js";
 import { categoryRouter } from "./routers/category.router.js";
 import { items } from "./routers/items.router.js";
 import { qpayRouter } from "./routers/qpay.router.js";
@@ -18,6 +18,7 @@ import { cleanupGuestUsers } from "./jobs/cleanupGuests.js";
 import { reviewRouter } from "./routers/review.router.js";
 import { connectPrismaWithRetry } from "./utils/prisma.js";
 import { corsOptions } from "./utils/corsOptions.js";
+import { catalogCompatibility } from "./middleware/catalogCompatibility.js";
 
 // Optional hardening/perf middleware, loaded defensively so the server still
 // boots if the deps aren't installed yet (run `npm install` to enable them).
@@ -75,6 +76,7 @@ app.use(express.json({
 }));
 
 app.use(express.urlencoded({ extended: true }));
+app.use(catalogCompatibility);
 
 app.get("/", (_, res) => {
   res.json({ status: "ok" });
@@ -89,7 +91,7 @@ app.get("/ready", async (_, res) => {
   } catch { return res.status(503).json({ status: "unavailable" }); }
 });
 
-app.use("/food", foodRouter);
+app.use("/products", productRouter);
 app.use("/order", orderRouter);
 app.use("/user", userRouter);
 app.use("/category", categoryRouter);

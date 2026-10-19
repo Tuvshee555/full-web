@@ -35,18 +35,18 @@ export async function sendTelegramMessage(text) {
 
 const tg = (n) => `${Math.round(Number(n || 0)).toLocaleString("en-US")}₮`;
 const adminOrdersUrl = () => `${siteUrl().replace(/\/$/, "")}/admin/mn/home-page?view=orders`;
-const unitPriceOf = (it) => Number(it.unitPrice ?? it.food?.price ?? 0);
+const unitPriceOf = (it) => Number(it.unitPrice ?? it.product?.price ?? 0);
 
 /** Owner alert for a new order: what to pack, what was paid, where it goes. */
 export function formatOrderMessage(order) {
   const name = [order.lastName, order.firstName].filter(Boolean).join(" ");
   const address = [order.city, order.district, order.khoroo, order.address].filter(Boolean).join(", ");
-  const items = order.foodOrderItems ?? [];
+  const items = order.orderItems ?? [];
   const lines = items.length
     ? items
         .map((it) => {
           const qty = Number(it.quantity ?? 1);
-          return `• ${it.food?.foodName ?? "Бүтээгдэхүүн"}${it.size ? ` (${it.size})` : ""}: ${qty} × ${tg(unitPriceOf(it))} = ${tg(unitPriceOf(it) * qty)}`;
+          return `• ${it.product?.productName ?? "Бүтээгдэхүүн"}${it.size ? ` (${it.size})` : ""}: ${qty} × ${tg(unitPriceOf(it))} = ${tg(unitPriceOf(it) * qty)}`;
         })
         .join("\n")
     : "• (бараа алга)";

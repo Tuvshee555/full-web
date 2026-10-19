@@ -10,7 +10,7 @@ import axios from "axios";
  *
  *   import { api } from "@admin/lib/api";
  *   const { data } = await api.get("/order?mode=revenue");
- *   await api.post("/food", payload);
+ *   await api.post("/products", payload);
  *
  * The admin bearer token (if present) is attached automatically.
  */

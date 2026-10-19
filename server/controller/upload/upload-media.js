@@ -15,7 +15,7 @@ export const uploadMedia = async (req, res) => {
 
         const result = await cloudinary.uploader.upload(file.path, {
           resource_type: isVideo ? "video" : "image",
-          folder: "foods",
+          folder: "products",
         });
 
         return result.secure_url;

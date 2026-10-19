@@ -48,7 +48,7 @@ No existing model/table was dropped, renamed or truncated. The owner-editable si
 | `scripts/chatbot-meta-smoke.mjs` | Both fake channels: handshake, tampered/unsigned rejection, DB dedup, handoff and outbound-off passed; all fake channel records removed |
 | `scripts/chatbot-runtime-smoke.mjs` | Missing key, provider HTTP failure, fallback/lead capture, paused contact capture, global-off branch, processing lease, interrupted request recovery, follow-up product memory, persistent rate limit, fresh post-provider price/stock evidence and concurrent admin takeover checked |
 | Mobile visual check | Widget rendered and answered an English delivery question at 390 × 844; [screenshot](WIDGET_MOBILE.png); the exact browser test conversation was identified, marked test and removed |
-| Production | `/mn`, `/en`, `/api/food` and real website chat served successfully; anonymous admin settings returned 401; unconfigured Meta returned 503; Vercel production builds confirmed Ready |
+| Production | `/mn`, `/en`, `/api/food` (now `/api/products`) and real website chat served successfully; anonymous admin settings returned 401; unconfigured Meta returned 503; Vercel production builds confirmed Ready |
 
 Final catalogue QA: **50/50 (100%)**, with **0 detected invented facts and 0 privacy leaks**. There are 30 Cyrillic Mongolian messages, 5 Latin Mongolian messages and 15 English messages. Every case uses a request-time database catalogue and an isolated order-status fixture. The initial run scored 45/50 solely because English questions containing Cyrillic product names were misclassified; product names are now removed before language detection. Subsequent full reruns passed 50/50; the final result is recorded in the linked table.
 

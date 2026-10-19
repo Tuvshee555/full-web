@@ -24,7 +24,7 @@ export const getOrdersByUser = async (req, res) => {
         ? requestedUserId
         : authUserId;
 
-    const orders = await prisma.foodOrder.findMany({
+    const orders = await prisma.order.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
       select: {

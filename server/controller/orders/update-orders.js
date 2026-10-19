@@ -25,7 +25,7 @@ const CUSTOMER_EDITABLE_STATUSES = new Set([
   "COD_PENDING",
 ]);
 
-export const updatedFoodOrder = async (req, res) => {
+export const updatedOrder = async (req, res) => {
   const { id } = req.params;
   if (!id) return res.status(400).json({ message: "Order ID required" });
 
@@ -49,10 +49,10 @@ export const updatedFoodOrder = async (req, res) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const existing = await prisma.foodOrder.findUnique({
+    const existing = await prisma.order.findUnique({
       where: { id },
       include: {
-        foodOrderItems: { include: { food: true } },
+        orderItems: { include: { product: true } },
       },
     });
 
@@ -125,7 +125,7 @@ export const updatedFoodOrder = async (req, res) => {
     if (notes !== undefined) data.notes = safe(notes);
 
     const updated = await prisma.$transaction(async (tx) => {
-      const claimed = await tx.foodOrder.updateMany({
+      const claimed = await tx.order.updateMany({
         where: { id, status: existing.status, updatedAt: existing.updatedAt },
         data,
       });
@@ -134,9 +134,9 @@ export const updatedFoodOrder = async (req, res) => {
         await incrementSalesForOrder(id, tx);
       }
       if (status === "CANCELLED") await restockOrder(id, tx);
-      return tx.foodOrder.findUnique({
+      return tx.order.findUnique({
         where: { id },
-        include: { foodOrderItems: { include: { food: true } } },
+        include: { orderItems: { include: { product: true } } },
       });
     });
     if (!updated) return res.status(409).json({
@@ -195,15 +195,15 @@ export const updatedFoodOrder = async (req, res) => {
         address: updated.address,
         notes: updated.notes,
       },
-      items: updated.foodOrderItems.map((it) => ({
+      items: updated.orderItems.map((it) => ({
         id: it.id,
         quantity: it.quantity,
         size: it.size,
-        food: {
-          id: it.food.id,
-          foodName: it.food.foodName,
-          price: it.unitPrice ?? it.food.price,
-          image: it.food.image,
+        product: {
+          id: it.product.id,
+          productName: it.product.productName,
+          price: it.unitPrice ?? it.product.price,
+          image: it.product.image,
         },
       })),
     });

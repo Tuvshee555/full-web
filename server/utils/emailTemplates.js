@@ -30,7 +30,7 @@ const payUrl = (order) =>
     : `${site()}/mn/checkout/bank-transfer?orderId=${order.id}`;
 
 /** The price one unit was sold at (older order lines have no stored price). */
-const unitPriceOf = (item) => Number(item.unitPrice ?? item.food?.price ?? 0);
+const unitPriceOf = (item) => Number(item.unitPrice ?? item.product?.price ?? 0);
 
 const button = (href, label) => `
   <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0 8px;">
@@ -53,7 +53,7 @@ const section = (title, inner) => `
   </td></tr>`;
 
 function itemsTable(order) {
-  const items = order.foodOrderItems ?? [];
+  const items = order.orderItems ?? [];
   if (!items.length) return "";
   const lines = items
     .map((it) => {
@@ -62,7 +62,7 @@ function itemsTable(order) {
       return `
         <tr>
           <td style="padding:10px 0;border-bottom:1px solid ${C.line};font-family:${SANS};font-size:14px;color:${C.ink};">
-            ${esc(it.food?.foodName ?? "Бүтээгдэхүүн")}
+            ${esc(it.product?.productName ?? "Бүтээгдэхүүн")}
             ${it.size ? `<br><span style="font-size:12px;color:${C.taupe};">${esc(it.size)}</span>` : ""}
             <br><span style="font-size:12px;color:${C.taupe};">${qty} × ${money(unit)}</span>
           </td>

@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-// Food has no universal size chart — a dish either defines its own sizes
-// (e.g. "Дунд", "Том") or has none. Empty by design: never fall back to
-// leftover clothing sizes (XS–4XL) on a food menu.
+// Each product defines its own sizes or has none. Empty by design: never
+// invent variant options by falling back to a universal clothing size chart.
 const DEFAULT_CLOTHING_SIZES: string[] = [];
 
 // No hardcoded category renames. Categories render exactly as the admin
@@ -48,8 +47,8 @@ export function sanitizeCategoryList<T extends Record<string, any>>(
   return categories.map((category) => sanitizeCategory(category));
 }
 
-export function sanitizeFood<T extends Record<string, any>>(food: T): T {
-  const next = { ...food } as Record<string, any>;
+export function sanitizeProduct<T extends Record<string, any>>(product: T): T {
+  const next = { ...product } as Record<string, any>;
 
   if (next.category && typeof next.category === "object") {
     next.category = sanitizeCategory(next.category);
@@ -61,8 +60,8 @@ export function sanitizeFood<T extends Record<string, any>>(food: T): T {
   return next as T;
 }
 
-export function sanitizeFoodList<T extends Record<string, any>>(foods: T[] = []): T[] {
-  return foods.map((food) => sanitizeFood(food));
+export function sanitizeProductList<T extends Record<string, any>>(products: T[] = []): T[] {
+  return products.map((product) => sanitizeProduct(product));
 }
 
 export function getDefaultClothingSizes() {

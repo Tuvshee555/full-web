@@ -41,10 +41,10 @@ export function ProductCard({ product, quickAdd = true }: { product: any; quickA
   return (
     <div className="group relative">
       <div className="relative aspect-[4/5] overflow-hidden bg-sand">
-        <Link href={href} className="absolute inset-0" aria-label={product.foodName}>
+        <Link href={href} className="absolute inset-0" aria-label={product.productName}>
           <img
             src={images[0]}
-            alt={product.foodName ?? ""}
+            alt={product.productName ?? ""}
             className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-300 ease-silk
               md:group-hover:scale-[1.04] ${images[1] ? "md:group-hover:opacity-0" : ""}`}
             loading="lazy"
@@ -91,7 +91,7 @@ export function ProductCard({ product, quickAdd = true }: { product: any; quickA
         {/* Phones: price under the name. Desktop: price right-aligned beside it. */}
         <div className="flex flex-col gap-[8px]">
           <h3 className="text-[15px] font-medium leading-[1.4] text-ink sm:text-[16px] line-clamp-2">
-            <Link href={href} className="-my-[6px] inline-block py-[6px]">{product.foodName}</Link>
+            <Link href={href} className="-my-[6px] inline-block py-[6px]">{product.productName}</Link>
           </h3>
           <Price product={product} className="text-[14px] sm:text-[15px]" />
         </div>

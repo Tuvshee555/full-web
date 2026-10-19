@@ -65,8 +65,8 @@ function ruleTopic(text: string): string | null {
 /** Products named in a reply, in the order the customer read them (so "3" means the third one shown). */
 function mentionedProducts(text: string, products: CatalogProduct[]): CatalogProduct[] {
   return products
-    .filter((product) => product.foodName && text.includes(product.foodName))
-    .sort((a, b) => text.indexOf(a.foodName) - text.indexOf(b.foodName));
+    .filter((product) => product.productName && text.includes(product.productName))
+    .sort((a, b) => text.indexOf(a.productName) - text.indexOf(b.productName));
 }
 
 /** Numbered list + remembered candidates, so "1" / "the first one" / "эхнийх нь" resolves next turn. */

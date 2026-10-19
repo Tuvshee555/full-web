@@ -35,19 +35,19 @@ export default function CartPage() {
       <div className="mt-[28px] grid items-start gap-[32px] lg:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)] lg:gap-[48px]">
         <ul className="min-w-0 border-t border-ink/15">
           {items.map((item) => {
-            const href = productUrl(locale, item.foodId);
+            const href = productUrl(locale, item.productId);
             return (
-              <li key={`${item.foodId}-${item.selectedSize ?? ""}`} className="flex gap-[16px] border-b border-ink/15 py-[24px] sm:gap-[24px]">
+              <li key={`${item.productId}-${item.selectedSize ?? ""}`} className="flex gap-[16px] border-b border-ink/15 py-[24px] sm:gap-[24px]">
                 <Link href={href} className="h-[104px] w-[80px] shrink-0 bg-sand sm:h-[140px] sm:w-[112px]">
-                  {item.food?.image && <img src={item.food.image} alt={item.food.foodName} className="h-full w-full object-cover" />}
+                  {item.product?.image && <img src={item.product.image} alt={item.product.productName} className="h-full w-full object-cover" />}
                 </Link>
                 <div className="min-w-0 flex-1">
-                  <Link href={href} className="text-[15px] font-medium leading-snug text-ink link-underline sm:text-[17px]">{item.food?.foodName}</Link>
+                  <Link href={href} className="text-[15px] font-medium leading-snug text-ink link-underline sm:text-[17px]">{item.product?.productName}</Link>
                   {item.selectedSize && <p className="mt-[4px] text-[13px] text-taupe">{st("size")}: {item.selectedSize}</p>}
-                  <p className="mt-[6px] text-[15px] font-medium text-ink tabular-nums">{money(Number(item.food?.price ?? 0) * item.quantity)}</p>
+                  <p className="mt-[6px] text-[15px] font-medium text-ink tabular-nums">{money(Number(item.product?.price ?? 0) * item.quantity)}</p>
                   <div className="mt-[14px] flex flex-wrap items-center gap-[8px]">
-                    <QuantityInput small value={item.quantity} onChange={(v) => setQuantity(item.foodId, item.selectedSize, v)} />
-                    <button type="button" aria-label={`${st("remove")}: ${item.food?.foodName}`} className="flex h-[44px] w-[44px] items-center justify-center text-taupe hover:bg-sand hover:text-ink" onClick={() => setQuantity(item.foodId, item.selectedSize, 0)}><Trash2 className="h-[17px] w-[17px]" strokeWidth={1.5} /></button>
+                    <QuantityInput small value={item.quantity} onChange={(v) => setQuantity(item.productId, item.selectedSize, v)} />
+                    <button type="button" aria-label={`${st("remove")}: ${item.product?.productName}`} className="flex h-[44px] w-[44px] items-center justify-center text-taupe hover:bg-sand hover:text-ink" onClick={() => setQuantity(item.productId, item.selectedSize, 0)}><Trash2 className="h-[17px] w-[17px]" strokeWidth={1.5} /></button>
                   </div>
                 </div>
               </li>

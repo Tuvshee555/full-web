@@ -266,18 +266,18 @@ function Summary({ items, c }: { items: StoreCartItem[]; c: ReturnType<typeof us
       </div>
       <ul className="space-y-[16px]">
         {items.map((i) => (
-          <li key={`${i.foodId}-${i.selectedSize ?? ""}`} className="flex items-center gap-[14px]">
+          <li key={`${i.productId}-${i.selectedSize ?? ""}`} className="flex items-center gap-[14px]">
             <div className="relative h-[64px] w-[64px] shrink-0 bg-paper">
-              {i.food?.image ? <img src={i.food.image} alt="" className="h-full w-full object-cover" /> : null}
+              {i.product?.image ? <img src={i.product.image} alt="" className="h-full w-full object-cover" /> : null}
               <span className="absolute -right-[8px] -top-[8px] flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-ink px-[5px] text-[11px] text-paper">
                 {i.quantity}
               </span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="break-words font-medium leading-snug">{i.food?.foodName}</p>
+              <p className="break-words font-medium leading-snug">{i.product?.productName}</p>
               {i.selectedSize && <p className="text-[12px] text-taupe">{i.selectedSize}</p>}
             </div>
-            <span className="tabular-nums">{money(Number(i.food?.price ?? 0) * i.quantity)}</span>
+            <span className="tabular-nums">{money(Number(i.product?.price ?? 0) * i.quantity)}</span>
           </li>
         ))}
       </ul>

@@ -16,12 +16,12 @@ export const getOrderById = async (req, res) => {
       return res.status(400).json({ message: "Order ID is required" });
     }
 
-    const order = await prisma.foodOrder.findUnique({
+    const order = await prisma.order.findUnique({
       where: { id },
       include: {
-        foodOrderItems: {
+        orderItems: {
           include: {
-            food: true,
+            product: true,
           },
         },
       },
@@ -71,16 +71,16 @@ export const getOrderById = async (req, res) => {
         notes: order.notes,
       },
 
-      items: order.foodOrderItems.map((item) => ({
+      items: order.orderItems.map((item) => ({
         id: item.id,
         quantity: item.quantity,
         size: item.size,
-        food: {
-          id: item.food.id,
-          foodName: item.food.foodName,
+        product: {
+          id: item.product.id,
+          productName: item.product.productName,
           // what the customer paid for one unit (lines before 2026-10-19 have no stored price)
-          price: item.unitPrice ?? item.food.price,
-          image: item.food.image,
+          price: item.unitPrice ?? item.product.price,
+          image: item.product.image,
         },
       })),
 

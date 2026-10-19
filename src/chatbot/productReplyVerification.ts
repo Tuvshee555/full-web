@@ -18,7 +18,7 @@ export function verifyProductReply(input: {
   const prices = quotablePrices(products, context);
   let active = products;
   for (const line of reply.split(/\r?\n/)) {
-    const named = products.filter((product) => line.includes(product.foodName));
+    const named = products.filter((product) => line.includes(product.productName));
     if (named.length) active = named;
     for (const match of line.matchAll(AMOUNT)) {
       const amount = Number(match[1].replace(/[.,]/g, ""));
@@ -67,7 +67,7 @@ export function explainFreeformReply(reply: string, context: CatalogueContext, c
   // Links are checked as whole URLs below; product ids inside them are not numbers or phones.
   const withoutLinks = text.replace(/https?:\/\/[^\s)]+/gu, " ");
   for (const line of withoutLinks.split(/\r?\n/)) {
-    const named = context.products.filter((product) => line.includes(product.foodName));
+    const named = context.products.filter((product) => line.includes(product.productName));
     for (const match of line.matchAll(AMOUNT)) {
       const amount = Number(match[1].replace(/[.,]/g, ""));
       if (!prices.has(amount)) return { ok: false, reason: `unknown_amount:${amount}` };

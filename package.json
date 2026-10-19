@@ -13,6 +13,7 @@
     "test": "npm run test:commerce && npm run test:chatbot",
     "test:commerce": "node scripts/run-commerce-tests.mjs",
     "test:commerce:db": "node scripts/test-commerce-db.mjs",
+    "test:product-migration": "node scripts/test-product-migration.mjs",
     "test:chatbot": "node scripts/run-chatbot-tests.mjs",
     "qa:chatbot": "node --import tsx scripts/chatbot-qa.mjs",
     "db:local": "node scripts/local-db.mjs",

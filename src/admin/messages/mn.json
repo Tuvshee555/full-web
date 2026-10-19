@@ -1,6 +1,6 @@
 {
   "sidebar": {
-    "food_menu": "Бүтээгдэхүүн",
+    "product_catalog": "Бүтээгдэхүүн",
     "orders": "Захиалгууд",
     "revenue": "Орлогын самбар",
     "home": "Нүүр",
@@ -24,7 +24,7 @@
     "adding": "Нэмж байна...",
     "loading": "Ачаалж байна..."
   },
-  "food": {
+  "product": {
     "add_to_category": "{category} ангилалд бүтээгдэхүүн нэмэх",
     "validation": {
       "name": "Бүтээгдэхүүний нэр оруулна уу.",
@@ -59,7 +59,7 @@
   "category_with_count": "{name} ({count})",
   "error_loading": "Ангилал ачаалахад алдаа гарлаа",
   "select_category": "Ангилал сонгох",
-  "dish_count": "{count} бүтээгдэхүүн",
+  "product_count": "{count} бүтээгдэхүүн",
   "close": "Хаах",
   "select_category_hint": "Ангилал үүсгээд зүүн талаас сонгож бүтээгдэхүүнээ удирдана уу.",
   "orders": "Захиалгууд",
@@ -168,16 +168,16 @@
   "updated": "Амжилттай шинэчлэгдлээ",
   "update_failed": "Шинэчлэхэд алдаа гарлаа",
   "deleted": "Амжилттай устгагдлаа",
-  "edit_food": "Бүтээгдэхүүн засах",
+  "edit_product": "Бүтээгдэхүүн засах",
   "update_item_details": "Доорх мэдээллийг шинэчлэнэ үү",
-  "delete_food_title": "Бүтээгдэхүүнийг устгах уу?",
-  "delete_food_description": "Энэ үйлдлийг буцаах боломжгүй. Бүтээгдэхүүн бүрмөсөн устгагдана.",
+  "delete_product_title": "Бүтээгдэхүүнийг устгах уу?",
+  "delete_product_description": "Энэ үйлдлийг буцаах боломжгүй. Бүтээгдэхүүн бүрмөсөн устгагдана.",
   "confirm_delete": "Устгах",
   "vs_last_period": "өмнөх үетэй харьцуулахад",
   "sidebar.title": "Админ навигаци",
   "sidebar.logout": "Гарах",
-  "no_category_foods": "Энэ ангилалд одоогоор бүтээгдэхүүн алга.",
-  "add_first_food": "Эхний бүтээгдэхүүнээ нэмэх",
+  "no_category_products": "Энэ ангилалд одоогоор бүтээгдэхүүн алга.",
+  "add_first_product": "Эхний бүтээгдэхүүнээ нэмэх",
   "nav": {
     "open_orders": "{count} захиалга хүлээгдэж байна"
   },

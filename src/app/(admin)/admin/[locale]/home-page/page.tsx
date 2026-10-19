@@ -15,7 +15,7 @@ function PanelLoading() {
   return <div role="status" className="space-y-4"><span className="sr-only">{t("common.loading")}</span><Skeleton className="h-10 w-52" /><Skeleton className="h-12 w-full" /><Skeleton className="h-64 w-full" /></div>;
 }
 
-const FoodMenu = dynamic(() => import("../(food-menu)/FoodMenu").then((module) => module.FoodMenu), { loading: PanelLoading });
+const ProductCatalog = dynamic(() => import("../(products)/ProductCatalog").then((module) => module.ProductCatalog), { loading: PanelLoading });
 const OrdersAdmin = dynamic(() => import("../(orders)/OrdersAdmin"), { loading: PanelLoading });
 const RevenueDashboard = dynamic(() => import("../(revenue)/RevenueDashboard"), { loading: PanelLoading });
 const ChatbotDashboard = dynamic(() => import("@admin/components/chatbot/ChatbotDashboard").then((module) => module.ChatbotDashboard), { loading: PanelLoading });
@@ -61,7 +61,7 @@ function AdminHome() {
 
   return (
     <AdminLayout active={view} onNavigate={navigate} openOrders={openOrders}>
-      {view === "products" && <FoodMenu />}
+      {view === "products" && <ProductCatalog />}
       {view === "orders" && <OrdersAdmin onChanged={refreshOpenOrders} />}
       {view === "revenue" && <RevenueDashboard />}
       {view === "chatbot" && <ChatbotDashboard />}

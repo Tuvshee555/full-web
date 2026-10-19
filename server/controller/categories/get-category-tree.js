@@ -12,7 +12,7 @@ export const getCategoryTree = async (req, res) => {
           parentId: true,
           _count: {
             select: {
-              foods: true,
+              products: true,
             },
           },
         },
@@ -28,7 +28,7 @@ export const getCategoryTree = async (req, res) => {
           id: cat.id,
           categoryName: cat.categoryName,
           parentId: cat.parentId,
-          foodCount: cat._count.foods,
+          productCount: cat._count.products,
           children: [],
         });
       }

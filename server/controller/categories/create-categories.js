@@ -41,7 +41,7 @@ export const createCategories = async (req, res) => {
         parentId: true,
         _count: {
           select: {
-            foods: true,
+            products: true,
             children: true,
           },
         },
@@ -53,7 +53,7 @@ export const createCategories = async (req, res) => {
       id: c.id,
       categoryName: c.categoryName,
       parentId: c.parentId,
-      foodCount: c._count.foods,
+      productCount: c._count.products,
       childrenCount: c._count.children,
       hasChildren: c._count.children > 0,
     }));

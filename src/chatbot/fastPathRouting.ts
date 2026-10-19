@@ -36,7 +36,7 @@ export function parseNumberedChoice(text: string): { index: number; namePrefix: 
 }
 function productsNamedByPrefix(prefix: string, products: CatalogProduct[]): CatalogProduct[] {
   const normalized = looseNorm(prefix);
-  return normalized.length >= 3 ? products.filter((product) => looseNorm(product.foodName).startsWith(normalized)) : [];
+  return normalized.length >= 3 ? products.filter((product) => looseNorm(product.productName).startsWith(normalized)) : [];
 }
 export type FastPathRoute = {
   matchText: string; scopedClarify: CatalogProduct[] | null; scopedClarifyNote?: string;
@@ -62,7 +62,7 @@ export async function routeFastPathText(input: {
     await clearClarification();
     const selection = mergeProductSelection(product.id, buildProductRequest(text, [product], understanding), previousSelection);
     await writeSelection(selection);
-    return { matchText: joinContextAndTurn(product.foodName, text), scopedClarify: null, chosenProductId: product.id, selection };
+    return { matchText: joinContextAndTurn(product.productName, text), scopedClarify: null, chosenProductId: product.id, selection };
   };
   const tappedOwnButton = isOwnButtonLabel(text);
   const choice = parseNumberedChoice(text);

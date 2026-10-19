@@ -6,9 +6,9 @@ The immutable import is commit `20000f9`, from Uudam HEAD `fd01cf92ac58bbccd0c09
 
 | Uudam | Lorentz |
 | --- | --- |
-| Trip catalogue and aliases | Food catalogue and product names/aliases |
+| Trip catalogue and aliases | Product catalogue and product names/aliases |
 | Numbered trip choices | Remembered numbered product choices |
-| Departure selection | FoodSize colour/size selection |
+| Departure selection | ProductSize colour/size selection |
 | Departure scarcity/fare writer | Stock helper and one product/variant formatter |
 | Booking collection | Order help and name/phone only for a handoff |
 | Travel FAQ/company facts | PRODUCT_CONTENT, STORE, BRAND_COPY and owner extra knowledge |
@@ -17,6 +17,12 @@ The immutable import is commit `20000f9`, from Uudam HEAD `fd01cf92ac58bbccd0c09
 | Channel-specific handlers | One handleCustomerMessage/runCustomerTurn entry path |
 
 Travel-only cases inside mixed regression suites are replaced by product/variant equivalents; a mixed suite is not dropped merely because its filename contains “trip” or “travel”. Retained test files must execute through `npm run test:chatbot`; exclusions are limited to DROP rows.
+
+## Product terminology migration
+
+Migration `20261019010000_product_terminology` renames `Food`, `FoodSize` and `FoodOrder` to `Product`, `ProductSize` and `Order`, and renames the corresponding catalog columns, constraints and indexes in one transaction. Existing rows and relationships are retained; Prisma uses the new database names directly.
+
+Run `npm run db:migrate` against the target database before starting the new application or using its regenerated Prisma client. No live database migration was executed as part of this refactor. Historical audit entries retain the names used when their measurements were captured, with the current names annotated.
 
 ## Library: 153 files
 

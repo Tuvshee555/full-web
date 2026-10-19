@@ -12,9 +12,9 @@ export type OrderStatus =
 export type OrderItem = {
   id: string;
   quantity: number;
-  food: {
+  product: {
     id: string;
-    foodName: string;
+    productName: string;
     price: number;
     image: string;
   };

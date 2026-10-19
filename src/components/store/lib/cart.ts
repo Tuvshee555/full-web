@@ -8,10 +8,10 @@ import { ownSizePrice, sizeLabel, sizePrice } from "./product";
 // cart drawer to slide in, like Shopify does after "Add to cart".
 
 export type StoreCartItem = {
-  foodId: string;
+  productId: string;
   quantity: number;
   selectedSize: string | null;
-  food: { id: string; foodName: string; price: number; oldPrice?: number | null; image: string };
+  product: { id: string; productName: string; price: number; oldPrice?: number | null; image: string };
 };
 
 const KEY = "cart";
@@ -22,14 +22,31 @@ export function normalizeCart(value: unknown): StoreCartItem[] {
   if (!Array.isArray(value)) return [];
   const items = new Map<string, StoreCartItem>();
   for (const row of value.slice(0, 100)) {
-    if (!row || typeof row.foodId !== "string" || !row.foodId || !row.food || typeof row.food.foodName !== "string") continue;
+    if (!row || typeof row !== "object") continue;
+    // Existing devices keep their cart when the catalog terminology changes.
+    // Read the former persisted fields here; every returned/written item uses products.
+    const productId = row.productId ?? row.foodId;
+    const product = row.product ?? row.food;
+    const productName = product?.productName ?? product?.foodName;
+    if (typeof productId !== "string" || !productId || typeof productName !== "string") continue;
     const quantity = Number(row.quantity);
-    const price = Number(row.food.price);
+    const price = Number(product.price);
     if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 999 || !Number.isFinite(price) || price < 0) continue;
     const size = typeof row.selectedSize === "string" ? row.selectedSize : null;
-    const key = JSON.stringify([row.foodId, size]);
+    const key = JSON.stringify([productId, size]);
     const previous = items.get(key);
-    items.set(key, { foodId: row.foodId, selectedSize: size, quantity: Math.min(999, quantity + (previous?.quantity ?? 0)), food: { id: row.foodId, foodName: row.food.foodName, price, image: typeof row.food.image === "string" ? row.food.image : "", oldPrice: Number.isFinite(row.food.oldPrice) ? row.food.oldPrice : null } });
+    items.set(key, {
+      productId,
+      selectedSize: size,
+      quantity: Math.min(999, quantity + (previous?.quantity ?? 0)),
+      product: {
+        id: productId,
+        productName,
+        price,
+        image: typeof product.image === "string" ? product.image : "",
+        oldPrice: Number.isFinite(product.oldPrice) ? product.oldPrice : null,
+      },
+    });
   }
   return Array.from(items.values());
 }
@@ -49,26 +66,26 @@ function writeCart(items: StoreCartItem[]) {
   window.dispatchEvent(new Event("cart-updated"));
 }
 
-const same = (a: StoreCartItem, foodId: string, size: string | null) =>
-  a.foodId === foodId && (a.selectedSize ?? null) === (size ?? null);
+const same = (a: StoreCartItem, productId: string, size: string | null) =>
+  a.productId === productId && (a.selectedSize ?? null) === (size ?? null);
 
-export function addToCart(food: any, quantity = 1, selectedSize: string | null = null, open = true) {
+export function addToCart(product: any, quantity = 1, selectedSize: string | null = null, open = true) {
   const items = readCart();
-  const i = items.findIndex((c) => same(c, food.id, selectedSize));
+  const i = items.findIndex((c) => same(c, product.id, selectedSize));
   if (i >= 0) {
     items[i] = { ...items[i], quantity: Math.min(999, items[i].quantity + quantity) };
   } else {
     items.push({
-      foodId: food.id,
+      productId: product.id,
       quantity,
       selectedSize,
-      food: {
-        id: food.id,
-        foodName: food.foodName,
+      product: {
+        id: product.id,
+        productName: product.productName,
         // unit price of the chosen size; a size with its own price shows no struck-through compare price
-        price: sizePrice(food, selectedSize),
-        oldPrice: hasOwnPrice(food, selectedSize) ? null : food.oldPrice ?? null,
-        image: typeof food.image === "string" ? food.image : "",
+        price: sizePrice(product, selectedSize),
+        oldPrice: hasOwnPrice(product, selectedSize) ? null : product.oldPrice ?? null,
+        image: typeof product.image === "string" ? product.image : "",
       },
     });
   }
@@ -76,17 +93,17 @@ export function addToCart(food: any, quantity = 1, selectedSize: string | null =
   if (open) window.dispatchEvent(new Event("cart-open"));
 }
 
-function hasOwnPrice(food: any, selectedSize: string | null) {
-  const sizes = Array.isArray(food?.sizes) ? food.sizes : [];
+function hasOwnPrice(product: any, selectedSize: string | null) {
+  const sizes = Array.isArray(product?.sizes) ? product.sizes : [];
   return ownSizePrice(sizes.find((s: any) => sizeLabel(s) === selectedSize)) !== null;
 }
 
-export function setQuantity(foodId: string, selectedSize: string | null, quantity: number) {
+export function setQuantity(productId: string, selectedSize: string | null, quantity: number) {
   const items = readCart();
   writeCart(
     quantity <= 0
-      ? items.filter((c) => !same(c, foodId, selectedSize))
-      : items.map((c) => (same(c, foodId, selectedSize) ? { ...c, quantity } : c)),
+      ? items.filter((c) => !same(c, productId, selectedSize))
+      : items.map((c) => (same(c, productId, selectedSize) ? { ...c, quantity } : c)),
   );
 }
 
@@ -98,4 +115,4 @@ export const cartCount = (items: StoreCartItem[]) =>
   items.reduce((s, i) => s + (Number(i.quantity) || 0), 0);
 
 export const cartSubtotal = (items: StoreCartItem[]) =>
-  items.reduce((s, i) => s + Number(i.food?.price ?? 0) * (Number(i.quantity) || 0), 0);
+  items.reduce((s, i) => s + Number(i.product?.price ?? 0) * (Number(i.quantity) || 0), 0);

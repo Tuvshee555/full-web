@@ -2,7 +2,7 @@ import { prisma } from "../prismaClient.js";
 import { generateOrderNumber } from "../utils/generateOrderNumber.js";
 
 async function main() {
-  const orders = await prisma.foodOrder.findMany({
+  const orders = await prisma.order.findMany({
     where: {
       OR: [
         { orderNumber: null },
@@ -14,7 +14,7 @@ async function main() {
   console.log(`Backfilling ${orders.length} orders...`);
 
   for (const order of orders) {
-    await prisma.foodOrder.update({
+    await prisma.order.update({
       where: { id: order.id },
       data: {
         orderNumber: order.orderNumber ?? generateOrderNumber(),

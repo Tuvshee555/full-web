@@ -20,6 +20,10 @@ test("API health, JSON errors, token types and login throttling work over HTTP w
     const badJson = await fetch(`${origin}/user/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{broken" });
     assert.equal(badJson.status, 400);
     assert.equal(badJson.headers.get("cache-control"), "no-store");
+    for (const path of ["/products", "/food"]) {
+      const response = await fetch(`${origin}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      assert.equal(response.status, 401);
+    }
     for (const token of [null, "invalid-token", jwt.sign({ id: "test-only", type: "reset" }, process.env.JWT_SECRET)]) {
       const res = await fetch(`${origin}/order`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
       assert.equal(res.status, 401);

@@ -1,15 +1,15 @@
-// controller/foods/create-food.js
+// controller/products/create-product.js
 import { prisma } from "../../prismaClient.js";
 import { normalizeSizeInput } from "../../utils/sizes.js";
 import { invalidateCatalog } from "../../utils/cache.js";
-import { validateFoodInput } from "./validate-food.js";
+import { validateProductInput } from "./validate-product.js";
 
-export const createFood = async (req, res) => {
-  const invalid = validateFoodInput(req.body, true);
+export const createProduct = async (req, res) => {
+  const invalid = validateProductInput(req.body, true);
   if (invalid) return res.status(400).json({ message: invalid });
   try {
     const {
-      foodName,
+      productName,
       price: rawPrice,
       oldPrice: rawOldPrice,
       discount: rawDiscount,
@@ -23,8 +23,8 @@ export const createFood = async (req, res) => {
       address,
     } = req.body;
 
-    if (!foodName) {
-      return res.status(400).json({ message: "foodName is required" });
+    if (!productName) {
+      return res.status(400).json({ message: "productName is required" });
     }
 
     // parse numeric inputs safely
@@ -68,9 +68,9 @@ export const createFood = async (req, res) => {
       }
     }
 
-    const newFood = await prisma.food.create({
+    const newProduct = await prisma.product.create({
       data: {
-        foodName: foodName.trim(),
+        productName: productName.trim(),
         price: Number(price),
         oldPrice: oldPrice !== null ? Number(oldPrice) : undefined,
         discount: discount || 0,
@@ -93,10 +93,10 @@ export const createFood = async (req, res) => {
 
     invalidateCatalog();
 
-    return res.status(201).json(newFood);
+    return res.status(201).json(newProduct);
   } catch (error) {
     if (error.code === "P2003") return res.status(400).json({ message: "Category not found" });
-    console.error("Error creating food:", error);
-    return res.status(500).json({ message: "Error creating food" });
+    console.error("Error creating product:", error);
+    return res.status(500).json({ message: "Error creating product" });
   }
 };

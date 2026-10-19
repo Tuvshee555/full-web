@@ -3,7 +3,7 @@ export type CategoryNode = {
   categoryName: string;
   parentId: string | null;
   children?: CategoryNode[];
-  foodCount?: number;
+  productCount?: number;
 };
 
 /**

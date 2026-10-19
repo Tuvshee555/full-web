@@ -8,12 +8,12 @@ export type OrderStatus =
   | "DELIVERED"
   | "CANCELLED";
 
-export type FoodItem = {
+export type ProductItem = {
   id?: string;
   quantity: number;
-  food?: {
+  product?: {
     id?: string;
-    foodName?: string;
+    productName?: string;
     price?: number;
     image?: string | null;
     categoryId?: string | null;
@@ -49,18 +49,18 @@ export type RawOrder = {
   khoroo?: string | null;
   address?: string | null;
   notes?: string | null;
-  foodOrderItems?: Array<{
+  orderItems?: Array<{
     id?: string;
     quantity: number;
-    food?: {
+    product?: {
       id?: string;
-      foodName?: string;
+      productName?: string;
       price?: number;
       image?: string | null;
       categoryId?: string | null;
     } | null;
   }>;
-  items?: FoodItem[];
+  items?: ProductItem[];
 };
 
 // Must match ALLOWED_TRANSITIONS in server/controller/orders/update-orders.js

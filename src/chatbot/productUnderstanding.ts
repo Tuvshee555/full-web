@@ -32,7 +32,7 @@ export function buildUnderstandingPrompt(input: {
   const keys = new Map<string, CatalogProduct>();
   const lines = input.products.map((product, index) => {
     const key = `P${index + 1}`; keys.set(key, product);
-    return [key, product.foodName, product.category?.categoryName || product.category?.name || "", `variants: ${product.sizes.map((variant) => variant.label).join(", ")}`].filter(Boolean).join(" | ");
+    return [key, product.productName, product.category?.categoryName || product.category?.name || "", `variants: ${product.sizes.map((variant) => variant.label).join(", ")}`].filter(Boolean).join(" | ");
   });
   const keyOf = new Map([...keys].map(([key, product]) => [product.id, key]));
   const last = input.history[input.history.length - 1];

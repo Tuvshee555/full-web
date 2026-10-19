@@ -12,7 +12,7 @@ import { invalidateCatalog } from "../../utils/cache.js";
 // Delivery fee is the server-side source of truth (must match the customer UI).
 const DELIVERY_ZONES = new Set(["UB", "RURAL"]);
 
-export const createFoodOrder = async (req, res) => {
+export const createOrder = async (req, res) => {
   try {
     const userId = req.user?.id;
 
@@ -56,7 +56,7 @@ export const createFoodOrder = async (req, res) => {
     // Idempotency: if this key already produced an order for this user, return
     // it instead of creating a duplicate (double-click / retry / flaky network).
     if (safeKey) {
-      const existing = await prisma.foodOrder.findUnique({
+      const existing = await prisma.order.findUnique({
         where: { idempotencyKey: safeKey },
         select: {
           id: true,
@@ -106,39 +106,39 @@ export const createFoodOrder = async (req, res) => {
       const rawQuantity = item?.quantity;
       const quantity = (typeof rawQuantity === "number" || typeof rawQuantity === "string")
         ? Number(rawQuantity) : NaN;
-      const foodId = typeof item?.foodId === "string" ? item.foodId.trim() : "";
+      const productId = typeof item?.productId === "string" ? item.productId.trim() : "";
       const rawSize = item?.size ?? item?.selectedSize;
-      if (!foodId || foodId.length > 100 || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 999 ||
+      if (!productId || productId.length > 100 || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 999 ||
           (rawSize != null && (typeof rawSize !== "string" || rawSize.length > 60))) {
         return res.status(400).json({ message: "Every item needs a valid product, size and quantity between 1 and 999" });
       }
       const size = safe(rawSize);
-      const key = JSON.stringify([foodId, size]);
+      const key = JSON.stringify([productId, size]);
       const previous = combinedItems.get(key);
       const totalQuantity = quantity + (previous?.quantity || 0);
       if (totalQuantity > 999) return res.status(400).json({ message: "Maximum quantity is 999 per product size" });
-      combinedItems.set(key, { foodId, size, quantity: totalQuantity });
+      combinedItems.set(key, { productId, size, quantity: totalQuantity });
     }
     const normalizedItems = [...combinedItems.values()];
 
-    const foodIds = [...new Set(normalizedItems.map((i) => i.foodId))];
-    const foods = await prisma.food.findMany({
-      where: { id: { in: foodIds } },
+    const productIds = [...new Set(normalizedItems.map((i) => i.productId))];
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
       select: { id: true, price: true, sizes: { select: { label: true, price: true } } },
     });
 
-    if (foods.length !== foodIds.length) {
-      return res.status(400).json({ message: "Some foods no longer exist" });
+    if (products.length !== productIds.length) {
+      return res.status(400).json({ message: "Some products no longer exist" });
     }
 
     // One unit's price: the chosen size's own price, otherwise the product price.
     // Computed here (never trusted from the client) and stored on the order line.
-    const foodById = new Map(foods.map((food) => [food.id, food]));
+    const productById = new Map(products.map((product) => [product.id, product]));
     const unitPriceOf = (item) => {
-      const food = foodById.get(item.foodId);
-      const size = item.size ? (food?.sizes ?? []).find((s) => s.label === item.size) : null;
+      const product = productById.get(item.productId);
+      const size = item.size ? (product?.sizes ?? []).find((s) => s.label === item.size) : null;
       const own = Number(size?.price);
-      return size && size.price != null && Number.isFinite(own) && own > 0 ? own : Number(food?.price ?? 0);
+      return size && size.price != null && Number.isFinite(own) && own > 0 ? own : Number(product?.price ?? 0);
     };
     const pricedItems = normalizedItems.map((item) => ({ ...item, unitPrice: unitPriceOf(item) }));
 
@@ -198,7 +198,7 @@ export const createFoodOrder = async (req, res) => {
       order = await prisma.$transaction(async (tx) => {
         await applyStockDecrements(tx, pricedItems);
 
-        return tx.foodOrder.create({
+        return tx.order.create({
           data: {
             userId,
             orderNumber,
@@ -218,7 +218,7 @@ export const createFoodOrder = async (req, res) => {
             address: safe(address),
             notes: safe(notes),
 
-            foodOrderItems: {
+            orderItems: {
               create: pricedItems,
             },
           },
@@ -233,13 +233,13 @@ export const createFoodOrder = async (req, res) => {
         return res.status(409).json({
           message: "Sorry, an item just went out of stock. Please adjust your cart.",
           size: createErr.size,
-          foodId: createErr.foodId,
+          productId: createErr.productId,
         });
       }
 
       // Unique idempotency-key race: a concurrent request already created it.
       if (createErr?.code === "P2002" && safeKey) {
-        const existing = await prisma.foodOrder.findUnique({
+        const existing = await prisma.order.findUnique({
           where: { idempotencyKey: safeKey },
           select: orderSelect,
         });
@@ -256,12 +256,12 @@ export const createFoodOrder = async (req, res) => {
 
     background((async () => {
       try {
-        const fullOrder = await prisma.foodOrder.findUnique({
+        const fullOrder = await prisma.order.findUnique({
           where: { id: order.id },
           include: {
             user: { select: { email: true } },
-            foodOrderItems: {
-              include: { food: true },
+            orderItems: {
+              include: { product: true },
             },
           },
         });

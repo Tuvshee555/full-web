@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Menu, Search, ShoppingBag, User, X } from "lucide-react";
 import { STORE } from "@/config/store";
 import { useCategoryTree, type CategoryNode } from "@/hooks/useCategoryTree";
-import { useFood } from "@/hooks/useFood";
+import { useProducts } from "@/hooks/useProducts";
 import { cartCount } from "./lib/cart";
 import { useStoreCart } from "./lib/useCart";
 import { collectionUrl, productImages, productUrl } from "./lib/product";
@@ -245,7 +245,7 @@ function MenuDrawer({ open, onClose, nav, onOpenAccount }: { open: boolean; onCl
 function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { st, locale } = useStoreT();
   const router = useRouter();
-  const { data: products = [] } = useFood();
+  const { data: products = [] } = useProducts();
   const [q, setQ] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
@@ -265,7 +265,7 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
   }, [open, onClose]);
 
   const term = q.trim().toLowerCase();
-  const results = term ? products.filter((p: any) => String(p.foodName ?? "").toLowerCase().includes(term)).slice(0, 6) : [];
+  const results = term ? products.filter((p: any) => String(p.productName ?? "").toLowerCase().includes(term)).slice(0, 6) : [];
 
   const submit = () => {
     if (!term) return;
@@ -309,7 +309,7 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
                         <Link href={productUrl(locale, p.id)} onClick={onClose} className="flex items-center gap-[15px] py-[8px] hover:bg-[rgba(28,23,20,0.04)]">
                           <img src={productImages(p)[0]} alt="" className="h-[50px] w-[50px] object-cover bg-[#efe7dd]" />
                           <div>
-                            <p className="font-medium text-ink text-[15px]">{p.foodName}</p>
+                            <p className="font-medium text-ink text-[15px]">{p.productName}</p>
                             <Price product={p} className="text-[13px]" />
                           </div>
                         </Link>

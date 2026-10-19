@@ -47,9 +47,9 @@ don't DROP.**
 
 | Uudam | Lorentz |
 | --- | --- |
-| trip / catalogue of trips | product (`Food`) / catalogue of products |
+| trip / catalogue of trips | product (`Product`) / catalogue of products |
 | trip aliases, name matching, disambiguation ("which trip?" numbered list memory) | product name matching + the same numbered-list memory ("аль нь вэ? 1) … 2) …") |
-| departure date / date selection | size or colour variant (`FoodSize.label`) |
+| departure date / date selection | size or colour variant (`ProductSize.label`) |
 | per-date "Цөөн суудал" (ALMOST_FULL) | per-size "Дуусаж байна" via `server/utils/stockLevel.js` |
 | sold out / cancelled date | stock 0 → "Дууссан" |
 | fares, price groups, ONE shared fare writer + verifier | ONE product price/stock formatter + the same verifier pattern |

@@ -4,7 +4,7 @@ export const getItems = async (req, res) => {
   try {
     const items = await prisma.orderItem.findMany({
       include: {
-        food: true,        // include related food details
+        product: true,        // include related product details
         order: true,       // include related order details
       },
     });

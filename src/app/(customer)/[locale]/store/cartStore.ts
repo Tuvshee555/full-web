@@ -1,23 +1,24 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { create } from "zustand";
+import { normalizeCart, readCart, type StoreCartItem } from "@/components/store/lib/cart";
 
-type CartItem = {
-  foodId: string;
-  quantity: number;
-  selectedSize: string | null;
-  food: any;
-};
+type CartItem = StoreCartItem;
 
 type CartState = {
   items: CartItem[];
 
   load: () => void;
   add: (item: CartItem) => void;
-  updateQty: (foodId: string, selectedSize: string | null, qty: number) => void;
-  remove: (foodId: string, selectedSize: string | null) => void;
+  updateQty: (productId: string, selectedSize: string | null, qty: number) => void;
+  remove: (productId: string, selectedSize: string | null) => void;
   clear: () => void;
+};
+
+const persistCart = (value: CartItem[]) => {
+  const items = normalizeCart(value);
+  localStorage.setItem("cart", JSON.stringify(items));
+  return items;
 };
 
 export const useCart = create<CartState>((set, get) => ({
@@ -25,10 +26,7 @@ export const useCart = create<CartState>((set, get) => ({
 
   // Load from localStorage
   load: () => {
-    const raw = localStorage.getItem("cart");
-    if (!raw) return;
-    const items = JSON.parse(raw);
-    set({ items });
+    set({ items: readCart() });
   },
 
   // Add item
@@ -37,7 +35,7 @@ export const useCart = create<CartState>((set, get) => ({
 
     const existIndex = items.findIndex(
       (i) =>
-        i.foodId === newItem.foodId && i.selectedSize === newItem.selectedSize
+        i.productId === newItem.productId && i.selectedSize === newItem.selectedSize
     );
 
     if (existIndex >= 0) {
@@ -49,30 +47,27 @@ export const useCart = create<CartState>((set, get) => ({
       items.push(newItem);
     }
 
-    localStorage.setItem("cart", JSON.stringify(items));
-    set({ items });
+    set({ items: persistCart(items) });
   },
 
   // Update quantity
-  updateQty: (foodId, selectedSize, qty) => {
+  updateQty: (productId, selectedSize, qty) => {
     const items = get().items.map((i) =>
-      i.foodId === foodId && i.selectedSize === selectedSize
+      i.productId === productId && i.selectedSize === selectedSize
         ? { ...i, quantity: qty }
         : i
     );
 
-    localStorage.setItem("cart", JSON.stringify(items));
-    set({ items });
+    set({ items: persistCart(items) });
   },
 
   // Remove item
-  remove: (foodId, selectedSize) => {
+  remove: (productId, selectedSize) => {
     const items = get().items.filter(
-      (i) => !(i.foodId === foodId && i.selectedSize === selectedSize)
+      (i) => !(i.productId === productId && i.selectedSize === selectedSize)
     );
 
-    localStorage.setItem("cart", JSON.stringify(items));
-    set({ items });
+    set({ items: persistCart(items) });
   },
 
   // Clear cart

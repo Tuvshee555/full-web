@@ -12,7 +12,7 @@ export async function expireUnpaidOrders(client = prisma) {
     );
 
     // Find the orders first so we can release the stock they reserved.
-    const expiring = await client.foodOrder.findMany({
+    const expiring = await client.order.findMany({
       where: {
         status: "WAITING_PAYMENT",
         createdAt: { lt: cutoff },
@@ -25,7 +25,7 @@ export async function expireUnpaidOrders(client = prisma) {
     for (const { id } of expiring) {
       try {
         const changed = await client.$transaction(async (tx) => {
-          const result = await tx.foodOrder.updateMany({
+          const result = await tx.order.updateMany({
             where: { id, status: "WAITING_PAYMENT", createdAt: { lt: cutoff } },
             data: { status: "CANCELLED" },
           });

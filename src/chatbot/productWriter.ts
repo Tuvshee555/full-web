@@ -17,7 +17,7 @@ function productBlock(product: CatalogProduct, context: CatalogueContext, focuse
   const prices = productPrices(product);
   const varies = Math.min(...prices) !== Math.max(...prices);
   const priceText = varies ? `price depends on the variant, ${money(Math.min(...prices))} – ${money(Math.max(...prices))}` : `${money(product.price)}${product.oldPrice && product.oldPrice > product.price ? ` (was ${money(product.oldPrice)})` : ""}`;
-  const lines = [`- ${product.foodName} | ${priceText} | category: ${product.category?.categoryName || product.category?.name || "-"} | link: ${productLink(product, context)}`];
+  const lines = [`- ${product.productName} | ${priceText} | category: ${product.category?.categoryName || product.category?.name || "-"} | link: ${productLink(product, context)}`];
   if (product.sizes.length) lines.push(`  variants: ${product.sizes.map((variant) => formatVariantLine(variant, context)).join("; ")}`);
   if (focused) {
     const content = contentOf(product, context);

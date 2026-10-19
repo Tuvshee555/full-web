@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type OrderItem = {
   quantity: number;
-  food: {
-    foodName: string;
+  product: {
+    productName: string;
     price: number;
     image: string;
   };

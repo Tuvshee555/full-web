@@ -1,8 +1,8 @@
 /** Reject malformed money/inventory before Prisma can persist invalid values. */
-export function validateFoodInput(body, creating = false) {
+export function validateProductInput(body, creating = false) {
   if (!body || typeof body !== "object" || Array.isArray(body)) return "Invalid product data";
-  if (creating || body.foodName !== undefined) {
-    if (typeof body.foodName !== "string" || !body.foodName.trim() || body.foodName.trim().length > 200) return "Product name must be 1-200 characters";
+  if (creating || body.productName !== undefined) {
+    if (typeof body.productName !== "string" || !body.productName.trim() || body.productName.trim().length > 200) return "Product name must be 1-200 characters";
   }
   for (const key of ["image", "video", "ingredients", "address"]) {
     if (body[key] !== undefined && typeof body[key] !== "string") return `Invalid ${key}`;

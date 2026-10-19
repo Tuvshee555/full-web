@@ -10,7 +10,7 @@ import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 import { useAuth } from "@admin/provider/AuthProvider";
 import { uploadMedia } from "@admin/utils/uploadMedia";
 import { shrinkImage } from "@admin/utils/shrinkImage";
-import { FoodType } from "@admin/type/type";
+import { ProductType } from "@admin/type/type";
 import { inventoryOptions, inventoryPayload, InventoryOption, validInventory } from "@admin/utils/inventory";
 import { MediaItem, PhotosField, VideoField, mediaFromUrl } from "./MediaField";
 
@@ -20,14 +20,14 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Product to edit; null/undefined = create a new one. */
-  food?: FoodType | null;
+  product?: ProductType | null;
   categories: CategoryOption[];
   defaultCategoryId?: string | null;
   onSaved: () => void;
 };
 
 type Form = {
-  foodName: string;
+  productName: string;
   price: string;
   oldPrice: string;
   ingredients: string;
@@ -37,7 +37,7 @@ type Form = {
   sizes: (InventoryOption & { price: string })[];
 };
 
-type Errors = Partial<Record<"foodName" | "price" | "oldPrice" | "categoryId" | "photos" | "sizes", string>>;
+type Errors = Partial<Record<"productName" | "price" | "oldPrice" | "categoryId" | "photos" | "sizes", string>>;
 
 const digits = (v: string) => v.replace(/[^\d]/g, "");
 
@@ -49,36 +49,36 @@ function ownPriceText(sizes: unknown, label: string): string {
   return match?.price != null && Number.isFinite(own) && own > 0 ? String(Math.round(own)) : "";
 }
 
-function initialForm(food: FoodType | null | undefined, defaultCategoryId?: string | null): Form {
-  const price = Number(food?.price ?? 0);
-  const oldPrice = Number(food?.oldPrice ?? 0);
+function initialForm(product: ProductType | null | undefined, defaultCategoryId?: string | null): Form {
+  const price = Number(product?.price ?? 0);
+  const oldPrice = Number(product?.oldPrice ?? 0);
   return {
-    foodName: food?.foodName ?? "",
-    price: food ? String(Math.round(price)) : "",
+    productName: product?.productName ?? "",
+    price: product ? String(Math.round(price)) : "",
     // An oldPrice equal to price means "no sale"; show it as empty
     oldPrice: oldPrice > price ? String(Math.round(oldPrice)) : "",
-    ingredients: food?.ingredients ?? "",
-    categoryId: food?.categoryId ?? defaultCategoryId ?? "",
-    isFeatured: Boolean(food?.isFeatured),
-    sizes: inventoryOptions(food?.sizes).map((option) => ({ ...option, price: ownPriceText(food?.sizes, option.label) })),
+    ingredients: product?.ingredients ?? "",
+    categoryId: product?.categoryId ?? defaultCategoryId ?? "",
+    isFeatured: Boolean(product?.isFeatured),
+    sizes: inventoryOptions(product?.sizes).map((option) => ({ ...option, price: ownPriceText(product?.sizes, option.label) })),
   };
 }
 
-function initialPhotos(food?: FoodType | null): MediaItem[] {
-  if (!food) return [];
-  const urls = [food.image, ...(food.extraImages ?? [])].filter(
+function initialPhotos(product?: ProductType | null): MediaItem[] {
+  if (!product) return [];
+  const urls = [product.image, ...(product.extraImages ?? [])].filter(
     (u): u is string => typeof u === "string" && u.trim().length > 0
   );
   return urls.map(mediaFromUrl);
 }
 
-export function ProductEditor({ open, onOpenChange, food, categories, defaultCategoryId, onSaved }: Props) {
+export function ProductEditor({ open, onOpenChange, product, categories, defaultCategoryId, onSaved }: Props) {
   const { t } = useI18n();
   const { token } = useAuth();
-  const isEdit = Boolean(food?.id);
+  const isEdit = Boolean(product?.id);
 
-  const [form, setForm] = useState<Form>(() => initialForm(food, defaultCategoryId));
-  const [photos, setPhotos] = useState<MediaItem[]>(() => initialPhotos(food));
+  const [form, setForm] = useState<Form>(() => initialForm(product, defaultCategoryId));
+  const [photos, setPhotos] = useState<MediaItem[]>(() => initialPhotos(product));
   const [video, setVideo] = useState<MediaItem | null>(null);
   const [sizeDraft, setSizeDraft] = useState("");
   const [errors, setErrors] = useState<Errors>({});
@@ -98,9 +98,9 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
   // Reset whenever the sheet opens for a (different) product
   useEffect(() => {
     if (!open) return;
-    const f = initialForm(food, defaultCategoryId);
-    const p = initialPhotos(food);
-    const v = typeof food?.video === "string" && food.video ? mediaFromUrl(food.video) : null;
+    const f = initialForm(product, defaultCategoryId);
+    const p = initialPhotos(product);
+    const v = typeof product?.video === "string" && product.video ? mediaFromUrl(product.video) : null;
     setForm(f);
     setPhotos(p);
     setVideo(v);
@@ -109,7 +109,7 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
     setConfirm(null);
     setProgress(null);
     setSnapshot(JSON.stringify([f, p.map((m) => m.url), v?.url ?? null]));
-  }, [open, food, defaultCategoryId]);
+  }, [open, product, defaultCategoryId]);
 
   // Free blob previews of picked files when the editor closes
   useEffect(() => {
@@ -146,8 +146,8 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
 
   const validate = () => {
     const e: Errors = {};
-    if (!form.foodName.trim()) e.foodName = t("food.validation.name");
-    if (!Number.isFinite(priceNum) || priceNum <= 0 || priceNum > 1_000_000_000) e.price = t("food.validation.price");
+    if (!form.productName.trim()) e.productName = t("product.validation.name");
+    if (!Number.isFinite(priceNum) || priceNum <= 0 || priceNum > 1_000_000_000) e.price = t("product.validation.price");
     if (form.oldPrice && (!Number.isFinite(oldPriceNum) || oldPriceNum <= priceNum || oldPriceNum > 1_000_000_000)) e.oldPrice = t("editor.old_price_rule");
     if (!form.categoryId) e.categoryId = t("editor.category_required");
     if (photos.length === 0) e.photos = t("editor.photo_required");
@@ -195,7 +195,7 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
       const videoUrl = video ? (video.file ? uploaded[i++] : video.url) : "";
 
       const payload = {
-        foodName: form.foodName.trim(),
+        productName: form.productName.trim(),
         price: priceNum,
         // Clearing the old price must actually clear the sale: send it equal to the price
         oldPrice: form.oldPrice ? oldPriceNum : priceNum,
@@ -204,7 +204,7 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
         categoryId: form.categoryId,
         isFeatured: form.isFeatured,
         // inventoryPayload keeps the order of form.sizes, so index i is the same size
-        sizes: inventoryPayload(form.sizes, food?.sizes).map((update, i) => ({
+        sizes: inventoryPayload(form.sizes, product?.sizes).map((update, i) => ({
           ...update,
           price: form.sizes[i].price ? Number(form.sizes[i].price) : null,
         })),
@@ -215,11 +215,11 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
       const headers = { Authorization: `Bearer ${token}` };
 
       if (isEdit) {
-        await axios.put(`${API_BASE_URL}/food/${String(food!.id)}`, payload, { headers });
+        await axios.put(`${API_BASE_URL}/products/${String(product!.id)}`, payload, { headers });
         toast.success(t("updated"));
       } else {
-        await axios.post(`${API_BASE_URL}/food`, payload, { headers });
-        toast.success(t("food.toast.success"));
+        await axios.post(`${API_BASE_URL}/products`, payload, { headers });
+        toast.success(t("product.toast.success"));
       }
       onSaved();
       onOpenChange(false);
@@ -229,7 +229,7 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
         : err instanceof Error
         ? err.message
         : "";
-      toast.error(msg || (isEdit ? t("update_failed") : t("food.toast.error")));
+      toast.error(msg || (isEdit ? t("update_failed") : t("product.toast.error")));
     } finally {
       savingRef.current = false;
       setSaving(false);
@@ -242,7 +242,7 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
     try {
       savingRef.current = true;
       setSaving(true);
-      await axios.delete(`${API_BASE_URL}/food/${String(food!.id)}`, {
+      await axios.delete(`${API_BASE_URL}/products/${String(product!.id)}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success(t("deleted"));
@@ -276,10 +276,10 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
         <div className="flex items-start justify-between gap-[16px] border-b border-ink/10 px-[24px] py-[20px]">
           <div className="min-w-0">
             <SheetTitle className="store-heading text-[28px]">
-              {isEdit ? t("edit_food") : t("food.add_modal.title")}
+              {isEdit ? t("edit_product") : t("product.add_modal.title")}
             </SheetTitle>
             <SheetDescription className="mt-[4px] truncate text-[13px] text-taupe">
-              {isEdit ? form.foodName || "—" : t("editor.new_hint")}
+              {isEdit ? form.productName || "—" : t("editor.new_hint")}
             </SheetDescription>
           </div>
           <button
@@ -314,12 +314,12 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
                 <label className={label} htmlFor="pe-name">{t("editor.name")}</label>
                 <input
                   id="pe-name"
-                  value={form.foodName}
-                  onChange={(e) => set("foodName", e.target.value)}
-                  placeholder={t("food.fields.name")}
-                  className={`${field} ${border("foodName")}`}
+                  value={form.productName}
+                  onChange={(e) => set("productName", e.target.value)}
+                  placeholder={t("product.fields.name")}
+                  className={`${field} ${border("productName")}`}
                 />
-                {err("foodName")}
+                {err("productName")}
               </div>
               <div>
                 <label className={label} htmlFor="pe-cat">{t("category.title")}</label>
@@ -473,7 +473,7 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
 
               <label className="flex cursor-pointer items-start justify-between gap-[16px] border border-ink/15 bg-white px-[16px] py-[14px]">
                 <span>
-                  <span className="block text-[14px] font-medium text-ink">{t("food.fields.featured")}</span>
+                  <span className="block text-[14px] font-medium text-ink">{t("product.fields.featured")}</span>
                   <span className="mt-[2px] block text-[12px] text-taupe">{t("editor.featured_hint")}</span>
                 </span>
                 <input
@@ -522,7 +522,7 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
             </div>
           ) : confirm === "delete" ? (
             <div className="flex flex-col gap-[12px] sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-[13px] text-ink">{t("delete_food_title")}</p>
+              <p className="text-[13px] text-ink">{t("delete_product_title")}</p>
               <div className="flex gap-[8px]">
                 <button type="button" onClick={() => setConfirm(null)} disabled={saving} className="btn-secondary flex-1 sm:flex-none">
                   {t("common.cancel")}

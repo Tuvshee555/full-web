@@ -10,7 +10,7 @@ import { ALL, CategoryTree } from "./_components/categoryTree/CategoryTree";
 import { ProductList } from "./_components/ProductList";
 import { CategoryOption, ProductEditor } from "./_components/editor/ProductEditor";
 import CategoryMobileSheet from "./_components/components/CategoryMobileSheet";
-import { FoodType } from "@admin/type/type";
+import { ProductType } from "@admin/type/type";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 import { useAuth } from "@admin/provider/AuthProvider";
 import { CategoryNode } from "@admin/utils/categoryUtils";
@@ -37,23 +37,23 @@ function flattenWithDepth(tree: CategoryNode[], depth = 0): CategoryOption[] {
   ]);
 }
 
-const time = (f: FoodType & { createdAt?: string }) => new Date(f.createdAt ?? 0).getTime();
+const time = (f: ProductType & { createdAt?: string }) => new Date(f.createdAt ?? 0).getTime();
 
-export const FoodMenu = () => {
+export const ProductCatalog = () => {
   const { t } = useI18n();
   const { token } = useAuth();
 
   const [loadingCats, setLoadingCats] = useState(true);
-  const [loadingFoods, setLoadingFoods] = useState(true);
+  const [loadingProducts, setLoadingProducts] = useState(true);
   const [tree, setTree] = useState<CategoryNode[]>([]);
-  const [foods, setFoods] = useState<FoodType[]>([]);
+  const [products, setProducts] = useState<ProductType[]>([]);
   const [selected, setSelected] = useState<string>(ALL);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("newest");
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [editor, setEditor] = useState<{ open: boolean; food: FoodType | null }>({ open: false, food: null });
+  const [editor, setEditor] = useState<{ open: boolean; product: ProductType | null }>({ open: false, product: null });
   const [categoryError, setCategoryError] = useState(false);
-  const [foodError, setFoodError] = useState(false);
+  const [productError, setProductError] = useState(false);
   const [featuredBusy, setFeaturedBusy] = useState<string[]>([]);
   const featuredRequests = useRef(new Set<string>());
 
@@ -73,27 +73,27 @@ export const FoodMenu = () => {
     }
   }, [token, t]);
 
-  const reloadFoods = useCallback(async () => {
+  const reloadProducts = useCallback(async () => {
     try {
-      setLoadingFoods(true);
-      const res = await axios.get(`${API_BASE_URL}/food/admin/inventory`, {
+      setLoadingProducts(true);
+      const res = await axios.get(`${API_BASE_URL}/products/admin/inventory`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setFoods(Array.isArray(res.data) ? res.data : []);
-      setFoodError(false);
+      setProducts(Array.isArray(res.data) ? res.data : []);
+      setProductError(false);
     } catch {
-      setFoodError(true);
+      setProductError(true);
       toast.error(t("editor.load_failed"));
     } finally {
-      setLoadingFoods(false);
+      setLoadingProducts(false);
     }
   }, [token, t]);
 
   useEffect(() => {
     if (!token) return;
     reloadCategories();
-    reloadFoods();
-  }, [token, reloadCategories, reloadFoods]);
+    reloadProducts();
+  }, [token, reloadCategories, reloadProducts]);
 
   const options = useMemo(() => flattenWithDepth(tree), [tree]);
   const descendants = useMemo(() => descendantsMap(tree), [tree]);
@@ -106,45 +106,45 @@ export const FoodMenu = () => {
 
   const counts = useMemo(() => {
     const direct = new Map<string, number>();
-    foods.forEach((f) => direct.set(f.categoryId, (direct.get(f.categoryId) ?? 0) + 1));
+    products.forEach((f) => direct.set(f.categoryId, (direct.get(f.categoryId) ?? 0) + 1));
     const out: Record<string, number> = {};
     descendants.forEach((ids, id) => {
       out[id] = ids.reduce((s, x) => s + (direct.get(x) ?? 0), 0);
     });
     return out;
-  }, [foods, descendants]);
+  }, [products, descendants]);
 
   const visible = useMemo(() => {
     const inCat = selected === ALL ? null : new Set(descendants.get(selected) ?? [selected]);
     const q = query.trim().toLowerCase();
-    const list = foods.filter(
-      (f) => (!inCat || inCat.has(f.categoryId)) && (!q || f.foodName.toLowerCase().includes(q))
+    const list = products.filter(
+      (f) => (!inCat || inCat.has(f.categoryId)) && (!q || f.productName.toLowerCase().includes(q))
     );
-    const by: Record<Sort, (a: FoodType, b: FoodType) => number> = {
+    const by: Record<Sort, (a: ProductType, b: ProductType) => number> = {
       newest: (a, b) => time(b) - time(a),
-      name: (a, b) => a.foodName.localeCompare(b.foodName),
+      name: (a, b) => a.productName.localeCompare(b.productName),
       price_low: (a, b) => Number(a.price) - Number(b.price),
       price_high: (a, b) => Number(b.price) - Number(a.price),
     };
     return [...list].sort(by[sort]);
-  }, [foods, selected, descendants, query, sort]);
+  }, [products, selected, descendants, query, sort]);
 
-  const toggleFeatured = async (food: FoodType) => {
-    const id = String(food.id);
+  const toggleFeatured = async (product: ProductType) => {
+    const id = String(product.id);
     if (!token || featuredRequests.current.has(id)) return;
     featuredRequests.current.add(id);
     setFeaturedBusy((items) => [...items, id]);
-    const next = !food.isFeatured;
-    setFoods((prev) => prev.map((f) => (f.id === food.id ? { ...f, isFeatured: next } : f)));
+    const next = !product.isFeatured;
+    setProducts((prev) => prev.map((f) => (f.id === product.id ? { ...f, isFeatured: next } : f)));
     try {
       await axios.put(
-        `${API_BASE_URL}/food/${String(food.id)}`,
+        `${API_BASE_URL}/products/${String(product.id)}`,
         { isFeatured: next },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success(next ? t("editor.featured_on") : t("editor.featured_off"));
     } catch {
-      setFoods((prev) => prev.map((f) => (f.id === food.id ? { ...f, isFeatured: !next } : f)));
+      setProducts((prev) => prev.map((f) => (f.id === product.id ? { ...f, isFeatured: !next } : f)));
       toast.error(t("update_failed"));
     } finally {
       featuredRequests.current.delete(id);
@@ -153,17 +153,17 @@ export const FoodMenu = () => {
   };
 
   const selectedName = selected === ALL ? t("editor.all_products") : nameById.get(selected) ?? "";
-  const loading = loadingFoods || loadingCats;
+  const loading = loadingProducts || loadingCats;
 
   const treeProps = {
     tree,
     loading: loadingCats,
     counts,
-    totalCount: foods.length,
+    totalCount: products.length,
     selectedId: selected,
     onChanged: () => {
       reloadCategories();
-      reloadFoods();
+      reloadProducts();
     },
   };
 
@@ -172,16 +172,16 @@ export const FoodMenu = () => {
       {/* Page header */}
       <div className="mb-[24px] flex flex-wrap items-end justify-between gap-[16px]">
         <div>
-          <h1 className="store-heading text-[36px] md:text-[44px]">{t("sidebar.food_menu")}</h1>
-          <p className="mt-[6px] text-[13px] text-taupe">{t("editor.page_hint", { count: foods.length })}</p>
+          <h1 className="store-heading text-[36px] md:text-[44px]">{t("sidebar.product_catalog")}</h1>
+          <p className="mt-[6px] text-[13px] text-taupe">{t("editor.page_hint", { count: products.length })}</p>
         </div>
         <button
           type="button"
-          onClick={() => setEditor({ open: true, food: null })}
+          onClick={() => setEditor({ open: true, product: null })}
           className="btn w-full sm:w-auto"
         >
           <Plus className="h-[16px] w-[16px]" />
-          {t("food.add_modal.title")}
+          {t("product.add_modal.title")}
         </button>
       </div>
 
@@ -201,7 +201,7 @@ export const FoodMenu = () => {
               aria-label={t("category.title")}
             >
               <option value={ALL}>
-                {t("editor.all_products")} ({foods.length})
+                {t("editor.all_products")} ({products.length})
               </option>
               {options.map((o) => (
                 <option key={o.id} value={o.id}>
@@ -259,13 +259,13 @@ export const FoodMenu = () => {
 
           <div className="mb-[10px] flex items-baseline justify-between gap-[12px]">
             <h2 className="store-heading truncate text-[24px]">{selectedName}</h2>
-            <span className="shrink-0 text-[13px] text-taupe">{t("dish_count", { count: visible.length })}</span>
+            <span className="shrink-0 text-[13px] text-taupe">{t("product_count", { count: visible.length })}</span>
           </div>
 
-          {(foodError || categoryError) && (
+          {(productError || categoryError) && (
             <div role="alert" className="mb-[12px] flex flex-wrap items-center justify-between gap-[12px] border border-terracotta/30 bg-white p-[14px]">
-              <p className="text-[13px] text-terracotta">{t(foodError ? "editor.load_failed" : "error_loading")}</p>
-              <button type="button" className="btn-secondary !px-[14px]" onClick={() => { void reloadFoods(); void reloadCategories(); }} disabled={loading}>{t("retry")}</button>
+              <p className="text-[13px] text-terracotta">{t(productError ? "editor.load_failed" : "error_loading")}</p>
+              <button type="button" className="btn-secondary !px-[14px]" onClick={() => { void reloadProducts(); void reloadCategories(); }} disabled={loading}>{t("retry")}</button>
             </div>
           )}
 
@@ -281,15 +281,15 @@ export const FoodMenu = () => {
                 </div>
               ))}
             </div>
-          ) : foodError && foods.length === 0 ? null : (
+          ) : productError && products.length === 0 ? null : (
             <ProductList
-              foods={visible}
+              products={visible}
               showCategory={selected === ALL || (descendants.get(selected)?.length ?? 1) > 1}
               categoryName={(id) => nameById.get(id) ?? "—"}
-              onEdit={(food) => setEditor({ open: true, food })}
+              onEdit={(product) => setEditor({ open: true, product })}
               onToggleFeatured={toggleFeatured}
               busyFeatured={featuredBusy}
-              emptyText={query ? t("editor.no_search_results") : t("no_category_foods")}
+              emptyText={query ? t("editor.no_search_results") : t("no_category_products")}
             />
           )}
         </section>
@@ -310,11 +310,11 @@ export const FoodMenu = () => {
       <ProductEditor
         open={editor.open}
         onOpenChange={(open) => setEditor((e) => ({ ...e, open }))}
-        food={editor.food}
+        product={editor.product}
         categories={options}
         defaultCategoryId={selected === ALL ? null : selected}
         onSaved={() => {
-          reloadFoods();
+          reloadProducts();
           reloadCategories();
         }}
       />
