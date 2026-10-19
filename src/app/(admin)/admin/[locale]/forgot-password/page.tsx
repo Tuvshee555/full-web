@@ -1,34 +1,42 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 import { API_BASE_URL } from "@admin/lib/api";
 
 export default function ForgotPasswordPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [email, setEmail] = useState("");
-  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const res = await fetch(
+    if (pending) return;
+    setPending(true);
+    setError("");
+    try {
+      const res = await fetch(
       `${API_BASE_URL}/user/forgot-password`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: email.trim(), locale }),
       }
     );
 
     if (res.ok) {
-      toast.success(t("reset_email_sent"));
-      router.push("/admin/log-in");
+      setSent(true);
     } else {
-      toast.error(t("reset_email_error"));
+      setError(t("reset_email_error"));
     }
+    } catch {
+      setError(t("reset_email_error"));
+      toast.error(t("reset_email_error"));
+    } finally { setPending(false); }
   };
 
   return (
@@ -44,11 +52,15 @@ export default function ForgotPasswordPage() {
           space-y-4
         "
       >
-        <h2 className="text-base font-semibold">{t("forgot_password")}</h2>
+        <h1 className="text-xl font-semibold">{t("forgot_password")}</h1>
+        {sent ? <p role="status" className="text-sm text-ink">{t("reset_email_sent")}</p> : <>
 
         <input
           type="email"
           placeholder={t("email_placeholder")}
+          aria-label={t("email_placeholder")}
+          autoComplete="email"
+          disabled={pending}
           className="
             h-[44px]
             w-full
@@ -65,6 +77,7 @@ export default function ForgotPasswordPage() {
 
         <button
           type="submit"
+          disabled={pending}
           className="
             h-[44px]
             w-full
@@ -75,8 +88,11 @@ export default function ForgotPasswordPage() {
             font-medium
           "
         >
-          {t("send_reset_link")}
+          {pending ? t("common.loading") : t("send_reset_link")}
         </button>
+        {error && <p role="alert" className="text-sm text-terracotta">{error}</p>}
+        </>}
+        <Link href={`/admin/${locale}/log-in`} className="inline-flex min-h-[44px] items-center text-sm underline underline-offset-4">{t("login")}</Link>
       </form>
     </div>
   );

@@ -5,5 +5,6 @@
 export function adminLogout(push: (url: string) => void) {
   for (const k of ["adminToken", "adminEmail", "adminUserId", "adminUser"]) localStorage.removeItem(k);
   document.cookie = "adminToken=; path=/; max-age=0; SameSite=Strict";
-  push("/admin/log-in");
+  const locale = window.location.pathname.match(/^\/admin\/(mn|en)(?:\/|$)/)?.[1] ?? "mn";
+  push(`/admin/${locale}/log-in`);
 }

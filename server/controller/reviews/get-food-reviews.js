@@ -1,16 +1,17 @@
 import { prisma } from "../../utils/prisma.js";
+import { cached } from "../../utils/cache.js";
 
 export const getFoodReviews = async (req, res) => {
   try {
     const { foodId } = req.params;
 
-    const reviews = await prisma.review.findMany({
+    const reviews = await cached(`reviews:food:${foodId}`, 15_000, () => prisma.review.findMany({
       where: { foodId },
       orderBy: { createdAt: "desc" },
       include: {
         user: { select: { id: true, firstName: true, lastName: true } },
       },
-    });
+    }));
 
     const ratingCount = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     let sum = 0;

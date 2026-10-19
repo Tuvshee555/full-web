@@ -19,9 +19,10 @@ export const deleteCategories = async (req, res) => {
       .status(200)
       .json({ success: true, message: "Successfully deleted category" });
   } catch (error) {
+    if (error.code === "P2025") return res.status(404).json({ success: false, message: "Category not found" });
     console.error("Error deleting category:", error);
     res
       .status(500)
-      .json({ success: false, message: "Error deleting category", error: error.message });
+      .json({ success: false, message: "Error deleting category" });
   }
 };

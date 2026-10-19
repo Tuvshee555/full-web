@@ -1,6 +1,6 @@
 import { apiRoute, authorizePublic, deleteTestConversation, first, limitRequest, publicMessages, qaAuthorized } from "../../../../chatbot/api";
 import { prisma } from "../../../../chatbot/prisma";
-import { getSettings } from "../../../../chatbot/settings.js";
+import { getSettings } from "../../../../chatbot/settings.mjs";
 import { handleCustomerMessage } from "../../../../chatbot/handler";
 import { chatError, hash, newToken } from "../../../../chatbot/security.js";
 import { STORE } from "../../../../config/store-data.mjs";

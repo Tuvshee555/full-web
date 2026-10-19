@@ -80,6 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   /* ---------- SINGLE SOURCE OF TRUTH ---------- */
   const setAuthToken = (newToken: string | null, newEmail?: string | null) => {
     if (newToken) {
+      localStorage.removeItem("guest");
       localStorage.setItem("token", newToken);
       setToken(newToken);
       reEvaluateToken(newToken);

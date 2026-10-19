@@ -1,24 +1,5 @@
 import { requireAuth } from "./requireAuth.js";
-import { prisma } from "../prismaClient.js";
-
-// Short-lived role cache so an admin dashboard (which fires many requests in
-// quick succession) doesn't do a DB round-trip for the role on every single
-// call. Revocation still takes effect within ROLE_TTL_MS.
-const ROLE_TTL_MS = 15_000;
-const roleCache = new Map(); // userId -> { role, expires }
-
-async function resolveRole(userId) {
-  const hit = roleCache.get(userId);
-  if (hit && Date.now() < hit.expires) return hit.role;
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { role: true },
-  });
-  const role = user?.role ?? null;
-  roleCache.set(userId, { role, expires: Date.now() + ROLE_TTL_MS });
-  return role;
-}
+import { resolveUserRole } from "../utils/userRole.js";
 
 /**
  * Wraps requireAuth and then enforces ADMIN role.
@@ -36,7 +17,7 @@ export const requireAdmin = (req, res, next) => {
     }
 
     try {
-      const role = await resolveRole(req.user.id);
+      const role = await resolveUserRole(req.user.id);
 
       if (role !== "ADMIN") {
         return res.status(403).json({ message: "Admin access required" });

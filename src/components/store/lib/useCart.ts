@@ -12,7 +12,7 @@ export function useStoreCart() {
     const load = () => setItems(readCart());
     load();
     setReady(true);
-    const onStorage = (e: StorageEvent) => e.key === "cart" && load();
+    const onStorage = (e: StorageEvent) => (e.key === "cart" || e.key === null) && load();
     window.addEventListener("cart-updated", load);
     window.addEventListener("storage", onStorage);
     return () => {

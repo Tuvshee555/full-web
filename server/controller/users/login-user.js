@@ -1,19 +1,19 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "../../prismaClient.js";
+import { normalizeEmail, validPassword } from "../../utils/authValidation.js";
 
 export const loginUser = async (req, res) => {
   try {
-    const { email, password, role } = req.body;
+    const { email, password, role } = req.body ?? {};
 
-    if (!email || !password || !role) {
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail || !validPassword(password, 1) || !["USER", "ADMIN"].includes(role)) {
       return res.status(400).json({
         success: false,
         message: "Email, password, and role are required!",
       });
     }
-
-    const normalizedEmail = email.toLowerCase();
 
     // Find user in Prisma
     const existingUser = await prisma.user.findUnique({
@@ -21,25 +21,25 @@ export const loginUser = async (req, res) => {
     });
 
     if (!existingUser) {
-      return res.status(400).json({
+      return res.status(401).json({
         success: false,
-        message: "This account does not exist!",
+        message: "Email or password is incorrect",
       });
     }
 
     // Check password
     if (!existingUser.password) {
-      return res.status(400).json({
+      return res.status(401).json({
         success: false,
-        message: "Password not set for this account",
+        message: "Email or password is incorrect",
       });
     }
 
     const passwordMatches = await bcrypt.compare(password, existingUser.password);
     if (!passwordMatches) {
-      return res.status(400).json({
+      return res.status(401).json({
         success: false,
-        message: "Incorrect password!",
+        message: "Email or password is incorrect",
       });
     }
 
@@ -78,7 +78,6 @@ export const loginUser = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Server error",
-      error: error.message,
     });
   }
 };

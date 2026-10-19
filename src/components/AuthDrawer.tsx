@@ -2,11 +2,13 @@
 
 import { API_BASE_URL } from "@/lib/api";
 import React, { useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import * as Dialog from "@radix-ui/react-dialog";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/(customer)/[locale]/provider/AuthProvider";
 import { useI18n } from "@/components/i18n/ClientI18nProvider";
+import { safeReturnPath } from "@/utils/safeRedirect";
 
 export default function AuthDrawer({
   open,
@@ -15,7 +17,7 @@ export default function AuthDrawer({
   open: boolean;
   onClose: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { setAuthToken } = useAuth();
   const router = useRouter();
 
@@ -24,12 +26,15 @@ export default function AuthDrawer({
   const [loading, setLoading] = useState(false);
   const [digits, setDigits] = useState<string[]>(Array(6).fill(""));
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const sending = useRef(false);
+  const verifying = useRef(false);
+  const [verificationBusy, setVerificationBusy] = useState(false);
 
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
-
-  /* ================= LOGIC (UNCHANGED) ================= */
+  const returnFocus = useRef<HTMLElement | null>(null);
 
   const sendOTP = async () => {
+    if (sending.current || verifying.current) return;
     const normalized = email.trim().toLowerCase();
 
     if (!/^\S+@\S+\.\S+$/.test(normalized)) {
@@ -37,16 +42,18 @@ export default function AuthDrawer({
       return;
     }
 
+    sending.current = true;
     setLoading(true);
+    try {
     const res = await fetch(
       `${API_BASE_URL}/email/send-otp`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: normalized }),
+        signal: AbortSignal.timeout(25_000),
       }
     );
-    setLoading(false);
 
     if (!res.ok) {
       toast.error(t("auth.otp_send_failed"));
@@ -54,13 +61,18 @@ export default function AuthDrawer({
     }
 
     toast.success(t("auth.otp_sent"));
+    setDigits(Array(6).fill(""));
+    setIsCorrect(null);
     setPhase("otp");
     setTimeout(() => inputsRef.current[0]?.focus(), 50);
+    } catch { toast.error(t("auth.otp_send_failed")); }
+    finally { sending.current = false; setLoading(false); }
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     const paste = e.clipboardData.getData("text");
     if (/^\d{6}$/.test(paste)) {
+      e.preventDefault();
       const arr = paste.split("");
       setDigits(arr);
       autoVerify(arr.join(""));
@@ -80,15 +92,19 @@ export default function AuthDrawer({
   };
 
   const autoVerify = async (code: string) => {
+    if (verifying.current || !/^\d{6}$/.test(code)) return;
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail) return;
-
+    verifying.current = true;
+    setVerificationBusy(true);
+    try {
     const res = await fetch(
       `${API_BASE_URL}/email/verify-otp`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: normalizedEmail, code }),
+        signal: AbortSignal.timeout(25_000),
       }
     );
 
@@ -108,7 +124,9 @@ export default function AuthDrawer({
 
     // Stay where the shopper is unless a redirect was requested (was "/home-page")
     const redirect = new URLSearchParams(window.location.search).get("redirect");
-    if (redirect) router.push(redirect);
+    if (redirect) router.push(safeReturnPath(redirect, `/${locale}`));
+    } catch { toast.error(t("auth.login_error")); }
+    finally { verifying.current = false; setVerificationBusy(false); }
   };
 
   if (!open) return null;
@@ -116,36 +134,13 @@ export default function AuthDrawer({
   /* ================= UI ================= */
 
   return (
-    <AnimatePresence>
-      {/* Backdrop */}
-      {/* Above the sticky header and the drawers (see the z-index scale in tailwind.config.ts) */}
-      <motion.div
-        key="bg"
-        className="fixed inset-0 z-modal bg-espresso/40 backdrop-blur-[2px]"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-      />
-
-      <motion.div
-        key="modal"
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 16 }}
-        transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
-        className="pointer-events-none fixed inset-0 z-modal-panel flex items-center justify-center p-[16px]"
-      >
-        <div className="pointer-events-auto w-full max-w-[440px] bg-paper p-[28px] text-ink shadow-[0_40px_80px_-30px_rgba(28,23,20,0.45)] sm:p-[36px]">
-          <div className="flex items-start justify-between">
-            <h2 className="store-heading text-[36px]">{t("auth.login_title")}</h2>
-            <button
-              onClick={onClose}
-              aria-label={t("common.close")}
-              className="-mr-[10px] -mt-[6px] p-[10px] text-[22px] leading-none text-ink/60 transition-transform duration-500 hover:rotate-90 hover:text-ink"
-            >
-              ×
-            </button>
+    <Dialog.Root open={open} onOpenChange={(value) => { if (!value) onClose(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-modal bg-espresso/40" />
+        <Dialog.Content onOpenAutoFocus={() => { returnFocus.current = document.activeElement as HTMLElement; }} onCloseAutoFocus={(event) => { event.preventDefault(); returnFocus.current?.focus(); }} aria-describedby={undefined} className="fixed left-1/2 top-1/2 z-modal-panel max-h-[calc(100dvh-32px)] w-[calc(100%-32px)] max-w-[440px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto bg-paper p-[24px] text-ink shadow-xl outline-none sm:p-[36px]">
+          <div className="flex items-start justify-between gap-[12px]">
+            <Dialog.Title className="store-heading text-[36px]">{t("auth.login_title")}</Dialog.Title>
+            <Dialog.Close aria-label={t("common.close")} className="-mr-[10px] -mt-[6px] flex h-[44px] w-[44px] shrink-0 items-center justify-center text-[26px] text-taupe">×</Dialog.Close>
           </div>
 
           {phase === "idle" && (
@@ -184,10 +179,13 @@ export default function AuthDrawer({
                     }}
                     value={d}
                     inputMode="numeric"
+                    autoComplete={i === 0 ? "one-time-code" : "off"}
+                    disabled={verificationBusy}
                     maxLength={1}
                     onPaste={handlePaste}
                     onChange={(e) => handleDigitChange(i, e.target.value)}
-                    className={`h-[56px] w-full bg-white text-center text-[20px] text-ink outline-none ${
+                    aria-label={`${t("common.verify")} ${i + 1}`}
+                    className={`h-[56px] min-w-0 w-full bg-white text-center text-[20px] text-ink outline-none ${
                       isCorrect === true
                         ? "shadow-[inset_0_0_0_1px_#1c1714]"
                         : isCorrect === false
@@ -199,8 +197,8 @@ export default function AuthDrawer({
                 ))}
               </div>
 
-              <button onClick={() => autoVerify(digits.join(""))} className="btn w-full">
-                {t("common.verify")}
+              <button disabled={verificationBusy || digits.join("").length !== 6} onClick={() => autoVerify(digits.join(""))} className="btn w-full">
+                {verificationBusy ? t("common.loading") : t("common.verify")}
               </button>
 
               <div className="flex justify-between text-[14px]">
@@ -209,18 +207,18 @@ export default function AuthDrawer({
                     setPhase("idle");
                     setDigits(Array(6).fill(""));
                   }}
-                  className="link-underline text-ink/70"
+                  className="link-underline min-h-[44px] text-ink/70"
                 >
                   {t("common.back")}
                 </button>
-                <button onClick={sendOTP} className="link-underline text-ink/70">
+                <button disabled={loading || verificationBusy} onClick={sendOTP} className="link-underline min-h-[44px] text-ink/70 disabled:opacity-50">
                   {t("auth.resend")}
                 </button>
               </div>
             </div>
           )}
-        </div>
-      </motion.div>
-    </AnimatePresence>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

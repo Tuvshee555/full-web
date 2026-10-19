@@ -32,5 +32,6 @@ export type OrderDetails = {
   items: OrderItem[];
 
   qpay?: any;
+  payment?: { status?: string; invoiceId?: string; qrText?: string; qrImage?: string; amount?: number } | null;
   deliveryFee?: any;
 };

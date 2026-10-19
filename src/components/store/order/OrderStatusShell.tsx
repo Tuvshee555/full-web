@@ -4,30 +4,22 @@
 
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
-import { ChevronDown } from "lucide-react";
+import { ArrowLeft, ChevronDown, LockKeyhole } from "lucide-react";
 import { STORE } from "@/config/store";
 import { money } from "../lib/product";
 import { useStoreT } from "../lib/useStoreT";
 
-/** Shopify-style order status page in the Lorentz look: wordmark header,
- *  main content left, sand order summary right (collapsible on phones). */
+/** Shared, bounded checkout layout with a compact summary on phones. */
 export function OrderStatusShell({ order, children }: { order?: any; children: ReactNode }) {
   const { st, locale } = useStoreT();
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-paper text-ink">
+    <div className="min-h-dvh bg-paper text-ink">
       <header className="border-b border-ink/10">
-        <div className="flex h-[64px] items-center lg:h-[84px]">
-          <div className="flex flex-1 lg:justify-end">
-            {/* Order pages show only the wordmark (Shopify order status has no cart icon) */}
-            <div className="mx-auto flex w-full max-w-[640px] items-center px-[20px] lg:mx-0 lg:px-[40px]">
-              <Link href={`/${locale}`} className="store-heading text-[26px] lg:text-[30px]">
-                {STORE.name}
-              </Link>
-            </div>
-          </div>
-          <div className="hidden lg:block lg:flex-1" />
+        <div className="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-[16px] px-[20px] sm:px-[32px] lg:h-[88px]">
+          <Link href={`/${locale}`} className="store-heading flex min-h-[44px] items-center text-[30px]">{STORE.name}</Link>
+          <span className="flex items-center gap-[7px] text-[12px] text-taupe"><LockKeyhole className="h-[14px] w-[14px]" aria-hidden />{st("secure_checkout")}</span>
         </div>
       </header>
 
@@ -35,6 +27,8 @@ export function OrderStatusShell({ order, children }: { order?: any; children: R
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-controls="mobile-order-summary"
           className="flex w-full items-center justify-between border-b border-ink/10 bg-sand px-[20px] py-[16px] lg:hidden"
         >
           <span className="flex items-center gap-[6px] text-[14px]">
@@ -45,18 +39,20 @@ export function OrderStatusShell({ order, children }: { order?: any; children: R
         </button>
       )}
       {order && open && (
-        <div className="border-b border-ink/10 bg-sand px-[20px] py-[22px] lg:hidden">
+        <div id="mobile-order-summary" className="border-b border-ink/10 bg-sand px-[20px] py-[22px] lg:hidden">
           <OrderSummary order={order} />
         </div>
       )}
 
-      <div className="lg:flex lg:min-h-[calc(100vh-84px)]">
-        <div className="lg:flex lg:flex-1 lg:justify-end lg:border-r lg:border-ink/10">
-          <main className="mx-auto w-full max-w-[640px] px-[20px] py-[32px] lg:mx-0 lg:px-[40px] lg:py-[48px]">{children}</main>
-        </div>
-        <aside className="hidden bg-sand lg:block lg:flex-1">
+      <div className={`mx-auto grid max-w-[1200px] gap-[48px] px-[20px] py-[28px] pb-[48px] sm:px-[32px] lg:py-[48px] ${order ? "lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]" : "max-w-[720px]"}`}>
+        <section className="min-w-0">
+          {children}
+          <Link href={`/${locale}`} className="mt-[28px] inline-flex min-h-[44px] items-center gap-[8px] text-[13px] text-taupe hover:text-ink"><ArrowLeft className="h-[14px] w-[14px]" aria-hidden />{st("back_to_store")}</Link>
+        </section>
+        <aside className="hidden min-w-0 lg:block" aria-label={st("order_summary")}>
           {order && (
-            <div className="sticky top-0 max-w-[520px] px-[40px] py-[48px]">
+            <div className="sticky top-[32px] border border-ink/10 bg-sand/60 p-[28px]">
+              <h2 className="mb-[24px] text-[17px] font-medium">{st("order_summary")}</h2>
               <OrderSummary order={order} />
             </div>
           )}
@@ -85,10 +81,10 @@ export function OrderSummary({ order }: { order: any }) {
               </span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate font-medium">{it.food?.foodName}</p>
+              <p className="break-words font-medium leading-snug">{it.food?.foodName}</p>
               {it.size && <p className="text-[12px] text-taupe">{it.size}</p>}
             </div>
-            <span>{money(Number(it.food?.price ?? 0) * Number(it.quantity ?? 0))}</span>
+            <span className="shrink-0 whitespace-nowrap tabular-nums">{money(Number(it.food?.price ?? 0) * Number(it.quantity ?? 0))}</span>
           </li>
         ))}
       </ul>

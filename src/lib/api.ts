@@ -19,6 +19,7 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "/api";
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 25_000,
 });
 
 api.interceptors.request.use((config) => {

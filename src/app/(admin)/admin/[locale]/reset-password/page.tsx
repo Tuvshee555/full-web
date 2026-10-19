@@ -1,22 +1,28 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 import { API_BASE_URL } from "@admin/lib/api";
 
 export default function ResetPasswordPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [password, setPassword] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams?.get("token");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const res = await fetch(
+    if (pending || !token) return;
+    setPending(true);
+    setError("");
+    try {
+      const res = await fetch(
       `${API_BASE_URL}/user/reset-password`,
       {
         method: "POST",
@@ -27,10 +33,12 @@ export default function ResetPasswordPage() {
 
     if (res.ok) {
       toast.success(t("password_reset_success"));
-      router.push("/admin/log-in");
+      router.replace(`/admin/${locale}/log-in`);
     } else {
-      toast.error(t("password_reset_error"));
+      setError(t("password_reset_error"));
     }
+    } catch { setError(t("password_reset_error")); }
+    finally { setPending(false); }
   };
 
   return (
@@ -46,11 +54,16 @@ export default function ResetPasswordPage() {
           space-y-4
         "
       >
-        <h2 className="text-base font-semibold">{t("reset_password")}</h2>
+        <h1 className="text-xl font-semibold">{t("reset_password")}</h1>
+        {!token ? <p role="alert" className="text-sm text-terracotta">{t("password_reset_error")}</p> : <>
 
         <input
           type="password"
           placeholder={t("new_password_placeholder")}
+          aria-label={t("new_password_placeholder")}
+          autoComplete="new-password"
+          minLength={8}
+          disabled={pending}
           className="
             h-[44px]
             w-full
@@ -67,6 +80,7 @@ export default function ResetPasswordPage() {
 
         <button
           type="submit"
+          disabled={pending}
           className="
             h-[44px]
             w-full
@@ -77,8 +91,11 @@ export default function ResetPasswordPage() {
             font-medium
           "
         >
-          {t("reset_password")}
+          {pending ? t("common.loading") : t("reset_password")}
         </button>
+        {error && <p role="alert" className="text-sm text-terracotta">{error}</p>}
+        </>}
+        <Link href={`/admin/${locale}/forgot-password`} className="inline-flex min-h-[44px] items-center text-sm underline underline-offset-4">{t("send_reset_link")}</Link>
       </form>
     </div>
   );

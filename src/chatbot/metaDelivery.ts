@@ -1,6 +1,6 @@
 import type { ChatConversation, ChatMessage } from "@prisma/client";
 import { prisma } from "./prisma";
-import { getSettings } from "./settings.js";
+import { getSettings } from "./settings.mjs";
 import { chatError, logError } from "./security.js";
 import { isMetaOutboundDisabled } from "./metaOutboundKillSwitch";
 import { sendTextMessage as sendFacebookText } from "./messenger";

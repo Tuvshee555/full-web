@@ -1,87 +1,36 @@
 import { prisma } from "../../prismaClient.js";
+import { REVENUE_WHERE, businessDateKey, revenueWindows } from "../../utils/revenue.js";
 
-// ✅ Get total, weekly, and monthly revenue
-export const getRevenueStats = async (req, res) => {
+// All payment methods share the same source of truth as the admin dashboard.
+export const getRevenueStats = async (_req, res) => {
   try {
-    const now = new Date();
-
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(now.getDate() - 6);
-
-    // Run the three aggregates in parallel instead of one-after-another.
-    const [totalRevenue, monthlyRevenue, weeklyRevenue] = await Promise.all([
-      prisma.payment.aggregate({
-        _sum: { amount: true },
-        where: { status: "PAID" },
-      }),
-      prisma.payment.aggregate({
-        _sum: { amount: true },
-        where: {
-          status: "PAID",
-          createdAt: { gte: startOfMonth },
-        },
-      }),
-      prisma.payment.aggregate({
-        _sum: { amount: true },
-        where: {
-          status: "PAID",
-          createdAt: { gte: sevenDaysAgo },
-        },
-      }),
-    ]);
-
-    res.json({
-      totalRevenue: totalRevenue._sum.amount || 0,
-      monthlyRevenue: monthlyRevenue._sum.amount || 0,
-      weeklyRevenue: weeklyRevenue._sum.amount || 0,
-    });
-  } catch (err) {
-    console.error("❌ Failed to fetch revenue stats:", err);
-    res.status(500).json({ error: "Failed to fetch revenue stats" });
+    const { monthStart, weekStart } = revenueWindows();
+    const [total, month, week] = await Promise.all([undefined, monthStart, weekStart].map((start) => prisma.foodOrder.aggregate({
+      _sum: { totalPrice: true }, where: { ...REVENUE_WHERE, ...(start ? { createdAt: { gte: start } } : {}) },
+    })));
+    return res.json({ totalRevenue: total._sum.totalPrice ?? 0, monthlyRevenue: month._sum.totalPrice ?? 0, weeklyRevenue: week._sum.totalPrice ?? 0 });
+  } catch (error) {
+    console.error("Revenue stats failed:", error?.code || "DATABASE_ERROR");
+    return res.status(500).json({ error: "Failed to fetch revenue stats" });
   }
 };
 
-// ✅ Get daily chart data and recent payments
-export const getPaymentsStats = async (req, res) => {
+export const getPaymentsStats = async (_req, res) => {
   try {
-    const now = new Date();
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(now.getDate() - 6);
-
-    const payments = await prisma.payment.findMany({
-      where: { createdAt: { gte: sevenDaysAgo } },
-      orderBy: { createdAt: "asc" },
-    });
-
-    const dailyMap = new Map();
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(sevenDaysAgo);
-      date.setDate(date.getDate() + i);
-      const key = date.toISOString().split("T")[0];
-      dailyMap.set(key, 0);
+    const { weekStart } = revenueWindows();
+    const select = { id: true, orderNumber: true, totalPrice: true, createdAt: true, status: true };
+    const [orders, recent] = await Promise.all([
+      prisma.foodOrder.findMany({ where: { ...REVENUE_WHERE, createdAt: { gte: weekStart } }, select }),
+      prisma.foodOrder.findMany({ where: REVENUE_WHERE, orderBy: { createdAt: "desc" }, take: 10, select }),
+    ]);
+    const days = new Map(Array.from({ length: 7 }, (_, index) => [businessDateKey(new Date(weekStart.getTime() + index * 86400000)), 0]));
+    for (const order of orders) {
+      const day = businessDateKey(order.createdAt);
+      if (days.has(day)) days.set(day, days.get(day) + Number(order.totalPrice));
     }
-
-    for (const p of payments) {
-      const key = p.createdAt.toISOString().split("T")[0];
-      if (dailyMap.has(key) && p.status === "PAID") {
-        dailyMap.set(key, dailyMap.get(key) + p.amount);
-      }
-    }
-
-    const dailyRevenue = Array.from(dailyMap.entries()).map(([date, revenue]) => ({
-      date,
-      revenue,
-    }));
-
-    const recentPayments = await prisma.payment.findMany({
-      take: 10,
-      orderBy: { createdAt: "desc" },
-    });
-
-    res.json({ dailyRevenue, recentPayments });
-  } catch (err) {
-    console.error("❌ Failed to fetch payments:", err);
-    res.status(500).json({ error: "Failed to fetch payments" });
+    return res.json({ dailyRevenue: Array.from(days, ([date, revenue]) => ({ date, revenue })), recentPayments: recent.map((order) => ({ id: order.id, orderId: order.id, amount: order.totalPrice, status: order.status, createdAt: order.createdAt })) });
+  } catch (error) {
+    console.error("Payment stats failed:", error?.code || "DATABASE_ERROR");
+    return res.status(500).json({ error: "Failed to fetch payments" });
   }
 };

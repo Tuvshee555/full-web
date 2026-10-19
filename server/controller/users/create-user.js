@@ -1,18 +1,18 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../../prismaClient.js"; // import your Prisma Client
+import { normalizeEmail, validPassword } from "../../utils/authValidation.js";
 
 export const createUser = async (req, res) => {
   try {
-    const { email, password, phonenumber, address } = req.body;
+    const { email, password, phonenumber, address } = req.body ?? {};
 
-    if (!email || !password) {
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail || !validPassword(password)) {
       return res.status(400).json({
         success: false,
-        message: "Email and password are required!",
+        message: "Enter a valid email and a password of at least 8 characters (maximum 72 bytes).",
       });
     }
-
-    const normalizedEmail = email.toLowerCase();
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -50,11 +50,11 @@ export const createUser = async (req, res) => {
       },
     });
   } catch (error) {
+    if (error.code === "P2002") return res.status(409).json({ success: false, message: "User with this email already exists" });
     console.error("Error creating user:", error);
     return res.status(500).json({
       success: false,
       message: "Error creating user",
-      error: error.message,
     });
   }
 };

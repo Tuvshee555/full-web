@@ -7,6 +7,7 @@ import { notifyCustomer } from "../../utils/orderNotify.js";
 import { applyStockDecrements } from "../../utils/stock.js";
 import { background } from "../../utils/background.js";
 import { deliveryFee as currentDeliveryFee } from "../../utils/deliveryFee.js";
+import { invalidateCatalog } from "../../utils/cache.js";
 
 // Delivery fee is the server-side source of truth (must match the customer UI).
 const DELIVERY_ZONES = new Set(["UB", "RURAL"]);
@@ -28,9 +29,9 @@ export const createFoodOrder = async (req, res) => {
       khoroo,
       address,
       notes,
-    } = req.body;
+    } = req.body ?? {};
 
-    const items = req.body.items ?? req.body.normalizedItems;
+    const items = req.body?.items ?? req.body?.normalizedItems;
 
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
@@ -48,8 +49,9 @@ export const createFoodOrder = async (req, res) => {
 
     const safeKey =
       typeof idempotencyKey === "string" && idempotencyKey.trim().length
-        ? idempotencyKey.trim().slice(0, 100)
+        ? idempotencyKey.trim()
         : null;
+    if (safeKey?.length > 100) return res.status(400).json({ message: "Invalid checkout key" });
 
     // Idempotency: if this key already produced an order for this user, return
     // it instead of creating a duplicate (double-click / retry / flaky network).
@@ -70,6 +72,7 @@ export const createFoodOrder = async (req, res) => {
       if (existing && existing.userId === userId) {
         return res.status(200).json(toOrderResponse(existing));
       }
+      if (existing) return res.status(409).json({ message: "This checkout key is already in use. Start a new checkout." });
     }
 
     // No card payments: QPay, bank transfer, or cash on delivery only.
@@ -77,28 +80,46 @@ export const createFoodOrder = async (req, res) => {
       return res.status(400).json({ message: "Invalid payment method" });
     }
 
-    if (!Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ message: "Items required" });
+    if (!Array.isArray(items) || items.length === 0 || items.length > 100) {
+      return res.status(400).json({ message: "Provide between 1 and 100 order items" });
     }
 
     const safe = (v) =>
       typeof v === "string" && v.trim().length ? v.trim() : null;
 
-    const normalizedItems = items
-      .map((i) => ({
-        foodId: typeof i.foodId === "string" ? i.foodId : null,
-        quantity: Number.parseInt(i.quantity, 10) || 0,
-        size:
-          typeof (i.size ?? i.selectedSize) === "string" &&
-          (i.size ?? i.selectedSize).trim().length
-            ? (i.size ?? i.selectedSize).trim().slice(0, 60)
-            : null,
-      }))
-      .filter((i) => i.foodId && i.quantity > 0);
-
-    if (!normalizedItems.length) {
-      return res.status(400).json({ message: "No valid items" });
+    const deliveryFields = { firstName, lastName, phone, city, district, khoroo, address, notes };
+    for (const [field, value] of Object.entries(deliveryFields)) {
+      const maxLength = field === "notes" ? 2000 : field === "address" ? 1000 : 120;
+      if (value != null && (typeof value !== "string" || value.length > maxLength)) {
+        return res.status(400).json({ message: `Invalid ${field}` });
+      }
+      if (field !== "notes" && !safe(value)) {
+        return res.status(400).json({ message: `Delivery ${field} is required` });
+      }
     }
+    if (!/^\+?[\d\s()-]{8,20}$/.test(phone) || phone.replace(/\D/g, "").length < 8) {
+      return res.status(400).json({ message: "A valid delivery phone number is required" });
+    }
+
+    const combinedItems = new Map();
+    for (const item of items) {
+      const rawQuantity = item?.quantity;
+      const quantity = (typeof rawQuantity === "number" || typeof rawQuantity === "string")
+        ? Number(rawQuantity) : NaN;
+      const foodId = typeof item?.foodId === "string" ? item.foodId.trim() : "";
+      const rawSize = item?.size ?? item?.selectedSize;
+      if (!foodId || foodId.length > 100 || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 999 ||
+          (rawSize != null && (typeof rawSize !== "string" || rawSize.length > 60))) {
+        return res.status(400).json({ message: "Every item needs a valid product, size and quantity between 1 and 999" });
+      }
+      const size = safe(rawSize);
+      const key = JSON.stringify([foodId, size]);
+      const previous = combinedItems.get(key);
+      const totalQuantity = quantity + (previous?.quantity || 0);
+      if (totalQuantity > 999) return res.status(400).json({ message: "Maximum quantity is 999 per product size" });
+      combinedItems.set(key, { foodId, size, quantity: totalQuantity });
+    }
+    const normalizedItems = [...combinedItems.values()];
 
     const foodIds = [...new Set(normalizedItems.map((i) => i.foodId))];
     const foods = await prisma.food.findMany({
@@ -115,7 +136,7 @@ export const createFoodOrder = async (req, res) => {
     const foodById = new Map(foods.map((food) => [food.id, food]));
     const unitPriceOf = (item) => {
       const food = foodById.get(item.foodId);
-      const size = item.size ? food?.sizes.find((s) => s.label === item.size) : null;
+      const size = item.size ? (food?.sizes ?? []).find((s) => s.label === item.size) : null;
       const own = Number(size?.price);
       return size && size.price != null && Number.isFinite(own) && own > 0 ? own : Number(food?.price ?? 0);
     };
@@ -125,12 +146,15 @@ export const createFoodOrder = async (req, res) => {
       pricedItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0).toFixed(2)
     );
 
-    if (itemsSubtotal <= 0) {
+    if (!Number.isFinite(itemsSubtotal) || itemsSubtotal <= 0) {
       return res.status(400).json({ message: "Order total must be greater than zero" });
     }
 
     // Normalize the delivery zone and derive the fee server-side.
-    const normalizedZone = DELIVERY_ZONES.has(deliveryZone) ? deliveryZone : "UB";
+    if (deliveryZone != null && !DELIVERY_ZONES.has(deliveryZone)) {
+      return res.status(400).json({ message: "Invalid delivery zone" });
+    }
+    const normalizedZone = deliveryZone || "UB";
     const deliveryFee = currentDeliveryFee();
 
     // Grand total the customer is actually charged (items + delivery).
@@ -200,9 +224,10 @@ export const createFoodOrder = async (req, res) => {
           },
           select: orderSelect,
         });
-      });
+      }, { maxWait: 5000, timeout: 15000 });
     } catch (createErr) {
       if (createErr?.code === "INVALID_SIZE") return res.status(400).json({ message: "Please select a valid product size." });
+      if (createErr?.code === "INVALID_QUANTITY") return res.status(400).json({ message: "Invalid item quantity" });
       // Not enough stock for a chosen size.
       if (createErr?.code === "OUT_OF_STOCK") {
         return res.status(409).json({
@@ -221,10 +246,12 @@ export const createFoodOrder = async (req, res) => {
         if (existing && existing.userId === userId) {
           return res.status(200).json(toOrderResponse(existing));
         }
+        if (existing) return res.status(409).json({ message: "This checkout key is already in use. Start a new checkout." });
       }
       throw createErr;
     }
 
+    invalidateCatalog();
     res.status(201).json(toOrderResponse(order));
 
     background((async () => {

@@ -4,6 +4,7 @@
 import { API_BASE_URL } from "@/lib/api";
 import { toast } from "sonner";
 import { saveAuth } from "@/utils/auth";
+import { safeReturnPath } from "@/utils/safeRedirect";
 
 type GooglePayload = { credential?: string };
 
@@ -23,6 +24,7 @@ export const handleGoogleLogin = async (
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: credential, role: "USER" }),
+        signal: AbortSignal.timeout(25_000),
       }
     );
 
@@ -32,12 +34,13 @@ export const handleGoogleLogin = async (
     localStorage.setItem("token", data.token);
     localStorage.setItem("userId", data.user.id);
     localStorage.setItem("email", data.user.email);
+    localStorage.removeItem("guest");
 
     saveAuth(data);
     window.dispatchEvent(new Event("auth-changed"));
 
     toast.success("Google logged in!");
-    router.push(`/${locale}${redirect}`);
+    router.push(safeReturnPath(`/${locale}${redirect}`, `/${locale}`));
   } catch {
     toast.error("Google login error");
   }

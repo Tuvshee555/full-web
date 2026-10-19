@@ -2,8 +2,10 @@
 import { API_BASE_URL } from "@/lib/api";
 import { toast } from "sonner";
 import { GoogleLoginPayload } from "./type";
+import { safeReturnPath } from "@/utils/safeRedirect";
 
 export const storeAuth = (token: string, email: string, userId: string) => {
+  localStorage.removeItem("guest");
   localStorage.setItem("token", token);
   localStorage.setItem("email", email);
   localStorage.setItem("userId", userId);
@@ -31,6 +33,7 @@ export const googleLogin = async (
           token: payload.credential,
           role: "USER",
         }),
+        signal: AbortSignal.timeout(25_000),
       }
     );
 
@@ -41,7 +44,7 @@ export const googleLogin = async (
     notifyAuth();
 
     toast.success("Google-р нэвтэрлээ!");
-    setTimeout(() => push(redirectUrl), 150);
+    push(safeReturnPath(redirectUrl));
   } catch {
     toast.error("Google login error");
   }
@@ -68,6 +71,7 @@ export const guestLogin = async (
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ guestId }),
+        signal: AbortSignal.timeout(25_000),
       }
     );
 
@@ -87,7 +91,7 @@ export const guestLogin = async (
     window.dispatchEvent(new Event("auth-changed"));
 
     toast.success("Зочноор нэвтэрлээ!");
-    push(redirectUrl);
+    push(safeReturnPath(redirectUrl));
   } catch (err) {
     // console.error("guestLogin error:", err);
     toast.error("Failed to create guest account");

@@ -3,13 +3,15 @@ import crypto from "crypto";
 import { sendEmail } from "../../utils/send-email.js";
 import { prisma } from "../../prismaClient.js";
 import { siteUrl } from "../../utils/siteUrl.js";
+import { normalizeEmail } from "../../utils/authValidation.js";
 
 const RESET_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
 export const forgotPassword = async (req, res) => {
   try {
-    const { email } = req.body;
-    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const { email } = req.body ?? {};
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) return res.status(400).json({ message: "Enter a valid email" });
 
     const user = await prisma.user.findUnique({
       where: { email: normalizedEmail },
@@ -30,7 +32,7 @@ export const forgotPassword = async (req, res) => {
     }
 
     const resetToken = jwt.sign(
-      { id: user.id, type: "reset" },
+      { id: user.id, type: "reset", jti: crypto.randomUUID() },
       process.env.JWT_SECRET,
       { expiresIn: "15m" }
     );
@@ -58,7 +60,9 @@ export const forgotPassword = async (req, res) => {
       return res.status(500).json({ message: "Reset password URL is not configured" });
     }
 
-    const resetLink = `${resetBaseUrl}/reset-password?token=${resetToken}`;
+    const locale = req.body.locale === "en" ? "en" : "mn";
+    const base = resetBaseUrl.replace(/\/$/, "").replace(/\/(mn|en)$/, "");
+    const resetLink = `${base}/${locale}/reset-password?token=${encodeURIComponent(resetToken)}`;
 
     await sendEmail({
       to: user.email,

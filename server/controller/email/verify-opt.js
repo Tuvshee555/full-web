@@ -1,6 +1,7 @@
 import { checkOtp } from "../../utils/otp-store.js";
 import { prisma } from "../../prismaClient.js";
 import jwt from "jsonwebtoken";
+import { normalizeEmail } from "../../utils/authValidation.js";
 
 const OTP_ERROR_MESSAGES = {
   not_found: "Код илгээгүй",
@@ -9,15 +10,17 @@ const OTP_ERROR_MESSAGES = {
   mismatch: "Код буруу",
 };
 
-export const verifyOtp = async (req, res) => {
-  const { email, code } = req.body;
+export const verifyOtp = async (req, res, next) => {
+  try {
+  const { email, code } = req.body ?? {};
 
   if (!email || !code) {
     return res.status(400).json({ message: "Мэдээлэл дутуу" });
   }
 
-  const normalizedEmail = String(email).trim().toLowerCase();
-  const normalizedCode = String(code).trim();
+  const normalizedEmail = normalizeEmail(email);
+  const normalizedCode = typeof code === "string" ? code.trim() : "";
+  if (!normalizedEmail || !/^\d{6}$/.test(normalizedCode)) return res.status(400).json({ message: "Мэдээлэл буруу" });
 
   const result = await checkOtp(normalizedEmail, normalizedCode);
 
@@ -32,16 +35,7 @@ export const verifyOtp = async (req, res) => {
   }
 
   // OTP verified — continue normal login logic
-  let user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-
-  if (!user) {
-    user = await prisma.user.create({
-      data: {
-        email: normalizedEmail,
-        role: "USER",
-      },
-    });
-  }
+  const user = await prisma.user.upsert({ where: { email: normalizedEmail }, update: { isVerified: true }, create: { email: normalizedEmail, role: "USER", isVerified: true }, select: { id: true, email: true, role: true } });
 
   const jwtToken = jwt.sign(
     { userId: user.id, role: user.role, type: "access" },
@@ -58,4 +52,5 @@ export const verifyOtp = async (req, res) => {
       role: user.role,
     },
   });
+  } catch (error) { return next(error); }
 };

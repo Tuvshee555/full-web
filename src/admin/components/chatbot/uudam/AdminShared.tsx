@@ -33,7 +33,7 @@ export function TabHeader({
           </div>
         )}
         <div className="min-w-0">
-          <h1 className="store-heading text-3xl text-ink">{title}</h1>
+          <h2 className="text-xl font-semibold text-ink">{title}</h2>
           {description && (
             <p className="mt-0.5 max-w-2xl text-sm text-taupe">{description}</p>
           )}

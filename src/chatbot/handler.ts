@@ -10,7 +10,7 @@ import { randomUUID } from "node:crypto";
 import type { ChatConversation, ChatMessage as ChatMessageRow } from "@prisma/client";
 import { background } from "../../server/utils/background.js";
 import { prisma } from "./prisma";
-import { getSettings } from "./settings.js";
+import { getSettings } from "./settings.mjs";
 import { readContext } from "./catalogue";
 import { detectLanguage } from "./language";
 import { chatError, logError, privateOrderStatus, rateLimit } from "./security.js";

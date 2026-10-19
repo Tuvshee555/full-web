@@ -6,7 +6,7 @@ import { multiTurnScenarios } from "./chatbot-scenarios.mjs";
 dotenv.config({ path: [".env.local", ".env"], quiet: true });
 const { prisma } = await import("../server/utils/prisma.js");
 const { handleCustomerMessage } = await import("../src/chatbot/handler.ts");
-const { getSettings } = await import("../src/chatbot/settings.js");
+const { getSettings } = await import("../src/chatbot/settings.mjs");
 const { readContext } = await import("../src/chatbot/catalogue.ts");
 const { stockLevel, stockLabel } = await import("../server/utils/stockLevel.js");
 const args = process.argv.slice(2), urlAt = args.indexOf("--url");

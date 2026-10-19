@@ -11,7 +11,7 @@ export function GreetingTab({ settings, onSaved }: { settings: Settings; onSaved
   const settingsRef = useRef(settings);
   useEffect(() => { if (settingsRef.current !== settings) { settingsRef.current = settings; setDraft({ greetingMn: settings.greetingMn, greetingEn: settings.greetingEn }); } }, [settings]);
   async function save(e: React.FormEvent) {
-    e.preventDefault(); setSaving(true); setNotice("");
+    e.preventDefault(); if (saving) return; setSaving(true); setNotice("");
     try { const { data } = await api.patch("/chatbot/admin/settings", { fields: draft }); onSaved(data); setNotice(t("chatbot.saved")); }
     catch { setNotice(t("chatbot.settings_error")); } finally { setSaving(false); }
   }

@@ -17,20 +17,23 @@ export function usePaymentPending() {
   const router = useRouter();
 
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [resolvedOrderId, setResolvedOrderId] = useState(false);
   const [order, setOrder] = useState<OrderData | null>(null);
 
   const [qrText, setQrText] = useState<string | null>(null);
   const [invoiceId, setInvoiceId] = useState<string | null>(null);
 
   const [paid, setPaid] = useState(false);
+  const [requiresReview, setRequiresReview] = useState(false);
   const [status, setStatus] = useState<string>(t("payment_creating"));
-  const [loadingOrder, setLoadingOrder] = useState(false);
+  const [loadingOrder, setLoadingOrder] = useState(true);
 
   const pollRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
+  const activeOrder = useRef<string | null>(null);
 
   // prevent spamming create invoice
-  const creatingInvoiceRef = useRef(false);
+  const creatingInvoiceRef = useRef<string | null>(null);
 
   /** 🧹 MOUNT / UNMOUNT */
   useEffect(() => {
@@ -46,14 +49,19 @@ export function usePaymentPending() {
     const fromUrl = searchParams?.get("orderId");
     if (fromUrl) {
       setOrderId(fromUrl);
+      setResolvedOrderId(true);
       try {
         localStorage.setItem("lastOrderId", fromUrl);
       } catch {}
       return;
     }
 
-    const stored = localStorage.getItem("lastOrderId");
-    if (stored) setOrderId(stored);
+    try {
+      const stored = localStorage.getItem("lastOrderId");
+      if (stored) setOrderId(stored);
+      else setLoadingOrder(false);
+    } catch { setLoadingOrder(false); }
+    setResolvedOrderId(true);
   }, [searchParams]);
 
   const getAuthHeaders = () => {
@@ -74,31 +82,37 @@ export function usePaymentPending() {
         }
       );
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || activeOrder.current !== id) return;
 
       const data = res.data ?? null;
       setOrder(data);
+      if (data?.status === "CANCELLED" && data?.payment?.status === "PAID") {
+        setRequiresReview(true);
+        setPaid(false);
+      }
 
       // Already paid: show the thank-you state here (Shopify-style order
       // confirmation) instead of bouncing to another page.
       if (data?.status === "PAID" || data?.status === "DELIVERING" || data?.status === "DELIVERED") {
         setPaid(true);
+        setRequiresReview(false);
         setQrText(null);
         setStatus(t("payment_success"));
       }
     } catch {
+      if (!mountedRef.current || activeOrder.current !== id) return;
       toast.error(t("order_not_found"));
       if (mountedRef.current) setOrder(null);
     } finally {
-      if (mountedRef.current) setLoadingOrder(false);
+      if (mountedRef.current && activeOrder.current === id) setLoadingOrder(false);
     }
   }, []);
 
   /** 🧾 CREATE INVOICE */
   const createInvoice = useCallback(
     async (id: string, amount: number) => {
-      if (creatingInvoiceRef.current) return;
-      creatingInvoiceRef.current = true;
+      if (creatingInvoiceRef.current === id) return;
+      creatingInvoiceRef.current = id;
 
       try {
         if (mountedRef.current) setStatus(t("payment_creating"));
@@ -112,7 +126,7 @@ export function usePaymentPending() {
           }
         );
 
-        if (!mountedRef.current) return;
+        if (!mountedRef.current || activeOrder.current !== id) return;
 
         if (!res.data?.qr_text || !res.data?.invoice_id) {
           toast.error(t("payment_qr_error"));
@@ -123,21 +137,29 @@ export function usePaymentPending() {
         setQrText(res.data.qr_text);
         setInvoiceId(res.data.invoice_id);
         setStatus(t("payment_waiting"));
-      } catch {
+      } catch (error) {
+        if (!mountedRef.current || activeOrder.current !== id) return;
+        if (axios.isAxiosError(error) && error.response?.status === 409) void fetchOrder(id);
         if (mountedRef.current) {
           toast.error(t("payment_create_fail"));
           setStatus(t("payment_create_fail"));
         }
       } finally {
-        creatingInvoiceRef.current = false;
+        if (creatingInvoiceRef.current === id) creatingInvoiceRef.current = null;
       }
     },
-    [t]
+    [t, fetchOrder]
   );
 
   /** ✅ RUN ASAP WHEN ORDER ID EXISTS */
   useEffect(() => {
     if (!orderId) return;
+    activeOrder.current = orderId;
+    setOrder(null);
+    setQrText(null);
+    setInvoiceId(null);
+    setPaid(false);
+    setRequiresReview(false);
 
     // start fetching order immediately
     fetchOrder(orderId);
@@ -185,14 +207,16 @@ export function usePaymentPending() {
 
   /** 🔁 POLLING PAYMENT STATUS */
   useEffect(() => {
-    if (!invoiceId || paid) return;
+    if (!invoiceId || paid || requiresReview) return;
+    let checking = false;
+    const controller = new AbortController();
 
     const check = async () => {
       try {
         const res = await axios.post(
           `${API_BASE_URL}/qpay/check`,
           { invoiceId },
-          { headers: getAuthHeaders(), timeout: API_TIMEOUT }
+          { headers: getAuthHeaders(), timeout: API_TIMEOUT, signal: controller.signal }
         );
         return res.data;
       } catch {
@@ -200,22 +224,38 @@ export function usePaymentPending() {
       }
     };
 
-    pollRef.current = window.setInterval(async () => {
+    const poll = async () => {
+      if (checking || document.hidden || controller.signal.aborted) return;
+      checking = true;
       const data = await check();
+      checking = false;
+      if (data?.orderStatus === "CANCELLED" && !data?.paid && !controller.signal.aborted && activeOrder.current === orderId) {
+        setOrder((previous) => previous ? { ...previous, status: "CANCELLED" } : previous);
+        setQrText(null);
+        if (pollRef.current) clearInterval(pollRef.current);
+        return;
+      }
 
-      if (data?.paid && mountedRef.current) {
-        setPaid(true);
+      if (data?.paid && mountedRef.current && !controller.signal.aborted && activeOrder.current === orderId) {
+        setPaid(!data.requiresReview);
+        setRequiresReview(Boolean(data.requiresReview));
         setStatus(t("payment_success"));
         if (pollRef.current) clearInterval(pollRef.current);
         // Stay on the thank-you state; refresh the order so it shows as paid
         if (orderId) fetchOrder(orderId);
       }
-    }, 4000);
+    };
+    void poll();
+    pollRef.current = window.setInterval(poll, 6000);
+    const onVisible = () => { if (!document.hidden) void poll(); };
+    document.addEventListener("visibilitychange", onVisible);
 
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
+      controller.abort();
+      document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [invoiceId, paid, orderId]);
+  }, [invoiceId, paid, requiresReview, orderId]);
 
   /** ✅ USER MANUAL RETRY */
   const retryCreateInvoice = async () => {
@@ -232,9 +272,11 @@ export function usePaymentPending() {
   return {
     t,
     orderId,
+    resolvedOrderId,
     order,
     qrText,
     paid,
+    requiresReview,
     status,
     loadingOrder,
 

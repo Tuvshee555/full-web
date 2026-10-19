@@ -1,3 +1,7 @@
+// Guest identities are internal placeholders, never customer email recipients.
+export const isGuestEmail = (email) => typeof email !== "string" ||
+  !email.trim() || email.trim() === "Guest User" || /^guest-.*@guest\./i.test(email.trim());
+
 export const USER_PUBLIC_SELECT = {
   id: true,
   email: true,

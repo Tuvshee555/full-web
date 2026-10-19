@@ -27,75 +27,42 @@ export default function CartPage() {
   }
 
   return (
-    <div className="page-width py-[30px] md:py-[40px]">
-      <div className="flex items-center justify-between">
-        <h1 className="store-heading text-[30px] md:text-[40px]">{st("your_cart")}</h1>
-        <Link href={collectionUrl(locale)} className="text-[14px] text-[#1c1714] underline underline-offset-[3px]">
-          {st("continue_shopping")}
-        </Link>
+    <div className="page-width py-[32px] pb-[64px] lg:py-[56px]">
+      <div className="flex flex-wrap items-end justify-between gap-[16px]">
+        <h1 className="store-heading page-title">{st("your_cart")}</h1>
+        <Link href={collectionUrl(locale)} className="inline-flex min-h-[44px] items-center text-[14px] text-ink underline underline-offset-4">{st("continue_shopping")}</Link>
       </div>
-
-      <table className="mt-[30px] w-full">
-        <thead>
-          <tr className="border-b border-[rgba(28,23,20,0.08)] text-left text-[10px] uppercase tracking-[0.06em]">
-            <th className="pb-[12px] font-normal">{st("product")}</th>
-            <th className="hidden pb-[12px] font-normal md:table-cell">{st("quantity")}</th>
-            <th className="pb-[12px] text-right font-normal">{st("total")}</th>
-          </tr>
-        </thead>
-        <tbody>
+      <div className="mt-[28px] grid items-start gap-[32px] lg:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)] lg:gap-[48px]">
+        <ul className="min-w-0 border-t border-ink/15">
           {items.map((item) => {
             const href = productUrl(locale, item.foodId);
-            const qty = (
-              <div className="flex items-center gap-[10px]">
-                <QuantityInput value={item.quantity} onChange={(v) => setQuantity(item.foodId, item.selectedSize, v)} />
-                <button type="button" aria-label={st("remove")} className="p-[8px] text-[#1c1714]" onClick={() => setQuantity(item.foodId, item.selectedSize, 0)}>
-                  <Trash2 className="h-[16px] w-[16px]" strokeWidth={1.5} />
-                </button>
-              </div>
-            );
             return (
-              <tr key={`${item.foodId}-${item.selectedSize ?? ""}`} className="border-b border-[rgba(28,23,20,0.08)] align-top">
-                <td className="py-[24px] pr-[10px]">
-                  <div className="flex gap-[20px]">
-                    <Link href={href} className="h-[100px] w-[100px] md:h-[120px] md:w-[120px] shrink-0 bg-[#efe7dd]">
-                      {item.food?.image ? <img src={item.food.image} alt="" className="h-full w-full object-cover" /> : null}
-                    </Link>
-                    <div>
-                      <Link href={href} className="font-medium text-ink text-[15px] md:text-[16px] link-underline">
-                        {item.food?.foodName}
-                      </Link>
-                      <p className="mt-[4px] text-[14px]">{money(item.food?.price)}</p>
-                      {item.selectedSize && (
-                        <p className="text-[14px]">
-                          {st("size")}: {item.selectedSize}
-                        </p>
-                      )}
-                      <div className="mt-[12px] md:hidden">{qty}</div>
-                    </div>
+              <li key={`${item.foodId}-${item.selectedSize ?? ""}`} className="flex gap-[16px] border-b border-ink/15 py-[24px] sm:gap-[24px]">
+                <Link href={href} className="h-[104px] w-[80px] shrink-0 bg-sand sm:h-[140px] sm:w-[112px]">
+                  {item.food?.image && <img src={item.food.image} alt={item.food.foodName} className="h-full w-full object-cover" />}
+                </Link>
+                <div className="min-w-0 flex-1">
+                  <Link href={href} className="text-[15px] font-medium leading-snug text-ink link-underline sm:text-[17px]">{item.food?.foodName}</Link>
+                  {item.selectedSize && <p className="mt-[4px] text-[13px] text-taupe">{st("size")}: {item.selectedSize}</p>}
+                  <p className="mt-[6px] text-[15px] font-medium text-ink tabular-nums">{money(Number(item.food?.price ?? 0) * item.quantity)}</p>
+                  <div className="mt-[14px] flex flex-wrap items-center gap-[8px]">
+                    <QuantityInput small value={item.quantity} onChange={(v) => setQuantity(item.foodId, item.selectedSize, v)} />
+                    <button type="button" aria-label={`${st("remove")}: ${item.food?.foodName}`} className="flex h-[44px] w-[44px] items-center justify-center text-taupe hover:bg-sand hover:text-ink" onClick={() => setQuantity(item.foodId, item.selectedSize, 0)}><Trash2 className="h-[17px] w-[17px]" strokeWidth={1.5} /></button>
                   </div>
-                </td>
-                <td className="hidden py-[24px] md:table-cell">{qty}</td>
-                <td className="py-[24px] text-right text-[15px] tracking-normal text-[#1c1714]">
-                  {money(Number(item.food?.price ?? 0) * item.quantity)}
-                </td>
-              </tr>
+                </div>
+              </li>
             );
           })}
-        </tbody>
-      </table>
-
-      <div className="mt-[36px] flex justify-end">
-        <div className="w-full md:w-[360px] text-center md:text-right">
-          <div className="flex items-baseline justify-center gap-[16px] md:justify-end">
-            <h2 className="font-medium text-ink text-[16px]">{st("estimated_total")}</h2>
-            <span className="text-[18px] tracking-normal text-[#1c1714]">{money(cartSubtotal(items))}</span>
+        </ul>
+        <aside className="border border-ink/10 bg-sand/60 p-[24px] lg:sticky lg:top-[108px]">
+          <h2 className="text-[17px] font-medium text-ink">{st("order_summary")}</h2>
+          <div className="mt-[24px] flex flex-wrap items-baseline justify-between gap-[12px] border-t border-ink/15 pt-[20px]">
+            <span className="text-[14px]">{st("estimated_total")}</span>
+            <span className="text-[24px] font-medium text-ink tabular-nums">{money(cartSubtotal(items))}</span>
           </div>
-          <p className="mt-[8px] text-[13px]">{st("shipping_note")}</p>
-          <Link href={`/${locale}/checkout`} className="btn mt-[18px] w-full">
-            {st("checkout")}
-          </Link>
-        </div>
+          <p className="mt-[10px] text-[13px] text-taupe">{st("shipping_note")}</p>
+          <Link href={`/${locale}/checkout`} className="btn mt-[24px] w-full">{st("checkout")}</Link>
+        </aside>
       </div>
     </div>
   );

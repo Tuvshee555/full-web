@@ -1,43 +1,54 @@
 import { prisma } from "../prismaClient.js";
 import { restockOrder } from "../utils/stock.js";
 
-const EXPIRE_AFTER_MINUTES = 15;
+import { PAYMENT_WINDOW_MS } from "../utils/orderPaid.js";
+import { invalidateCatalog } from "../utils/cache.js";
 
-export async function expireUnpaidOrders() {
+export async function expireUnpaidOrders(client = prisma) {
+  let expired = 0;
   try {
     const cutoff = new Date(
-      Date.now() - EXPIRE_AFTER_MINUTES * 60 * 1000
+      Date.now() - PAYMENT_WINDOW_MS
     );
 
     // Find the orders first so we can release the stock they reserved.
-    const expiring = await prisma.foodOrder.findMany({
+    const expiring = await client.foodOrder.findMany({
       where: {
         status: "WAITING_PAYMENT",
         createdAt: { lt: cutoff },
       },
       select: { id: true },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      take: 100,
     });
 
-    if (expiring.length === 0) return;
-
-    const ids = expiring.map((o) => o.id);
-
-    const result = await prisma.foodOrder.updateMany({
-      where: { id: { in: ids } },
-      data: { status: "CANCELLED" },
-    });
-
-    // Best-effort restock for each expired order.
-    for (const id of ids) {
-      await restockOrder(id);
+    for (const { id } of expiring) {
+      try {
+        const changed = await client.$transaction(async (tx) => {
+          const result = await tx.foodOrder.updateMany({
+            where: { id, status: "WAITING_PAYMENT", createdAt: { lt: cutoff } },
+            data: { status: "CANCELLED" },
+          });
+          if (result.count !== 1) return false;
+          await restockOrder(id, tx);
+          return true;
+        });
+        if (changed) {
+          expired += 1;
+          invalidateCatalog();
+        }
+      } catch (err) {
+        console.error("Order expiry rolled back:", id, err?.message);
+      }
     }
 
-    if (result.count > 0) {
+    if (expired > 0) {
       console.log(
-        `⏳ Expired ${result.count} unpaid orders (>15 min) and released their stock`
+        `Expired ${expired} unpaid orders and released their stock`
       );
     }
   } catch (err) {
     console.error("❌ Expire job failed:", err.message);
   }
+  return expired;
 }

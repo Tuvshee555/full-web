@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronLeft, ChevronRight, CreditCard, HelpCircle, PackageSearch, Share2, Truck, X } from "lucide-react";
 import { toast } from "sonner";
+import * as Dialog from "@radix-ui/react-dialog";
 import { STORE, productContent, type ProductContent } from "@/config/store";
 import { DELIVERY_FEE } from "@/data/mongoliaLocations";
 import { FoodReviews } from "@/components/review/FoodReviews";
@@ -58,9 +59,9 @@ export function ProductPage({ product, related }: { product: any; related: any[]
   }, []);
   // Tell the floating chat button when the bottom bar is on screen, so it can sit above it
   useEffect(() => {
-    document.documentElement.dataset.buybar = ctaVisible ? "off" : "on";
+    document.documentElement.dataset.buybar = ctaVisible || unavailable ? "off" : "on";
     return () => { delete document.documentElement.dataset.buybar; };
-  }, [ctaVisible]);
+  }, [ctaVisible, unavailable]);
 
   const share = async () => {
     const url = window.location.href;
@@ -78,11 +79,11 @@ export function ProductPage({ product, related }: { product: any; related: any[]
   return (
     <>
       <div className="page-width pb-[72px] pt-[20px] md:pt-[48px]">
-        <div className="grid gap-[20px] md:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] md:gap-[50px]">
+        <div className="grid gap-[20px] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-[48px]">
           {/* Media */}
-          <div className="-mx-[15px] md:mx-0">
-            <MobileSlider media={media} onOpen={setZoom} />
-            <div className="hidden md:grid grid-cols-2 gap-[10px]">
+          <div className="min-w-0">
+            <MobileSlider media={media} onOpen={setZoom} alt={product.foodName} />
+            <div className="hidden lg:grid grid-cols-2 gap-[10px]">
               {media.map((m, i) => (
                 <button
                   key={m.src + i}
@@ -100,9 +101,9 @@ export function ProductPage({ product, related }: { product: any; related: any[]
           </div>
 
           {/* Info */}
-          <div className="md:sticky md:top-[30px] self-start">
+          <div className="min-w-0 lg:sticky lg:top-[104px] self-start">
             <span className="eyebrow">{STORE.name}</span>
-            <h1 className="store-heading mt-[10px] text-[44px] md:text-[64px]">{product.foodName}</h1>
+            <h1 className="store-heading mt-[10px] text-[36px] sm:text-[44px] xl:text-[52px]">{product.foodName}</h1>
 
             {/* Grande / REFY: rating right under the title, jumps to reviews */}
             {stars.count > 0 && (
@@ -148,7 +149,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
                         onClick={() => setSize(label)}
                         disabled={out}
                         aria-pressed={active}
-                        className={`relative min-w-[60px] rounded-[40px] px-[20px] py-[10px] text-[14px] tracking-normal transition-colors
+                        className={`relative min-h-[44px] min-w-[60px] px-[20px] py-[10px] text-[14px] tracking-normal transition-colors
                           ${active ? "bg-[#1c1714] text-white" : "bg-white text-[#1c1714] shadow-[0_0_0_1px_rgba(28,23,20,0.55)] hover:shadow-[0_0_0_1px_#1c1714]"}
                           ${out ? "line-through opacity-60" : ""}`}
                       >
@@ -167,7 +168,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
               <QuantityInput value={qty} onChange={setQty} />
             </div>
 
-            <div ref={ctaRef} className="mt-[24px] flex max-w-[440px] flex-col gap-[10px]">
+            <div ref={ctaRef} className="mt-[24px] flex flex-col gap-[10px]">
               <button type="button" className="btn-secondary w-full" disabled={unavailable} onClick={() => addToCart(product, qty, size)}>
                 {unavailable ? st("sold_out") : st("add_to_cart")}
               </button>
@@ -186,7 +187,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
             </div>
 
             {/* Grande-style trust row: only facts that are true for every order */}
-            <ul className="mt-[18px] grid max-w-[440px] grid-cols-3 gap-[6px] text-center text-[12px] leading-tight text-[#1c1714]">
+            <ul className="mt-[18px] grid grid-cols-3 gap-[6px] text-center text-[12px] leading-tight text-[#1c1714]">
               {[
                 { icon: Truck, text: st("trust_delivery", { fee: money(DELIVERY_FEE) }) },
                 { icon: CreditCard, text: st("trust_payment") },
@@ -225,7 +226,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
         {related.length > 0 && (
           <section className="mt-[60px]">
             <h2 className="store-heading text-[24px]">{st("pairs_well")}</h2>
-            <div className="mt-[24px] grid grid-cols-2 gap-x-[8px] gap-y-[24px] md:grid-cols-4 md:gap-x-[16px]">
+            <div className="mt-[24px] grid grid-cols-2 gap-x-[14px] gap-y-[32px] sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-[24px]">
               {related.slice(0, 4).map((p) => (
                 <ProductCard key={p.id} product={p} quickAdd={false} />
               ))}
@@ -237,7 +238,9 @@ export function ProductPage({ product, related }: { product: any; related: any[]
       {/* Mobile: buy bar sticks to the bottom once the main buttons scroll away */}
       {!unavailable && (
         <div
-          className={`fixed inset-x-0 bottom-0 z-buybar flex items-center gap-[12px] border-t border-[rgba(28,23,20,0.1)] bg-white px-[15px] py-[10px] transition-transform duration-300 md:hidden ${
+          aria-hidden={ctaVisible}
+          inert={ctaVisible}
+          className={`fixed inset-x-0 bottom-0 z-buybar flex items-center gap-[12px] border-t border-[rgba(28,23,20,0.1)] bg-white px-[15px] pt-[10px] pb-[calc(10px+env(safe-area-inset-bottom))] transition-transform duration-200 lg:hidden ${
             ctaVisible ? "translate-y-full" : "translate-y-0"
           }`}
         >
@@ -347,13 +350,14 @@ function DetailTabs({ content }: { content: ProductContent }) {
 
 function MediaView({ m, alt }: { m: Media; alt: string }) {
   return m.type === "video" ? (
-    <video src={m.src} className="absolute inset-0 h-full w-full object-cover" muted loop playsInline autoPlay controls={false} />
+    <video src={m.src} className="absolute inset-0 h-full w-full object-cover" muted playsInline preload="metadata" />
   ) : (
     <img src={m.src} alt={alt} className="absolute inset-0 h-full w-full object-cover" draggable={false} />
   );
 }
 
-function MobileSlider({ media, onOpen }: { media: Media[]; onOpen: (i: number) => void }) {
+function MobileSlider({ media, onOpen, alt }: { media: Media[]; onOpen: (i: number) => void; alt: string }) {
+  const { st } = useStoreT();
   const ref = useRef<HTMLDivElement>(null);
   const [i, setI] = useState(0);
   const go = (n: number) => {
@@ -363,27 +367,27 @@ function MobileSlider({ media, onOpen }: { media: Media[]; onOpen: (i: number) =
     el.scrollTo({ left: next * el.clientWidth, behavior: "smooth" });
   };
   return (
-    <div className="md:hidden">
+    <div className="lg:hidden">
       <div
         ref={ref}
         onScroll={(e) => setI(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
         className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {media.map((m, idx) => (
-          <button key={m.src + idx} type="button" onClick={() => onOpen(idx)} className="relative aspect-[4/5] w-full shrink-0 snap-center bg-sand">
-            <MediaView m={m} alt="" />
+          <button key={m.src + idx} type="button" onClick={() => onOpen(idx)} aria-label={`${alt} — ${idx + 1}`} className="relative aspect-square w-full shrink-0 snap-center bg-sand sm:aspect-[5/4]">
+            <MediaView m={m} alt={alt} />
           </button>
         ))}
       </div>
       {media.length > 1 && (
         <div className="flex items-center justify-center gap-[10px] py-[10px] text-[13px] text-[#1c1714]">
-          <button type="button" onClick={() => go(i - 1)} className="p-[14px] disabled:opacity-30" disabled={i === 0} aria-label="prev">
+          <button type="button" onClick={() => go(i - 1)} className="p-[14px] disabled:opacity-30" disabled={i === 0} aria-label={st("previous_image")}>
             <ChevronLeft className="h-[16px] w-[16px]" />
           </button>
           <span>
             {i + 1} / {media.length}
           </span>
-          <button type="button" onClick={() => go(i + 1)} className="p-[14px] disabled:opacity-30" disabled={i === media.length - 1} aria-label="next">
+          <button type="button" onClick={() => go(i + 1)} className="p-[14px] disabled:opacity-30" disabled={i === media.length - 1} aria-label={st("next_image")}>
             <ChevronRight className="h-[16px] w-[16px]" />
           </button>
         </div>
@@ -393,7 +397,9 @@ function MobileSlider({ media, onOpen }: { media: Media[]; onOpen: (i: number) =
 }
 
 function Lightbox({ media, start, alt, onClose }: { media: Media[]; start: number; alt: string; onClose: () => void }) {
+  const { st } = useStoreT();
   const refs = useRef<(HTMLDivElement | null)[]>([]);
+  const returnFocus = useRef<HTMLElement | null>(null);
   useEffect(() => {
     refs.current[start]?.scrollIntoView();
     const prev = document.body.style.overflow;
@@ -406,8 +412,9 @@ function Lightbox({ media, start, alt, onClose }: { media: Media[]; start: numbe
     };
   }, [start, onClose]);
   return (
-    <div className="fixed inset-0 z-overlay overflow-y-auto bg-white">
-      <button type="button" onClick={onClose} aria-label="close" className="fixed right-[16px] top-[16px] z-10 flex h-[44px] w-[44px] items-center justify-center rounded-full bg-white shadow-[0_0_0_1px_rgba(28,23,20,0.1)]">
+    <Dialog.Root open onOpenChange={(value) => { if (!value) onClose(); }}><Dialog.Portal><Dialog.Content onOpenAutoFocus={() => { returnFocus.current = document.activeElement as HTMLElement; }} onCloseAutoFocus={(event) => { event.preventDefault(); returnFocus.current?.focus(); }} aria-describedby={undefined} className="fixed inset-0 z-overlay overflow-y-auto bg-white outline-none">
+      <Dialog.Title className="sr-only">{alt}</Dialog.Title>
+      <button type="button" onClick={onClose} aria-label={st("close")} className="fixed right-[16px] top-[16px] z-10 flex h-[44px] w-[44px] items-center justify-center rounded-full bg-white shadow-[0_0_0_1px_rgba(28,23,20,0.1)]">
         <X className="h-[18px] w-[18px]" />
       </button>
       <div className="mx-auto max-w-[1000px] space-y-[10px] py-[60px]">
@@ -417,7 +424,7 @@ function Lightbox({ media, start, alt, onClose }: { media: Media[]; start: numbe
           </div>
         ))}
       </div>
-    </div>
+    </Dialog.Content></Dialog.Portal></Dialog.Root>
   );
 }
 

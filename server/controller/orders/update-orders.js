@@ -5,6 +5,9 @@ import {
 } from "../../utils/telegram.js";
 import { notifyCustomer } from "../../utils/orderNotify.js";
 import { restockOrder } from "../../utils/stock.js";
+import { incrementSalesForOrder } from "../../utils/orderPaid.js";
+import { background } from "../../utils/background.js";
+import { invalidateCatalog } from "../../utils/cache.js";
 
 const ALLOWED_TRANSITIONS = {
   PENDING: ["WAITING_PAYMENT", "COD_PENDING", "CANCELLED"],
@@ -36,7 +39,7 @@ export const updatedFoodOrder = async (req, res) => {
     khoroo,
     address,
     notes,
-  } = req.body;
+  } = req.body ?? {};
 
   try {
     const requesterId = req.user?.id;
@@ -88,12 +91,22 @@ export const updatedFoodOrder = async (req, res) => {
       return res.status(400).json({ message: "No valid fields provided to update" });
     }
 
-    if (status) {
+    if (status !== undefined) {
+      if (typeof status !== "string" || !Object.hasOwn(ALLOWED_TRANSITIONS, status)) {
+        return res.status(400).json({ message: "Invalid order status" });
+      }
       const allowed = ALLOWED_TRANSITIONS[existing.status] || [];
       if (!allowed.includes(status)) {
         return res.status(400).json({
           message: `Invalid status transition: ${existing.status} → ${status}`,
         });
+      }
+      if (status === "PAID" && existing.paymentMethod === "QPAY") {
+        return res.status(400).json({ message: "QPay payments must be verified with the payment provider" });
+      }
+      if ((status === "COD_PENDING" && existing.paymentMethod !== "COD") ||
+          (status === "WAITING_PAYMENT" && existing.paymentMethod === "COD")) {
+        return res.status(400).json({ message: "Order status does not match its payment method" });
       }
     }
 
@@ -111,50 +124,31 @@ export const updatedFoodOrder = async (req, res) => {
     if (address !== undefined) data.address = safe(address);
     if (notes !== undefined) data.notes = safe(notes);
 
-    const updated = await prisma.foodOrder.update({
-      where: { id },
-      data,
-      include: {
-        foodOrderItems: { include: { food: true } },
-      },
+    const updated = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.foodOrder.updateMany({
+        where: { id, status: existing.status, updatedAt: existing.updatedAt },
+        data,
+      });
+      if (claimed.count !== 1) return null;
+      if (status === "PAID" || (status === "DELIVERED" && existing.paymentMethod === "COD")) {
+        await incrementSalesForOrder(id, tx);
+      }
+      if (status === "CANCELLED") await restockOrder(id, tx);
+      return tx.foodOrder.findUnique({
+        where: { id },
+        include: { foodOrderItems: { include: { food: true } } },
+      });
     });
+    if (!updated) return res.status(409).json({
+      message: "This order changed while you were editing it. Refresh and try again.",
+    });
+    if (status === "CANCELLED" || status === "PAID" || status === "DELIVERED") invalidateCatalog();
 
     const oldStatus = existing.status;
     const newStatus = updated.status;
 
     console.log("STATUS CHANGE:", oldStatus, "->", newStatus);
 
-    const shouldCountSale =
-      status &&
-      oldStatus !== "PAID" &&
-      newStatus === "PAID";
-
-    if (shouldCountSale) {
-      try {
-        for (const item of updated.foodOrderItems) {
-          await prisma.food.update({
-            where: { id: item.food.id },
-            data: {
-              salesCount: {
-                increment: item.quantity,
-              },
-            },
-          });
-        }
-
-        console.log(
-          "Sales count incremented for order:",
-          updated.orderNumber
-        );
-      } catch (salesErr) {
-        console.error("Failed to increment salesCount:", salesErr);
-      }
-    }
-
-    // Cancelling an order releases the stock it had reserved.
-    if (status && oldStatus !== "CANCELLED" && newStatus === "CANCELLED") {
-      await restockOrder(id);
-    }
 
     const IMPORTANT = new Set([
       "PAID",
@@ -163,23 +157,25 @@ export const updatedFoodOrder = async (req, res) => {
       "DELIVERED",
     ]);
 
-    if (status && oldStatus !== newStatus && IMPORTANT.has(newStatus)) {
-      try {
-        await sendTelegramMessage(
-          formatOrderStatusMessage(updated, oldStatus, newStatus)
-        );
-      } catch (tgErr) {
-        console.error("Telegram notify failed:", tgErr);
+    background((async () => {
+      if (status && oldStatus !== newStatus && IMPORTANT.has(newStatus)) {
+        try {
+          await sendTelegramMessage(
+            formatOrderStatusMessage(updated, oldStatus, newStatus)
+          );
+        } catch (tgErr) {
+          console.error("Telegram notify failed:", tgErr);
+        }
       }
-    }
 
-    // Customer email for every status a customer cares about. PAID covers a bank
-    // transfer the owner confirms here (QPay payments are emailed by the QPay controller).
-    const EMAIL_STATUSES = new Set(["PAID", "DELIVERING", "DELIVERED", "CANCELLED"]);
+      // Customer email for every status a customer cares about. PAID covers a bank
+      // transfer the owner confirms here (QPay payments are emailed by the QPay controller).
+      const EMAIL_STATUSES = new Set(["PAID", "DELIVERING", "DELIVERED", "CANCELLED"]);
 
-    if (status && oldStatus !== newStatus && EMAIL_STATUSES.has(newStatus)) {
-      await notifyCustomer(updated.id, newStatus);
-    }
+      if (status && oldStatus !== newStatus && EMAIL_STATUSES.has(newStatus)) {
+        await notifyCustomer(updated.id, newStatus);
+      }
+    })());
 
     return res.status(200).json({
       id: updated.id,
@@ -206,7 +202,7 @@ export const updatedFoodOrder = async (req, res) => {
         food: {
           id: it.food.id,
           foodName: it.food.foodName,
-          price: it.food.price,
+          price: it.unitPrice ?? it.food.price,
           image: it.food.image,
         },
       })),

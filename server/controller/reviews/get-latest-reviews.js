@@ -1,4 +1,5 @@
 import { prisma } from "../../utils/prisma.js";
+import { cached } from "../../utils/cache.js";
 
 // Storefront "what customers say" strip: newest real reviews (4★+) that have
 // written text. Shows first name + last initial only.
@@ -6,7 +7,7 @@ export const getLatestReviews = async (req, res) => {
   try {
     const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 6, 1), 12);
 
-    const reviews = await prisma.review.findMany({
+    const reviews = await cached(`reviews:latest:${limit}`, 15_000, () => prisma.review.findMany({
       where: { rating: { gte: 4 }, comment: { not: "" } },
       orderBy: { createdAt: "desc" },
       take: limit,
@@ -14,7 +15,7 @@ export const getLatestReviews = async (req, res) => {
         user: { select: { firstName: true, lastName: true } },
         food: { select: { id: true, foodName: true, image: true } },
       },
-    });
+    }));
 
     return res.json(
       reviews.map((r) => ({

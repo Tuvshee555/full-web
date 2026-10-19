@@ -1,8 +1,16 @@
 import multer from "multer";
+import os from "node:os";
+import path from "node:path";
+import fs from "node:fs";
+import { randomUUID } from "node:crypto";
+
+export const uploadDirectory = path.join(os.tmpdir(), "lorentz-uploads");
+fs.mkdirSync(uploadDirectory, { recursive: true });
 
 const storage = multer.diskStorage({
+  destination: uploadDirectory,
   filename: (_, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
+    cb(null, randomUUID());
   },
 });
 
@@ -25,6 +33,6 @@ export const upload = multer({
     if (ALLOWED_MIME.has(file.mimetype)) {
       return cb(null, true);
     }
-    return cb(new Error("Unsupported file type"), false);
+    return cb(Object.assign(new Error("Unsupported file type"), { status: 415 }), false);
   },
 });

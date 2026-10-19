@@ -41,6 +41,7 @@ async function createGuestSession(): Promise<string | null> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ guestId }),
+    signal: AbortSignal.timeout(25_000),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data?.token) return null;
@@ -68,6 +69,7 @@ export function useCheckout(cart: StoreCartItem[]) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("QPAY");
   const [submitting, setSubmitting] = useState(false);
+  const submissionActive = useRef(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const idempotencyKey = useRef(newKey());
 
@@ -133,7 +135,9 @@ export function useCheckout(cart: StoreCartItem[]) {
     if (phone && !/^\d{8}$/.test(phone)) next.phonenumber = st("phone_invalid");
     setErrors(next);
     if (Object.keys(next).length) {
-      document.querySelector(`[data-field="${Object.keys(next)[0]}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      const field = document.querySelector(`[data-field="${Object.keys(next)[0]}"]`);
+      field?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "center" });
+      field?.querySelector<HTMLElement>("input,select,textarea")?.focus({ preventScroll: true });
       return false;
     }
     return true;
@@ -163,9 +167,10 @@ export function useCheckout(cart: StoreCartItem[]) {
     );
 
   const placeOrder = async () => {
-    if (submitting || !cart.length) return;
+    if (submissionActive.current || !cart.length) return;
     setSubmitError(null);
     if (!validate()) return;
+    submissionActive.current = true;
     setSubmitting(true);
     try {
       let bearer = localStorage.getItem("token") || (await createGuestSession());
@@ -202,6 +207,7 @@ export function useCheckout(cart: StoreCartItem[]) {
     } catch (err: any) {
       setSubmitError(err?.message === "session" ? st("err_session") : (err?.response?.data?.message ?? st("err_order")));
       setSubmitting(false);
+      submissionActive.current = false;
     }
   };
 

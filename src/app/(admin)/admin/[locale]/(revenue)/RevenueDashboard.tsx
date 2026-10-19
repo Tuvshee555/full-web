@@ -1,10 +1,11 @@
 "use client";
 
 import { API_BASE_URL } from "@admin/lib/api";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RefreshCcw } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
+import { useAuth } from "@admin/provider/AuthProvider";
 import { Skeleton } from "@admin/components/ui/skeleton";
 import { calcTrend } from "@admin/utils/revenue";
 import { formatDateTime, formatMNT, formatMNTCompact, formatShortDate, ubDayKey } from "@admin/utils/format";
@@ -45,22 +46,27 @@ function ChartTooltip({ active, payload, t }: { active?: boolean; payload?: { pa
 
 export default function RevenueDashboard() {
   const { t } = useI18n();
+  const { token } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [chartData, setChartData] = useState<Day[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [range, setRange] = useState<Range>(7);
+  const request = useRef<AbortController | null>(null);
 
   const load = useCallback(async () => {
-    const token = localStorage.getItem("adminToken");
     if (!token) return;
+    request.current?.abort();
+    const controller = new AbortController();
+    request.current = controller;
     setLoading(true);
     setFailed(false);
     try {
       const res = await fetch(`${API_BASE_URL}/order?mode=revenue`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
+        signal: controller.signal,
       });
       if (!res.ok) throw new Error(String(res.status));
       const data = await res.json();
@@ -74,14 +80,15 @@ export default function RevenueDashboard() {
         }))
       );
     } catch {
-      setFailed(true);
+      if (!controller.signal.aborted) setFailed(true);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     load();
+    return () => request.current?.abort();
   }, [load]);
 
   const current = useMemo(() => fillDays(chartData, range), [chartData, range]);
@@ -148,8 +155,8 @@ export default function RevenueDashboard() {
       </div>
 
       {failed && (
-        <div className="mb-[16px] border border-terracotta/30 bg-terracotta/5 p-[12px] text-[13px] text-terracotta">
-          {t("fetch_failed")}
+        <div role="alert" className="mb-[16px] border border-terracotta/30 bg-terracotta/5 p-[12px] text-[13px] text-terracotta">
+          {t("revenue_ui.load_failed")}
         </div>
       )}
 
@@ -161,9 +168,9 @@ export default function RevenueDashboard() {
             {loading ? (
               <Skeleton className="mt-[10px] h-[30px] w-2/3 rounded-none" />
             ) : (
-              <p className="mt-[6px] truncate text-[22px] font-medium tabular-nums text-ink md:text-[26px]">{tile.value}</p>
+              <p className="mt-[6px] break-words text-[clamp(1rem,4.5vw,1.375rem)] font-medium tabular-nums text-ink md:text-[26px]">{failed && !stats ? "—" : tile.value}</p>
             )}
-            <p className={`mt-[4px] text-[12px] ${tile.footTone}`}>{loading ? " " : tile.foot}</p>
+            <p className={`mt-[4px] text-[12px] ${tile.footTone}`}>{loading || (failed && !stats) ? " " : tile.foot}</p>
           </div>
         ))}
       </div>
@@ -176,7 +183,7 @@ export default function RevenueDashboard() {
         <div className="mt-[16px] h-[260px]">
           {loading ? (
             <Skeleton className="h-full w-full rounded-none" />
-          ) : hasRevenue ? (
+          ) : failed && !stats ? <p className="flex h-full items-center justify-center text-sm text-taupe">{t("revenue_ui.load_failed")}</p> : hasRevenue ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={current} margin={{ top: 8, right: 0, bottom: 0, left: 0 }} barCategoryGap={range === 7 ? "28%" : "18%"}>
                 <CartesianGrid vertical={false} stroke="rgba(28,23,20,0.08)" />
@@ -220,7 +227,7 @@ export default function RevenueDashboard() {
               <Skeleton key={i} className="h-[40px] w-full rounded-none" />
             ))}
           </div>
-        ) : payments.length ? (
+        ) : failed && !stats ? <p className="p-6 text-center text-sm text-taupe">{t("revenue_ui.load_failed")}</p> : payments.length ? (
           <ul className="divide-y divide-ink/10">
             {payments.map((p) => (
               <li key={p.id} className="flex items-center justify-between gap-[12px] px-[16px] py-[12px] md:px-[24px]">

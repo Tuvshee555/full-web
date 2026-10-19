@@ -1,6 +1,5 @@
 import { prisma } from "../../prismaClient.js";
-
-const REVENUE_STATUSES = ["PAID", "DELIVERING", "DELIVERED"];
+import { REVENUE_WHERE, businessDateKey, revenueWindows } from "../../utils/revenue.js";
 const ORDER_STATUSES = new Set([
   "PENDING",
   "WAITING_PAYMENT",
@@ -70,12 +69,7 @@ export const getAllOrder = async (req, res) => {
     }
 
     if (req.query.mode === "revenue") {
-      const now = new Date();
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const weekStart = new Date(now);
-      weekStart.setDate(weekStart.getDate() - 7);
-      const chartStart = new Date(now);
-      chartStart.setDate(chartStart.getDate() - 59);
+      const { monthStart, weekStart, chartStart } = revenueWindows(new Date());
 
       const [
         totalRevenueAgg,
@@ -85,26 +79,26 @@ export const getAllOrder = async (req, res) => {
         recentPayments,
       ] = await Promise.all([
         prisma.foodOrder.aggregate({
-          where: { status: { in: REVENUE_STATUSES } },
+          where: REVENUE_WHERE,
           _sum: { totalPrice: true },
         }),
         prisma.foodOrder.aggregate({
           where: {
-            status: { in: REVENUE_STATUSES },
+            ...REVENUE_WHERE,
             createdAt: { gte: weekStart },
           },
           _sum: { totalPrice: true },
         }),
         prisma.foodOrder.aggregate({
           where: {
-            status: { in: REVENUE_STATUSES },
+            ...REVENUE_WHERE,
             createdAt: { gte: monthStart },
           },
           _sum: { totalPrice: true },
         }),
         prisma.foodOrder.findMany({
           where: {
-            status: { in: REVENUE_STATUSES },
+            ...REVENUE_WHERE,
             createdAt: { gte: chartStart },
           },
           orderBy: { createdAt: "asc" },
@@ -117,7 +111,7 @@ export const getAllOrder = async (req, res) => {
           },
         }),
         prisma.foodOrder.findMany({
-          where: { status: { in: REVENUE_STATUSES } },
+          where: REVENUE_WHERE,
           orderBy: { createdAt: "desc" },
           take: 20,
           select: {
@@ -132,12 +126,7 @@ export const getAllOrder = async (req, res) => {
 
       const chartMap = new Map();
       for (const order of recentRevenueOrders) {
-        // Bucket by Ulaanbaatar day (UTC+8), not UTC, so early-morning orders land on the right date
-        const dateKey = new Date(
-          new Date(order.createdAt).getTime() + 8 * 3600 * 1000
-        )
-          .toISOString()
-          .slice(0, 10);
+        const dateKey = businessDateKey(order.createdAt);
         const day = chartMap.get(dateKey) ?? { revenue: 0, orders: 0 };
         day.revenue += Number(order.totalPrice ?? 0);
         day.orders += 1;

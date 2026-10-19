@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
+import { resolveUserRole } from "../utils/userRole.js";
 
-export const requireAuth = (req, res, next) => {
+export const requireAuth = async (req, res, next) => {
   const auth =
     req.headers.authorization ||
     req.headers.Authorization ||
@@ -15,10 +16,10 @@ export const requireAuth = (req, res, next) => {
     return res.status(500).json({ message: "Auth misconfiguration" });
   }
 
-  const token = auth.split(" ")[1];
+  const token = auth.slice(7).trim();
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
 
     // Reject non-access tokens (e.g. password-reset tokens) so a reset link
     // — which travels through email, browser history and Referer headers —
@@ -36,20 +37,26 @@ export const requireAuth = (req, res, next) => {
       null;
     const role = decoded?.role ?? decoded?.userRole ?? null;
 
-    if (!userId) {
-      console.error(
-        "requireAuth: token decoded but missing user id claims:",
-        decoded
-      );
+    if (typeof userId !== "string" || !userId || userId.length > 128) {
       return res
         .status(401)
         .json({ message: "Invalid token: missing user id" });
     }
 
-    req.user = { id: userId, role: role || "USER" };
+    // Elevated JWT claims must still match the current database role, including
+    // on owner-or-admin endpoints that do not use requireAdmin.
+    let currentRole = "USER";
+    if (role === "ADMIN") {
+      try {
+        currentRole = await resolveUserRole(userId);
+        if (!currentRole) return res.status(401).json({ message: "Invalid token" });
+      } catch {
+        return res.status(503).json({ message: "Authorization temporarily unavailable" });
+      }
+    }
+    req.user = { id: userId, role: currentRole };
     next();
   } catch (err) {
-    console.error("requireAuth: token verify error:", err);
     return res.status(401).json({ message: "Invalid token" });
   }
 };

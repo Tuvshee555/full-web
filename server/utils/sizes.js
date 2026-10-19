@@ -18,8 +18,8 @@ export function normalizeSizeInput(sizes) {
 
       let stock = null;
       if (s?.stock !== null && s?.stock !== undefined && s?.stock !== "") {
-        const n = Number.parseInt(s.stock, 10);
-        stock = Number.isFinite(n) && n >= 0 ? n : null;
+        const n = Number(s.stock);
+        stock = Number.isSafeInteger(n) && n >= 0 ? n : null;
       }
 
       // price: a size's own price. Left out when the client did not send it (the

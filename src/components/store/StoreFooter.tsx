@@ -42,8 +42,8 @@ export function StoreFooter() {
 
   return (
     <footer className="overflow-hidden bg-espresso text-paper/70">
-      <div className="page-width grid gap-[40px] pt-[72px] pb-[40px] md:grid-cols-12 md:pt-[96px]">
-        <div className="md:col-span-6">
+      <div className="page-width grid grid-cols-2 gap-x-[24px] gap-y-[32px] pt-[48px] pb-[32px] md:grid-cols-12 md:pt-[64px]">
+        <div className="col-span-2 md:col-span-6">
           <p className="display-italic max-w-[420px] text-[30px] leading-[1.15] text-paper md:text-[36px]">{st("hero_text")}</p>
           {(STORE.social.facebook || STORE.social.instagram) && (
             <ul className="mt-[20px] flex gap-[20px] text-[14px]">
@@ -67,10 +67,10 @@ export function StoreFooter() {
         {columns.map((col, i) => (
           <div key={col.title} className={i === 0 ? "md:col-span-3 md:col-start-7" : "md:col-span-3"}>
             <h2 className="eyebrow !text-paper/60">{col.title}</h2>
-            <ul className="mt-[18px] space-y-[10px] text-[15px]">
+            <ul className="mt-[12px] text-[14px]">
               {col.links.map(([label, href]) => (
                 <li key={href}>
-                  <Link href={href} className="text-paper/80 transition-colors duration-300 hover:text-paper link-underline">
+                  <Link href={href} className="inline-flex min-h-[44px] items-center text-paper/80 transition-colors duration-200 hover:text-paper link-underline">
                     {label}
                   </Link>
                 </li>
@@ -80,7 +80,7 @@ export function StoreFooter() {
         ))}
       </div>
 
-      <div className="page-width flex flex-col items-start gap-[18px] border-t border-paper/10 py-[24px] text-[12px] md:flex-row md:items-center md:justify-between">
+      <div className="page-width flex flex-col items-start gap-[18px] border-t border-paper/10 pt-[24px] pb-[88px] text-[12px] md:pb-[32px] md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-[6px]" role="group" aria-label={st("language")}>
           {LANGUAGES.map((l) => (
             <button
@@ -106,10 +106,6 @@ export function StoreFooter() {
         </p>
       </div>
 
-      {/* Oversized wordmark, cropped at the bottom edge */}
-      <div className="page-width select-none" aria-hidden>
-        <p className="store-heading -mb-[0.22em] whitespace-nowrap text-center !text-paper/[0.08] text-[22vw] leading-none md:text-[17vw]">{STORE.name}</p>
-      </div>
     </footer>
   );
 }

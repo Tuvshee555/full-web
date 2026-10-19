@@ -11,6 +11,6 @@ export const getUsers = async (req, res) => {
     res.status(200).json(users);
   } catch (err) {
     console.error("Error while getting users:", err);
-    res.status(500).json({ message: `Error while getting users: ${err.message}` });
+    res.status(500).json({ message: "Unable to load users" });
   }
 };

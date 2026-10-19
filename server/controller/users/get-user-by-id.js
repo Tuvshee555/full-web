@@ -42,7 +42,7 @@ export const getUserById = async (req, res) => {
     console.error(error);
     res.status(500).json({
       success: false,
-      message: `Error fetching user: ${error.message}`,
+      message: "Unable to load profile",
     });
   }
 };

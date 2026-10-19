@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import ClientI18nProvider from "@admin/components/i18n/ClientI18nProvider";
 import QueryProvider from "./QueryProvider";
 import { AuthProvider } from "@admin/provider/AuthProvider";
-import Providers from "@admin/provider/Providers";
 
 type Props = {
   children: ReactNode;
@@ -31,9 +30,7 @@ export default async function LocaleLayout({ children, params }: Props) {
     <QueryProvider>
       <ClientI18nProvider locale={locale} messages={messages}>
         <AuthProvider>
-          <Providers>
-            {children}
-          </Providers>
+          {children}
         </AuthProvider>
       </ClientI18nProvider>
     </QueryProvider>

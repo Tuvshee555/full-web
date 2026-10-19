@@ -11,7 +11,12 @@ export const updateUser = async (req, res) => {
     khoroo,
     address,
     notes,
-  } = req.body;
+  } = req.body ?? {};
+  const profile = { firstName, lastName, phonenumber, city, district, khoroo, address, notes };
+  const limits = { firstName: 120, lastName: 120, phonenumber: 40, city: 120, district: 120, khoroo: 120, address: 1000, notes: 2000 };
+  for (const [key, value] of Object.entries(profile)) {
+    if (value !== undefined && (typeof value !== "string" || value.length > limits[key])) return res.status(400).json({ message: `Invalid ${key}` });
+  }
 
   try {
     const requesterId = req.user?.id;
@@ -66,6 +71,6 @@ export const updateUser = async (req, res) => {
     console.error("❌ Error updating user:", error);
     return res
       .status(500)
-      .json({ success: false, message: `Error while updating user: ${error.message}` });
+      .json({ success: false, message: "Unable to update profile" });
   }
 };

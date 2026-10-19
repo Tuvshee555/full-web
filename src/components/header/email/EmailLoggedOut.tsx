@@ -1,6 +1,6 @@
 "use client";
 
-import { GoogleLogin } from "@react-oauth/google";
+import { ResponsiveGoogleLogin } from "@/components/ResponsiveGoogleLogin";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useI18n } from "@/components/i18n/ClientI18nProvider";
@@ -17,7 +17,7 @@ export const EmailLoggedOut = ({ closeSheet }: { closeSheet: () => void }) => {
   const redirect = "";
 
   return (
-    <div className="flex flex-1 flex-col px-[24px] md:px-[30px]">
+    <div className="flex flex-1 flex-col overflow-y-auto px-[24px] py-[24px] md:px-[30px]">
       <p className="store-heading text-[40px]">{st("log_in")}</p>
       <p className="mt-[6px] text-[14px] text-ink/60">{t("auth.sign_in_subtitle")}</p>
 
@@ -40,8 +40,7 @@ export const EmailLoggedOut = ({ closeSheet }: { closeSheet: () => void }) => {
         </div>
 
         <div className="flex justify-center [&>div]:w-full">
-          <GoogleLogin
-            width="360"
+          <ResponsiveGoogleLogin
             shape="rectangular"
             text="continue_with"
             onSuccess={(cred) => {
@@ -54,7 +53,7 @@ export const EmailLoggedOut = ({ closeSheet }: { closeSheet: () => void }) => {
 
         <button
           type="button"
-          className="link-underline mt-[12px] self-center text-[14px] text-ink/70"
+          className="link-underline mt-[12px] inline-flex min-h-[44px] items-center self-center text-[14px] text-ink/70"
           onClick={() => {
             closeSheet();
             handleGuestLogin(redirect, router, locale);

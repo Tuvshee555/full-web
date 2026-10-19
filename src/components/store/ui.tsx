@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { useRef, type ReactNode } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
 import { Minus, Plus, X } from "lucide-react";
 import { money, onSale, ownSizePrice, priceRange, sizeLabel, sizePrice } from "./lib/product";
 import { useStoreT } from "./lib/useStoreT";
@@ -74,7 +74,7 @@ export function Price({ product, size, className = "" }: { product: any; size?: 
       {sale && (
         <>
           <span className="sr-only">{st("regular_price")}</span>
-          <s className="text-[0.88em] text-[rgba(28,23,20,0.62)]">{money(product.oldPrice)}</s>
+          <s className="text-[0.88em] text-taupe">{money(product.oldPrice)}</s>
         </>
       )}
     </div>
@@ -131,9 +131,10 @@ export function QuantityInput({
         inputMode="numeric"
         value={value}
         min={min}
+        max={999}
         onChange={(e) => {
-          const n = parseInt(e.target.value, 10);
-          if (!Number.isNaN(n)) onChange(Math.max(min, n));
+          const n = Number(e.target.value);
+          if (Number.isSafeInteger(n)) onChange(Math.min(999, Math.max(min, n)));
         }}
         className="h-full w-[50px] flex-1 bg-transparent text-center text-[15px] text-[#1c1714] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
         aria-label={st("quantity")}
@@ -141,8 +142,9 @@ export function QuantityInput({
       <button
         type="button"
         aria-label={st("increase")}
+        disabled={value >= 999}
         className="flex h-full w-[45px] shrink-0 items-center justify-center text-[#1c1714]"
-        onClick={() => onChange(value + 1)}
+        onClick={() => onChange(Math.min(999, value + 1))}
       >
         <Plus className="h-[12px] w-[12px]" strokeWidth={1.4} />
       </button>
@@ -150,15 +152,8 @@ export function QuantityInput({
   );
 }
 
-/** Slide-in panel with overlay (cart drawer, menu drawer, filter drawer). */
-export function Drawer({
-  open,
-  onClose,
-  side = "right",
-  title,
-  children,
-  widthClass = "w-[400px]",
-}: {
+/** Shared accessible drawer: focus trap, Escape, scroll lock and focus restoration. */
+export function Drawer({ open, onClose, side = "right", title, children, widthClass = "w-[440px]" }: {
   open: boolean;
   onClose: () => void;
   side?: "left" | "right";
@@ -167,52 +162,19 @@ export function Drawer({
   widthClass?: string;
 }) {
   const { st } = useStoreT();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = prev;
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [open, onClose]);
-
-  if (!mounted) return null;
-
-  return createPortal(
-    <div className={`fixed inset-0 z-overlay ${open ? "" : "pointer-events-none"}`} aria-hidden={!open}>
-      <div
-        className={`absolute inset-0 bg-espresso/40 backdrop-blur-[2px] transition-opacity duration-700 ease-silk ${open ? "opacity-100" : "opacity-0"}`}
-        onClick={onClose}
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        className={`absolute top-0 bottom-0 ${side === "right" ? "right-0" : "left-0"} ${widthClass} max-w-[calc(100vw-30px)]
-          bg-paper flex flex-col transition-transform duration-700 ease-silk
-          ${open ? "translate-x-0" : side === "right" ? "translate-x-full" : "-translate-x-full"}`}
-      >
-        {title !== undefined && (
-          <div className="flex items-center justify-between px-[24px] md:px-[30px] pt-[24px] pb-[16px]">
-            <h2 className="store-heading text-[28px]">{title}</h2>
-            <button
-              type="button"
-              aria-label={st("close")}
-              onClick={onClose}
-              className="-mr-[12px] p-[12px] text-ink transition-transform duration-500 ease-silk hover:rotate-90"
-            >
-              <X className="h-[20px] w-[20px]" strokeWidth={1.1} />
-            </button>
+  const returnFocus = useRef<HTMLElement | null>(null);
+  return (
+    <Dialog.Root open={open} onOpenChange={(value) => { if (!value) onClose(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-overlay bg-espresso/40 data-[state=open]:animate-in data-[state=open]:fade-in duration-200" />
+        <Dialog.Content onOpenAutoFocus={() => { returnFocus.current = document.activeElement as HTMLElement; }} onCloseAutoFocus={(event) => { event.preventDefault(); returnFocus.current?.focus(); }} aria-describedby={undefined} className={`fixed inset-y-0 z-overlay flex max-w-full flex-col bg-paper pb-[env(safe-area-inset-bottom)] shadow-xl outline-none ${widthClass} ${side === "right" ? "right-0 data-[state=open]:slide-in-from-right" : "left-0 data-[state=open]:slide-in-from-left"} data-[state=open]:animate-in duration-200`}>
+          <div className="flex items-center justify-between gap-[12px] border-b border-ink/10 px-[20px] py-[16px] sm:px-[28px]">
+            <Dialog.Title className="text-[20px] font-medium text-ink">{title ?? st("menu")}</Dialog.Title>
+            <Dialog.Close aria-label={st("close")} className="-mr-[10px] flex h-[44px] w-[44px] shrink-0 items-center justify-center text-ink hover:bg-sand"><X className="h-[20px] w-[20px]" strokeWidth={1.5} /></Dialog.Close>
           </div>
-        )}
-        {children}
-      </div>
-    </div>,
-    document.body,
+          {children}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

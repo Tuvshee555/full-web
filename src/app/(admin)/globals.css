@@ -115,6 +115,21 @@
     letter-spacing: -0.015em;
     line-height: 1.05;
   }
+  /* Admin is a working tool: clear, compact headings in the UI typeface. */
+  .admin-body main h1 {
+    font-family: var(--font-store), system-ui, sans-serif;
+    font-size: clamp(1.625rem, 2.3vw, 2rem);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.25;
+  }
+  .admin-body main h2.store-heading {
+    font-family: var(--font-store), system-ui, sans-serif;
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.4;
+  }
   .display-italic {
     font-family: var(--font-display), Georgia, serif;
     font-style: italic;
@@ -139,6 +154,15 @@
   }
   .btn-secondary:not(:disabled):hover {
     @apply bg-ink text-paper;
+  }
+}
+
+@media (max-width: 639px) {
+  /* Prevent iOS from zooming the entire admin when a field receives focus. */
+  .admin-body input:not([type="checkbox"]):not([type="radio"]),
+  .admin-body select,
+  .admin-body textarea {
+    font-size: 16px;
   }
 }
 

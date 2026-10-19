@@ -1,7 +1,7 @@
 "use client";
 
 import { API_BASE_URL } from "@admin/lib/api";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2, X } from "lucide-react";
@@ -11,6 +11,7 @@ import { useAuth } from "@admin/provider/AuthProvider";
 import { uploadMedia } from "@admin/utils/uploadMedia";
 import { shrinkImage } from "@admin/utils/shrinkImage";
 import { FoodType } from "@admin/type/type";
+import { inventoryOptions, inventoryPayload, InventoryOption, validInventory } from "@admin/utils/inventory";
 import { MediaItem, PhotosField, VideoField, mediaFromUrl } from "./MediaField";
 
 export type CategoryOption = { id: string; name: string; depth: number };
@@ -33,15 +34,20 @@ type Form = {
   categoryId: string;
   isFeatured: boolean;
   /** price: the size's own price as digits, "" = same as the product price */
-  sizes: { label: string; price: string }[];
+  sizes: (InventoryOption & { price: string })[];
 };
 
-type Errors = Partial<Record<"foodName" | "price" | "oldPrice" | "categoryId" | "photos", string>>;
+type Errors = Partial<Record<"foodName" | "price" | "oldPrice" | "categoryId" | "photos" | "sizes", string>>;
 
 const digits = (v: string) => v.replace(/[^\d]/g, "");
 
-const sizeLabel = (s: unknown) =>
-  typeof s === "object" && s !== null ? String((s as { label?: string }).label ?? "") : String(s);
+/** A size's own price as digits for the form; "" when it sells at the product price. */
+function ownPriceText(sizes: unknown, label: string): string {
+  if (!Array.isArray(sizes)) return "";
+  const match = sizes.find((s) => s && typeof s === "object" && (s as { label?: unknown }).label === label) as { price?: number | null } | undefined;
+  const own = Number(match?.price);
+  return match?.price != null && Number.isFinite(own) && own > 0 ? String(Math.round(own)) : "";
+}
 
 function initialForm(food: FoodType | null | undefined, defaultCategoryId?: string | null): Form {
   const price = Number(food?.price ?? 0);
@@ -54,14 +60,7 @@ function initialForm(food: FoodType | null | undefined, defaultCategoryId?: stri
     ingredients: food?.ingredients ?? "",
     categoryId: food?.categoryId ?? defaultCategoryId ?? "",
     isFeatured: Boolean(food?.isFeatured),
-    sizes: Array.isArray(food?.sizes)
-      ? food!.sizes
-          .map((s) => {
-            const own = typeof s === "object" && s !== null ? Number((s as { price?: number | null }).price) : NaN;
-            return { label: sizeLabel(s), price: Number.isFinite(own) && own > 0 ? String(Math.round(own)) : "" };
-          })
-          .filter((s) => s.label)
-      : [],
+    sizes: inventoryOptions(food?.sizes).map((option) => ({ ...option, price: ownPriceText(food?.sizes, option.label) })),
   };
 }
 
@@ -87,6 +86,14 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
   const [progress, setProgress] = useState<number | null>(null);
   const [confirm, setConfirm] = useState<"discard" | "delete" | null>(null);
   const [snapshot, setSnapshot] = useState("");
+  const savingRef = useRef(false);
+  const previewUrls = useRef(new Set<string>());
+
+  useEffect(() => {
+    for (const media of [...photos, ...(video ? [video] : [])]) {
+      if (media.file) previewUrls.current.add(media.url);
+    }
+  }, [photos, video]);
 
   // Reset whenever the sheet opens for a (different) product
   useEffect(() => {
@@ -107,11 +114,12 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
   // Free blob previews of picked files when the editor closes
   useEffect(() => {
     if (open) return;
-    return () => {
-      photos.forEach((m) => m.file && URL.revokeObjectURL(m.url));
-      if (video?.file) URL.revokeObjectURL(video.url);
-    };
-  }, [open, photos, video]);
+    previewUrls.current.forEach((url) => URL.revokeObjectURL(url));
+    previewUrls.current.clear();
+  }, [open]);
+  useEffect(() => () => {
+    previewUrls.current.forEach((url) => URL.revokeObjectURL(url));
+  }, []);
 
   const dirty = useMemo(
     () => snapshot !== "" && snapshot !== JSON.stringify([form, photos.map((m) => m.url), video?.url ?? null]),
@@ -130,17 +138,20 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
   const addSize = () => {
     const v = sizeDraft.trim();
     if (!v) return;
-    if (!form.sizes.some((s) => s.label === v)) set("sizes", [...form.sizes, { label: v, price: "" }]);
+    if (!form.sizes.some((size) => size.label.toLocaleLowerCase() === v.toLocaleLowerCase())) {
+      set("sizes", [...form.sizes, { label: v, stock: "", price: "" }]);
+    }
     setSizeDraft("");
   };
 
   const validate = () => {
     const e: Errors = {};
     if (!form.foodName.trim()) e.foodName = t("food.validation.name");
-    if (!priceNum || priceNum <= 0) e.price = t("food.validation.price");
-    if (form.oldPrice && oldPriceNum <= priceNum) e.oldPrice = t("editor.old_price_rule");
+    if (!Number.isFinite(priceNum) || priceNum <= 0 || priceNum > 1_000_000_000) e.price = t("food.validation.price");
+    if (form.oldPrice && (!Number.isFinite(oldPriceNum) || oldPriceNum <= priceNum || oldPriceNum > 1_000_000_000)) e.oldPrice = t("editor.old_price_rule");
     if (!form.categoryId) e.categoryId = t("editor.category_required");
     if (photos.length === 0) e.photos = t("editor.photo_required");
+    if (!validInventory(form.sizes)) e.sizes = t("editor.stock_rule");
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -153,11 +164,18 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
   };
 
   const save = async () => {
+    if (savingRef.current || !token) return;
+    if (sizeDraft.trim()) {
+      addSize();
+      toast.error(t("editor.variant_draft_hint"));
+      return;
+    }
     if (!validate()) {
       toast.error(t("editor.fix_errors"));
       return;
     }
     try {
+      savingRef.current = true;
       setSaving(true);
 
       // Upload new files one per request (keeps each under Vercel's body limit),
@@ -185,8 +203,11 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
         ingredients: form.ingredients.trim(),
         categoryId: form.categoryId,
         isFeatured: form.isFeatured,
-        // stock is not part of this form; the server keeps each size's stock
-        sizes: form.sizes.map((s) => ({ label: s.label, price: s.price ? Number(s.price) : null })),
+        // inventoryPayload keeps the order of form.sizes, so index i is the same size
+        sizes: inventoryPayload(form.sizes, food?.sizes).map((update, i) => ({
+          ...update,
+          price: form.sizes[i].price ? Number(form.sizes[i].price) : null,
+        })),
         image: photoUrls[0],
         extraImages: photoUrls.slice(1),
         video: videoUrl,
@@ -210,13 +231,16 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
         : "";
       toast.error(msg || (isEdit ? t("update_failed") : t("food.toast.error")));
     } finally {
+      savingRef.current = false;
       setSaving(false);
       setProgress(null);
     }
   };
 
   const remove = async () => {
+    if (savingRef.current || !token) return;
     try {
+      savingRef.current = true;
       setSaving(true);
       await axios.delete(`${API_BASE_URL}/food/${String(food!.id)}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -224,9 +248,11 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
       toast.success(t("deleted"));
       onSaved();
       onOpenChange(false);
-    } catch {
-      toast.error(t("editor.delete_failed"));
+    } catch (error) {
+      const message = axios.isAxiosError(error) ? error.response?.data?.message || error.response?.data?.error : null;
+      toast.error(message || t("editor.delete_failed"));
     } finally {
+      savingRef.current = false;
       setSaving(false);
       setConfirm(null);
     }
@@ -267,11 +293,12 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-[24px] py-[24px]">
-          <div className="space-y-[32px]">
+        <div className="min-h-0 flex-1 overflow-y-auto px-[16px] py-[24px] sm:px-[24px]">
+          <fieldset disabled={saving} className="min-w-0 space-y-[32px] disabled:opacity-70">
             <section>
               <h3 className="eyebrow mb-[14px]">{t("editor.section_photos")}</h3>
               <PhotosField
+                disabled={saving}
                 items={photos}
                 onChange={(p) => {
                   setPhotos(p);
@@ -372,6 +399,8 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
                 <span className={label}>{t("editor.sizes")}</span>
                 <div className="flex gap-[8px]">
                   <input
+                    aria-label={t("editor.sizes")}
+                    maxLength={60}
                     value={sizeDraft}
                     onChange={(e) => setSizeDraft(e.target.value)}
                     onKeyDown={(e) => {
@@ -394,37 +423,52 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
                 </div>
                 {form.sizes.length > 0 ? (
                   <>
-                    <ul className="mt-[10px] divide-y divide-ink/10 border border-ink/15 bg-white">
-                      {form.sizes.map((s, i) => (
-                        <li key={s.label} className="flex items-center gap-[10px] py-[6px] pl-[14px] pr-[4px]">
-                          <span className="min-w-0 flex-1 truncate text-[14px] text-ink">{s.label}</span>
-                          <label className="flex items-center gap-[6px] text-[13px] text-taupe">
-                            <span className="sr-only">{t("editor.size_price", { size: s.label })}</span>
+                    <div className="mt-[12px] divide-y divide-ink/10 border border-ink/15 bg-white">
+                      {form.sizes.map((size, index) => (
+                        <div key={size.label} className="flex min-w-0 flex-wrap items-end gap-[10px] px-[12px] py-[8px]">
+                          <span className="min-w-[96px] flex-1 self-center break-words text-[14px] text-ink">{size.label}</span>
+                          <div className="w-[116px] shrink-0">
+                            <label htmlFor={`pe-price-${index}`} className="mb-[4px] block text-[12px] text-taupe">{t("editor.price")}</label>
                             <input
+                              id={`pe-price-${index}`}
                               inputMode="numeric"
-                              value={s.price}
-                              onChange={(e) => set("sizes", form.sizes.map((x, j) => (j === i ? { ...x, price: digits(e.target.value) } : x)))}
+                              value={size.price}
                               placeholder={form.price || "0"}
-                              className="h-[40px] w-[120px] border border-ink/20 bg-white px-[10px] text-right text-[14px] tabular-nums text-ink outline-none placeholder:text-ink/60 focus:border-ink"
+                              aria-label={t("editor.size_price", { size: size.label })}
+                              className={`${field} border-ink/20 !px-[8px] text-right tabular-nums`}
+                              onChange={(event) => set("sizes", form.sizes.map((option, at) => at === index ? { ...option, price: digits(event.target.value) } : option))}
                             />
-                            ₮
-                          </label>
+                          </div>
+                          <div className="w-[116px] shrink-0">
+                            <label htmlFor={`pe-stock-${index}`} className="mb-[4px] block text-[12px] text-taupe">{t("editor.stock")}</label>
+                            <input
+                              id={`pe-stock-${index}`}
+                              inputMode="numeric"
+                              value={size.stock}
+                              placeholder={t("editor.untracked")}
+                              aria-label={`${size.label}: ${t("editor.stock")}`}
+                              className={`${field} border-ink/20 !px-[8px] tabular-nums`}
+                              onChange={(event) => set("sizes", form.sizes.map((option, at) => at === index ? { ...option, stock: digits(event.target.value) } : option))}
+                            />
+                          </div>
                           <button
                             type="button"
-                            onClick={() => set("sizes", form.sizes.filter((x) => x.label !== s.label))}
-                            aria-label={t("editor.remove")}
-                            className="flex h-[44px] w-[44px] items-center justify-center text-ink/50 hover:text-terracotta"
+                            onClick={() => set("sizes", form.sizes.filter((_, at) => at !== index))}
+                            aria-label={`${t("editor.remove")}: ${size.label}`}
+                            className="flex h-[44px] w-[44px] shrink-0 items-center justify-center text-taupe hover:text-terracotta"
                           >
-                            <X className="h-[14px] w-[14px]" />
+                            <X className="h-[13px] w-[13px]" />
                           </button>
-                        </li>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                     <p className="mt-[6px] text-[12px] text-taupe">{t("editor.size_price_hint")}</p>
                   </>
                 ) : (
                   <p className="mt-[6px] text-[12px] text-taupe">{t("editor.sizes_hint")}</p>
                 )}
+                <p className="mt-[8px] text-[12px] leading-relaxed text-taupe">{t("editor.stock_hint")}</p>
+                {err("sizes")}
               </div>
 
               <label className="flex cursor-pointer items-start justify-between gap-[16px] border border-ink/15 bg-white px-[16px] py-[14px]">
@@ -459,7 +503,7 @@ export function ProductEditor({ open, onOpenChange, food, categories, defaultCat
               </h3>
               <VideoField video={video} onChange={setVideo} />
             </section>
-          </div>
+          </fieldset>
         </div>
 
         {/* Footer */}
