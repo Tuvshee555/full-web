@@ -31,6 +31,8 @@ export function StoreFooter() {
         [st("about"), `/${locale}/about`],
         [st("contact"), `/${locale}/contact`],
         [st("faq"), `/${locale}/faq`],
+        [st("terms_page"), `/${locale}/terms`],
+        [st("privacy_page"), `/${locale}/privacy`],
       ],
     },
   ];

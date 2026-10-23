@@ -1,7 +1,12 @@
 import { prisma } from "../prismaClient.js";
 import { invalidateCatalog } from "./cache.js";
 
+// How long an unpaid order holds its stock before it is cancelled and released.
+// QPay: the QR code is only valid for 15 minutes. Bank transfer: a customer needs time to
+// open their bank app and pay, so it gets a day (a transfer made after that is flagged for review).
 export const PAYMENT_WINDOW_MS = 15 * 60 * 1000;
+export const BANK_PAYMENT_WINDOW_MS = 24 * 60 * 60 * 1000;
+export const paymentWindowMs = (paymentMethod) => (paymentMethod === "QPAY" ? PAYMENT_WINDOW_MS : BANK_PAYMENT_WINDOW_MS);
 const PAYABLE_STATUSES = ["PENDING", "WAITING_PAYMENT"];
 
 /** Called only by the transaction that won the first transition to PAID. */

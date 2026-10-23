@@ -1,14 +1,39 @@
 "use client";
 
+import { useState } from "react";
 import { toast } from "sonner";
-import { Copy } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import { STORE } from "@/config/store";
+import { api } from "@/lib/api";
 import { useI18n } from "@/components/i18n/ClientI18nProvider";
 import { money } from "../lib/product";
 
-/** Where to send a bank transfer for an order: shown after checkout and on the order page. */
-export function BankDetails({ orderNumber, amount }: { orderNumber: string; amount: number }) {
+const noticeKey = (orderId: string) => `bank-notified:${orderId}`;
+const wasNotified = (orderId?: string) => {
+  try { return Boolean(orderId && localStorage.getItem(noticeKey(orderId))); } catch { return false; }
+};
+
+/**
+ * Where to send a bank transfer for an order: shown after checkout and on the order page.
+ * With an orderId it also offers "I have transferred", which alerts the owner to check the bank.
+ */
+export function BankDetails({ orderNumber, amount, orderId }: { orderNumber: string; amount: number; orderId?: string }) {
   const { t } = useI18n();
+  const [notice, setNotice] = useState<"idle" | "sending" | "sent">(() => (wasNotified(orderId) ? "sent" : "idle"));
+
+  const notify = async () => {
+    if (!orderId || notice !== "idle") return;
+    setNotice("sending");
+    try {
+      await api.post(`/order/${encodeURIComponent(orderId)}/bank-transfer-notice`);
+      try { localStorage.setItem(noticeKey(orderId), "1"); } catch { /* the button just stays available */ }
+      setNotice("sent");
+      toast.success(t("bank_notify_success"));
+    } catch {
+      setNotice("idle");
+      toast.error(t("bank_notify_error"));
+    }
+  };
 
   const copy = async (text: string) => {
     try {
@@ -24,33 +49,66 @@ export function BankDetails({ orderNumber, amount }: { orderNumber: string; amou
       <dl className="divide-y divide-ink/10 border-y border-ink/10">
         <Row label={t("bank_name")} value={STORE.bank.name} />
         <Row label={t("account_holder")} value={STORE.bank.holder} />
-        <Row label={t("account_number")} value={STORE.bank.account} onCopy={() => copy(STORE.bank.account)} />
+        <Row label={t("account_number")} value={STORE.bank.account} onCopy={() => copy(STORE.bank.account)} stacked />
         <Row label={t("transfer_description")} value={orderNumber} onCopy={() => copy(orderNumber)} strong />
         <Row label={t("total_amount")} value={money(amount)} onCopy={() => copy(String(amount))} strong />
       </dl>
       <p className="mt-[16px] bg-sand px-[16px] py-[14px] text-[14px] text-ink/80">
         {t("bank_transfer_notice")} <span className="font-medium text-ink">{orderNumber}</span>
       </p>
+      <p className="mt-[10px] text-[13px] text-ink/65">{t("bank_expire_note")}</p>
+      {orderId && (
+        <button
+          type="button"
+          onClick={notify}
+          disabled={notice !== "idle"}
+          aria-live="polite"
+          className="btn-secondary mt-[20px] w-full justify-center sm:w-auto"
+        >
+          {notice === "sent" ? (
+            <>
+              <Check className="h-[16px] w-[16px]" strokeWidth={1.5} aria-hidden /> {t("bank_notify_success")}
+            </>
+          ) : notice === "sending" ? (
+            t("sending")
+          ) : (
+            t("bank_i_transferred")
+          )}
+        </button>
+      )}
     </div>
   );
 }
 
-function Row({ label, value, onCopy, strong }: { label: string; value: string; onCopy?: () => void; strong?: boolean }) {
+function Row({ label, value, onCopy, strong, stacked }: { label: string; value: string; onCopy?: () => void; strong?: boolean; stacked?: boolean }) {
+  const copyButton = onCopy && (
+    <button
+      type="button"
+      onClick={onCopy}
+      aria-label={`${label}: copy`}
+      className="flex h-[44px] w-[44px] shrink-0 items-center justify-center text-ink/50 transition-colors hover:text-ink"
+    >
+      <Copy className="h-[14px] w-[14px]" strokeWidth={1.3} />
+    </button>
+  );
+  // A long number (the account) gets its own line: it must never wrap in the middle of its digits.
+  if (stacked) {
+    return (
+      <div className="py-[14px] text-[14px]">
+        <dt className="text-ink/60">{label}</dt>
+        <dd className="mt-[2px] flex items-center justify-between gap-[6px]">
+          <span className="whitespace-nowrap text-[18px] font-medium tabular-nums tracking-[0.02em] text-ink">{value}</span>
+          {copyButton}
+        </dd>
+      </div>
+    );
+  }
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] items-center gap-[12px] py-[14px] text-[14px]">
       <dt className="text-ink/60">{label}</dt>
       <dd className="flex min-w-0 items-center justify-end gap-[6px] text-right">
         <span className={`break-words [overflow-wrap:anywhere] ${strong ? "font-medium text-ink" : "text-ink"}`}>{value}</span>
-        {onCopy && (
-          <button
-            type="button"
-            onClick={onCopy}
-            aria-label={`${label}: copy`}
-            className="flex h-[44px] w-[44px] shrink-0 items-center justify-center text-ink/50 transition-colors hover:text-ink"
-          >
-            <Copy className="h-[14px] w-[14px]" strokeWidth={1.3} />
-          </button>
-        )}
+        {copyButton}
       </dd>
     </div>
   );

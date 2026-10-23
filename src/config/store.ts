@@ -33,5 +33,9 @@ export const STORE: Omit<typeof data.STORE, "announcements"> & { announcements: 
 export const CHECKOUT_ACCENT = data.CHECKOUT_ACCENT;
 export const PRODUCT_CONTENT: Record<string, ProductContent> = data.PRODUCT_CONTENT;
 export const BRAND_COPY: Record<"mn" | "en", BrandCopy> = data.BRAND_COPY;
+export type Policies = { delivery: string; returns: string; safety: string };
+export const POLICIES: Record<"mn" | "en", Policies> = data.POLICIES;
+export const LEGAL_UPDATED: string = data.LEGAL_UPDATED;
+export const policiesFor = (locale: string): Policies => POLICIES[locale === "en" ? "en" : "mn"];
 export const productContent = (id?: string): ProductContent => ({ ...PRODUCT_CONTENT.default, ...(id ? PRODUCT_CONTENT[id] : undefined) });
 export const brandFor = (locale: string): BrandCopy => BRAND_COPY[locale === "en" ? "en" : "mn"];

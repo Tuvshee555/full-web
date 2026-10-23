@@ -45,6 +45,24 @@ export const productContent = (id) => ({
 });
 const fee = `${DELIVERY_FEE.toLocaleString()}₮`;
 /**
+ * What the shop promises, in one place. The FAQ, the Terms page and the checkout all
+ * read these, so they never disagree. Change them to what you will actually honour.
+ */
+export const POLICIES = {
+    mn: {
+        delivery: "Захиалга баталгаажсанаас хойш Улаанбаатарт 1–2 ажлын өдөр, орон нутагт 2–5 ажлын өдөрт хүрнэ.",
+        returns: "Эрүүл ахуйн үүднээс нээсэн бүтээгдэхүүнийг буцаахгүй. Гэмтэлтэй эсвэл буруу бүтээгдэхүүн ирсэн бол хүлээн авснаас хойш 24 цагийн дотор бидэнтэй холбогдоно уу, солиж өгнө.",
+        safety: "Анх удаа хэрэглэхдээ жижиг хэсэгт түрхэж туршаарай. Улайх, загатнах шинж илэрвэл хэрэглэхээ зогсоож, эмчид хандана уу.",
+    },
+    en: {
+        delivery: "1–2 working days in Ulaanbaatar and 2–5 working days in the countryside, counted from order confirmation.",
+        returns: "For hygiene reasons opened products can't be returned. If something arrives damaged or wrong, contact us within 24 hours of receiving it and we'll replace it.",
+        safety: "Test it on a small area first. If you notice redness or itching, stop using it and see a doctor.",
+    },
+};
+/** Date shown at the bottom of the Terms and Privacy pages. Update it when you change them. */
+export const LEGAL_UPDATED = "2026-10-23";
+/**
  * PLACEHOLDER COPY (written 2026-10-10 so the site has no empty sections
  * while it's new). Replace with the real story when you have it: it contains
  * no founding year, people, certifications or product results on purpose.
@@ -70,15 +88,15 @@ export const BRAND_COPY = {
         faq: [
             {
                 q: "Хүргэлт хэдэн хоногт хүрэх вэ?",
-                a: "Захиалга баталгаажсанаас хойш Улаанбаатарт 1–2 ажлын өдөр, орон нутагт 2–5 ажлын өдөрт хүрнэ.",
+                a: POLICIES.mn.delivery,
             },
             {
                 q: "Бүтээгдэхүүнээ буцаах боломжтой юу?",
-                a: "Эрүүл ахуйн үүднээс нээсэн бүтээгдэхүүнийг буцаахгүй. Гэмтэлтэй эсвэл буруу бүтээгдэхүүн ирсэн бол хүлээн авснаас хойш 24 цагийн дотор бидэнтэй холбогдоно уу, солиж өгнө.",
+                a: POLICIES.mn.returns,
             },
             {
                 q: "Шинэ бүтээгдэхүүнийг хэрхэн туршиж үзэх вэ?",
-                a: "Анх удаа хэрэглэхдээ жижиг хэсэгт түрхэж туршаарай. Улайх, загатнах шинж илэрвэл хэрэглэхээ зогсоож, эмчид хандана уу.",
+                a: POLICIES.mn.safety,
             },
         ],
     },
@@ -100,15 +118,15 @@ export const BRAND_COPY = {
         faq: [
             {
                 q: "How long does delivery take?",
-                a: "1–2 working days in Ulaanbaatar and 2–5 working days in the countryside, counted from order confirmation.",
+                a: POLICIES.en.delivery,
             },
             {
                 q: "Can I return a product?",
-                a: "For hygiene reasons opened products can't be returned. If something arrives damaged or wrong, contact us within 24 hours of receiving it and we'll replace it.",
+                a: POLICIES.en.returns,
             },
             {
                 q: "How should I try a new product?",
-                a: "Test it on a small area first. If you notice redness or itching, stop using it and see a doctor.",
+                a: POLICIES.en.safety,
             },
         ],
     },

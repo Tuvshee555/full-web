@@ -12,7 +12,6 @@ import { collectionUrl, money } from "@/components/store/lib/product";
 import { useStoreT } from "@/components/store/lib/useStoreT";
 import { useAuthDialog } from "@/components/header/email/components/AuthDialogProvider";
 import type { StoreCartItem } from "@/components/store/lib/cart";
-import TermsDialog from "./components/TermsDialog";
 import { useCheckout, type DeliveryFormData, type PaymentMethod } from "./components/components/useCheckout";
 
 export default function CheckoutPage() {
@@ -58,7 +57,6 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
   const authDialog = useAuthDialog();
   const c = useCheckout(items);
   const [summaryOpen, setSummaryOpen] = useState(false);
-  const [termsOpen, setTermsOpen] = useState(false);
   const isGuest = typeof window !== "undefined" && localStorage.getItem("guest") === "true";
 
   const set = (k: keyof DeliveryFormData, v: string) => c.setForm((f) => ({ ...f, [k]: v }));
@@ -234,9 +232,9 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
             </button>
             <p className="mt-[14px] text-center text-[12px] text-taupe">
               {st("terms_note")}{" "}
-              <button type="button" onClick={() => setTermsOpen(true)} className="underline underline-offset-[2px] hover:text-ink">
+              <Link href={`/${locale}/terms`} target="_blank" rel="noopener" className="underline underline-offset-[2px] hover:text-ink">
                 {st("terms")}
-              </button>
+              </Link>
             </p>
           </div>
         </div>
@@ -249,7 +247,6 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
         </aside>
       </div>
 
-      <TermsDialog open={termsOpen} onOpenChange={setTermsOpen} onConfirm={() => setTermsOpen(false)} />
     </div>
   );
 }

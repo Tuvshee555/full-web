@@ -54,7 +54,7 @@ export default function BankTransferPage() {
           <p className="mt-[10px] text-[15px] text-ink/70">{t("bank_transfer_subtitle")}</p>
 
           <div className="mt-[32px]">
-            <BankDetails orderNumber={order.orderNumber} amount={order.totalPrice} />
+            <BankDetails orderNumber={order.orderNumber} amount={order.totalPrice} orderId={order.id} />
           </div>
 
           <div className="mt-[32px] flex flex-col-reverse gap-[16px] sm:flex-row sm:items-center sm:justify-between">

@@ -71,6 +71,20 @@ export function formatOrderMessage(order) {
   ].join("\n");
 }
 
+/** Owner alert when a customer taps "I've transferred" on a bank-transfer order. */
+export function formatBankTransferNotice(order) {
+  const name = [order.lastName, order.firstName].filter(Boolean).join(" ");
+  return [
+    `🏦 Шилжүүлсэн гэж мэдэгдлээ · Захиалга #${order.orderNumber}`,
+    "",
+    `Нийт: ${tg(order.totalPrice)}`,
+    `👤 ${name || "-"} · 📞 ${order.phone || "-"}`,
+    "",
+    "Банкаа шалгаад төлбөр орсон бол захиалгыг «Төлөгдсөн» болгоно уу:",
+    adminOrdersUrl(),
+  ].join("\n");
+}
+
 /** Owner alert for a status change. */
 export function formatOrderStatusMessage(order, oldStatus, newStatus) {
   const emoji = { PAID: "✅", DELIVERING: "🚚", DELIVERED: "🏁", CANCELLED: "❌" }[newStatus] ?? "🔔";

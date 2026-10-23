@@ -144,16 +144,17 @@ const { expireUnpaidOrders } = await import("../../server/jobs/expireOrders.js")
 const { applyStockDecrements } = await import("../../server/utils/stock.js");
 const { createOrder } = await import("../../server/controller/orders/create-orders.js");
 const { updatedOrder } = await import("../../server/controller/orders/update-orders.js");
+const { notifyBankTransfer } = await import("../../server/controller/orders/notify-bank-transfer.js");
 const { deleteOrder } = await import("../../server/controller/orders/delete-orders.js");
 const { createInvoice, checkPayment, webhook } = await import("../../server/controller/qpay/qpay.controller.js");
 const { backgroundSettled } = await import("../../server/utils/background.js");
 const { transporter } = await import("../../server/utils/mailer.js");
 transporter.sendMail = async (message) => { sentEmails.push(message); return { accepted: [message.to] }; };
 
-const reset = ({ status = "WAITING_PAYMENT", paymentMethod = "QPAY", expired = false, payment = true } = {}) => {
+const reset = ({ status = "WAITING_PAYMENT", paymentMethod = "QPAY", expired = false, payment = true, ageMinutes } = {}) => {
   state = {
     orders: [{ id: "order-1", orderNumber: "TEST-1", userId: "owner", paymentMethod, status, totalPrice: 200,
-      deliveryFee: 0, createdAt: new Date(Date.now() - (expired ? 20 * 60000 : 60000)), updatedAt: new Date() }],
+      deliveryFee: 0, createdAt: new Date(Date.now() - (ageMinutes ?? (expired ? 20 : 1)) * 60000), updatedAt: new Date() }],
     items: [{ id: "item-1", orderId: "order-1", productId: "product-1", quantity: 2, size: "Small" }],
     products: [{ id: "product-1", price: 100, productName: "Test product", salesCount: 0 }],
     sizes: [{ id: "size-1", productId: "product-1", label: "Small", stock: status === "CANCELLED" ? 5 : 3 }],
@@ -210,6 +211,29 @@ test("concurrent expiry workers release one reservation only once", async () => 
   assert.equal(results.reduce((sum, count) => sum + count, 0), 1);
   assert.equal(state.orders[0].status, "CANCELLED");
   assert.equal(state.sizes[0].stock, 5);
+});
+
+test("a bank-transfer order is not cancelled by the 15-minute QPay deadline", async () => {
+  reset({ paymentMethod: "BANK", payment: false, ageMinutes: 6 * 60 });
+  assert.equal(await expireUnpaidOrders(client), 0);
+  assert.equal(state.orders[0].status, "WAITING_PAYMENT");
+  assert.equal(state.sizes[0].stock, 3); // the customer's reserved stock stays reserved
+});
+
+test("a bank-transfer order still unpaid after a day is cancelled and its stock released", async () => {
+  reset({ paymentMethod: "BANK", payment: false, ageMinutes: 24 * 60 + 5 });
+  assert.equal(await expireUnpaidOrders(client), 1);
+  assert.equal(state.orders[0].status, "CANCELLED");
+  assert.equal(state.sizes[0].stock, 5);
+});
+
+test("the owner can confirm a bank transfer that arrived hours after the order", async () => {
+  reset({ paymentMethod: "BANK", payment: false, ageMinutes: 6 * 60 });
+  await expireUnpaidOrders(client); // the nightly job must leave it alone
+  const res = response(); await updatedOrder(request({ status: "PAID" }, "ADMIN"), res);
+  assert.equal(res.code, 200); assert.equal(state.orders[0].status, "PAID");
+  assert.equal(state.products[0].salesCount, 2);
+  await backgroundSettled();
 });
 
 test("expiry cannot cancel or restock a payment that won after candidate selection", async () => {
@@ -382,6 +406,45 @@ test("registered customers still receive order notification emails", async () =>
     items: [{ productId: "product-1", quantity: 1, size: "Small" }] }), response());
   await backgroundSettled(); assert.equal(sentEmails.length, 1);
   assert.equal(sentEmails[0].to, notificationEmail);
+});
+
+// Every scenario uses its own order id: the one-alert-per-10-minutes memory is per order.
+const noticeFor = async (id, setup = {}, user = {}) => {
+  reset({ paymentMethod: "BANK", payment: false, ...setup });
+  state.orders[0].id = id;
+  const req = request({}); req.params.id = id; Object.assign(req.user, user);
+  const res = response(); await notifyBankTransfer(req, res);
+  return res;
+};
+
+test("\"I have transferred\" alerts the owner once, with the order number and amount", async () => {
+  const sent = [];
+  const realFetch = globalThis.fetch;
+  process.env.TELEGRAM_BOT_TOKEN = "test-token"; process.env.TELEGRAM_CHAT_ID = "12345";
+  globalThis.fetch = async (url, init) => { sent.push({ url, text: JSON.parse(init.body).text }); return { ok: true }; };
+  try {
+    const first = await noticeFor("notice-1");
+    assert.equal(first.code, 200); assert.equal(first.body.notified, true); assert.equal(first.body.delivered, true);
+    assert.equal(sent.length, 1);
+    assert.match(sent[0].text, /TEST-1/); assert.match(sent[0].text, /200₮/);
+    // tapping again inside the cooldown answers success without alerting twice
+    const again = await noticeFor("notice-1");
+    assert.equal(again.code, 200); assert.equal(again.body.repeated, true); assert.equal(sent.length, 1);
+  } finally {
+    globalThis.fetch = realFetch; delete process.env.TELEGRAM_BOT_TOKEN; delete process.env.TELEGRAM_CHAT_ID;
+  }
+});
+
+test("the transfer notice is refused for QPay, paid and other people's orders", async () => {
+  assert.equal((await noticeFor("notice-2", { paymentMethod: "QPAY" })).code, 409);
+  assert.equal((await noticeFor("notice-3", { status: "PAID" })).code, 409);
+  assert.equal((await noticeFor("notice-4", { status: "CANCELLED" })).code, 409);
+  assert.equal((await noticeFor("notice-5", {}, { id: "someone-else" })).code, 403);
+  assert.equal((await noticeFor("notice-6", {}, { id: "someone-else", role: "ADMIN" })).code, 200);
+  const missing = response(); const req = request({}); req.params.id = "no-such-order";
+  await notifyBankTransfer(req, missing); assert.equal(missing.code, 404);
+  const anonymous = response(); await notifyBankTransfer({ params: { id: "x" }, user: null }, anonymous);
+  assert.equal(anonymous.code, 401);
 });
 
 test("a multi-item stock shortfall rolls back every earlier reservation", async () => {

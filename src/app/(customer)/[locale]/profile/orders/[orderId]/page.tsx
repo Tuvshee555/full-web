@@ -155,7 +155,7 @@ export default function OrderDetailPage() {
               <section>
                 <h2 className="store-heading text-[28px]">{st("pay_by_transfer")}</h2>
                 <p className="mb-[18px] mt-[6px] text-[14px] text-ink/70">{t("bank_transfer_subtitle")}</p>
-                <BankDetails orderNumber={order.orderNumber} amount={order.totalPrice} />
+                <BankDetails orderNumber={order.orderNumber} amount={order.totalPrice} orderId={order.id} />
               </section>
             )}
             {/* Reviews open once the order is paid; before that the box is just noise */}

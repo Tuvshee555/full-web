@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type CredentialResponse } from "@react-oauth/google";
 import { ResponsiveGoogleLogin } from "@/components/ResponsiveGoogleLogin";
@@ -49,6 +50,10 @@ export default function SignInPageInner() {
         </div>
 
         <p className="mt-[40px] text-[12px] leading-relaxed text-ink/65">{t("auth.terms_notice")}</p>
+        <p className="mt-[4px] flex flex-wrap gap-x-[16px] text-[12px] text-ink/65">
+          <Link href={`/${locale}/terms`} className="inline-flex min-h-[44px] items-center underline underline-offset-[2px] hover:text-ink">{t("terms_of_service")}</Link>
+          <Link href={`/${locale}/privacy`} className="inline-flex min-h-[44px] items-center underline underline-offset-[2px] hover:text-ink">{t("privacy_policy")}</Link>
+        </p>
       </div>
 
       <AuthDrawer open={openEmail} onClose={() => setOpenEmail(false)} />
