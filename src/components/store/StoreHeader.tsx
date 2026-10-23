@@ -18,15 +18,15 @@ import { Drawer, Price } from "./ui";
 import { imageUrl } from "@/lib/image";
 
 export function AnnouncementBar() {
-  const { locale } = useStoreT();
+  const { st, locale } = useStoreT();
   const messages = STORE.announcements[locale] ?? STORE.announcements.mn ?? [];
   if (!messages.length) return null;
   return (
-    <div className="bg-espresso text-paper">
+    <aside aria-label={st("announcement")} className="bg-espresso text-paper">
       <p className="page-width py-[9px] text-center text-[11px] leading-relaxed text-paper/90 sm:text-[12px]">
         {messages[0]}
       </p>
-    </div>
+    </aside>
   );
 }
 

@@ -15,7 +15,9 @@ import { imageSrcSet, imageUrl } from "@/lib/image";
 
 /** Clean product card: photo (2nd photo on hover), small badge, name, price.
  *  Quick add is a small "+" on the photo instead of a big button per card. */
-export function ProductCard({ product, quickAdd = true }: { product: any; quickAdd?: boolean }) {
+/** `headingLevel`: 3 under a section heading (home, related), 2 when the page's own title is the h1 (collections). */
+export function ProductCard({ product, quickAdd = true, headingLevel = 3 }: { product: any; quickAdd?: boolean; headingLevel?: 2 | 3 }) {
+  const Heading = headingLevel === 2 ? "h2" : "h3";
   const { st, locale } = useStoreT();
   const router = useRouter();
   const images = productImages(product);
@@ -95,9 +97,9 @@ export function ProductCard({ product, quickAdd = true }: { product: any; quickA
       <div className="pt-[14px]">
         {/* Phones: price under the name. Desktop: price right-aligned beside it. */}
         <div className="flex flex-col gap-[8px]">
-          <h3 className="text-[15px] font-medium leading-[1.4] text-ink sm:text-[16px] line-clamp-2">
+          <Heading className="text-[15px] font-medium leading-[1.4] text-ink sm:text-[16px] line-clamp-2">
             <Link href={href} className="-my-[6px] inline-block py-[6px]">{product.productName}</Link>
-          </h3>
+          </Heading>
           <Price product={product} className="text-[14px] sm:text-[15px]" />
         </div>
         {subtitle && <p className="mt-[4px] text-[13px] text-taupe line-clamp-1">{subtitle}</p>}

@@ -183,7 +183,7 @@ export function CollectionPage({ id }: { id: string }) {
 
       {/* Grid */}
       <div className="mt-[28px] grid grid-cols-2 gap-x-[14px] gap-y-[32px] sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-[24px] lg:gap-y-[40px]">
-        {loading ? Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />) : shown.map((p) => <ProductCard key={p.id} product={p} />)}
+        {loading ? Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />) : shown.map((p) => <ProductCard key={p.id} product={p} headingLevel={2} />)}
       </div>
       {error && <div role="alert" className="border border-ink/15 bg-sand/50 p-[24px] text-center"><p>{st("catalogue_error")}</p><button type="button" onClick={retry} className="btn-secondary mt-[16px]">{st("retry")}</button></div>}
       {!loading && !error && visible.length === 0 && <div className="py-[48px] text-center"><p>{st("no_products")}</p>{(pills.length > 0) && <button type="button" onClick={() => setFilters(NO_FILTERS)} className="btn-secondary mt-[16px]">{st("clear_all")}</button>}</div>}

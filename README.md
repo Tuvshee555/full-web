@@ -61,9 +61,10 @@ tables, columns, constraints and indexes in place, preserving products, stock,
 reviews and purchase history. Historical migration files remain unchanged.
 
 Apply `npm run db:migrate` as part of the release before starting the updated
-application. The old and new application versions use different database names,
-so coordinate the migration with the application restart. This code change does
-not run migrations against an existing development or production database.
+application (on Vercel this happens automatically, see "Deploying a store"). The
+old and new application versions use different database names, so coordinate the
+migration with the application restart. Running the tests never touches your
+development or production database.
 
 Existing product bookmarks redirect to `/[locale]/products/[id]`. Previous API
 paths and checkout payloads are translated at the HTTP boundary, and saved
@@ -87,6 +88,23 @@ API adapter instead, with background maintenance registered after the response.
   origins. Optional alerts require the corresponding Telegram/Meta settings.
 - Set CORS origins and trusted proxy topology for a separately hosted API.
 - Provision database backups, restore checks and service/error monitoring.
+- On Vercel, `vercel-build` (`scripts/vercel-build.mjs`) applies pending database
+  migrations before building a production deployment. If a migration fails, the
+  build fails and the previous version keeps serving, so code never runs against
+  an older schema. `GET /api/ready` reads every table a sale touches and answers
+  503 when code and schema disagree; point an uptime monitor at it.
+- Customer-facing promises live in one place, `POLICIES` in `src/config/store-data.mjs`
+  (delivery, returns, safety). The FAQ and the Terms page read the same text, and
+  the payment deadlines stated there (QPay 15 minutes, bank transfer 24 hours) are
+  the ones enforced in `server/utils/orderPaid.js`; `tests/commerce/policies.test.ts`
+  fails if they drift apart. The Privacy and Terms pages are written in
+  `src/config/legal.ts` from how the store works: re-read them when you add a
+  service that receives customer data, and update `LEGAL_UPDATED`.
+- Product photos are resized on delivery (`src/lib/image.ts`) for Cloudinary and
+  Unsplash addresses; keep uploading to Cloudinary so phones never download the
+  original file.
+- Titles, descriptions, share cards (Open Graph), `/sitemap.xml` and `/robots.txt`
+  come from `src/lib/seo.ts`; the public address is `FRONTEND_URL`.
 - Replace brand, bank, contacts, product content and business policies in
   `src/config/store-data.mjs`; set delivery pricing through `DELIVERY_FEE`.
 

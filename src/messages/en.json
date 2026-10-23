@@ -587,7 +587,8 @@
     "faq_description": "Answers about delivery, payment, tracking your order and our products.",
     "terms_page": "Terms of service",
     "privacy_page": "Privacy policy",
-    "legal_updated": "Last updated: {date}"
+    "legal_updated": "Last updated: {date}",
+    "announcement": "Announcement"
   },
   "chatbot": {
     "title": "Lorentz assistant",
