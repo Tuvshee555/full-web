@@ -22,6 +22,7 @@ const displayFont = Cormorant_Garamond({
 export const metadata: Metadata = {
   title: `${STORE.name} · Admin`,
   description: `${STORE.name} store admin`,
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

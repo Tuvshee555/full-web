@@ -11,7 +11,7 @@ export default function DataDeletion() {
   return (
     <InfoPage title={st("data_title")}>
       <p className="text-[16px] leading-relaxed text-ink/75">{st("data_text")}</p>
-      <a href={`mailto:${DELETION_EMAIL}`} className="link-underline mt-[14px] inline-block text-[20px] text-ink">
+      <a href={`mailto:${DELETION_EMAIL}`} className="link-underline mt-[14px] inline-block min-h-[44px] py-[8px] text-[20px] text-ink">
         {DELETION_EMAIL}
       </a>
     </InfoPage>

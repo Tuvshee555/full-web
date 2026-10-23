@@ -589,7 +589,8 @@
     "page_error_title": "This page couldn’t load",
     "page_error_body": "Please try again. Your saved cart is still available.",
     "page_not_found": "Page not found",
-    "page_not_found_body": "The page or product may have moved or is no longer available."
+    "page_not_found_body": "The page or product may have moved or is no longer available.",
+    "faq_description": "Answers about delivery, payment, tracking your order and our products."
   },
   "chatbot": {
     "title": "Lorentz assistant",

@@ -49,6 +49,9 @@ export function HomePage() {
         .slice(0, 8),
     [products],
   );
+  // "Best sellers" is only said when something has actually sold; until then these are simply our picks.
+  const hasSales = products.some((p: any) => Number(p.salesCount ?? 0) > 0);
+  const picksLabel = st(hasSales ? "best_sellers" : "featured_products");
   const hero = bestSellers[0];
   const spotlight = bestSellers[1] ?? bestSellers[0];
 
@@ -86,7 +89,7 @@ export function HomePage() {
               </span>
             </Link>
             {hero && (
-              <Link href={productUrl(locale, hero.id)} className="group inline-flex items-center gap-[6px] text-[14px] text-ink">
+              <Link href={productUrl(locale, hero.id)} className="group inline-flex min-h-[44px] items-center gap-[6px] text-[14px] text-ink">
                 <span className="link-underline">{hero.productName}</span>
                 <ArrowUpRight className="h-[15px] w-[15px] transition-transform duration-500 ease-silk group-hover:-translate-y-[2px] group-hover:translate-x-[2px]" strokeWidth={1.3} />
               </Link>
@@ -116,7 +119,7 @@ export function HomePage() {
                 className="group flex min-w-0 items-center justify-between gap-[14px] bg-paper/95 px-[16px] py-[12px] shadow-[0_24px_50px_-20px_rgba(28,23,20,0.4)] backdrop-blur-sm"
               >
                 <div className="min-w-0">
-                  <p className="text-[11px] uppercase tracking-[0.16em] text-taupe">{st("best_sellers")}</p>
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-taupe">{picksLabel}</p>
                   <p className="mt-[2px] text-[15px] font-medium leading-snug text-ink">{hero.productName}</p>
                 </div>
                 <Price product={hero} className="flex-col !items-end !gap-0 text-[13px]" />
@@ -138,7 +141,7 @@ export function HomePage() {
       <section className="page-width py-[48px] lg:py-[80px]">
         <div className="flex flex-wrap items-end justify-between gap-[20px]">
           <Reveal>
-            <h2 className="store-heading section-title">{st("best_sellers")}</h2>
+            <h2 className="store-heading section-title">{picksLabel}</h2>
           </Reveal>
           <Reveal delay={150}>
             <Link href={collectionUrl(locale)} className="group inline-flex min-h-[44px] items-center gap-[8px] text-[14px] text-ink">

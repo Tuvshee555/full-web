@@ -145,7 +145,7 @@ const { applyStockDecrements } = await import("../../server/utils/stock.js");
 const { createOrder } = await import("../../server/controller/orders/create-orders.js");
 const { updatedOrder } = await import("../../server/controller/orders/update-orders.js");
 const { deleteOrder } = await import("../../server/controller/orders/delete-orders.js");
-const { createInvoice, checkPayment, webhook, getAccessToken } = await import("../../server/controller/qpay/qpay.controller.js");
+const { createInvoice, checkPayment, webhook } = await import("../../server/controller/qpay/qpay.controller.js");
 const { backgroundSettled } = await import("../../server/utils/background.js");
 const { transporter } = await import("../../server/utils/mailer.js");
 transporter.sendMail = async (message) => { sentEmails.push(message); return { accepted: [message.to] }; };

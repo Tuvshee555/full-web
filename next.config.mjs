@@ -3,6 +3,8 @@ import { deliveryFee } from "./server/utils/deliveryFee.js";
 const nextConfig = {
   env: { NEXT_PUBLIC_DELIVERY_FEE: String(deliveryFee()) },
   reactStrictMode: true,
+  // One branded 404 for addresses that match no page (the store and the admin have separate root layouts).
+  experimental: { globalNotFound: true },
   async redirects() {
     return [{
       source: "/:locale/food/:id",
