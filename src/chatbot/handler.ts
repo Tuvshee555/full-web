@@ -19,7 +19,7 @@ import { understandingModel } from "./productUnderstandingModel";
 import { openAIReply } from "./productWriter";
 import { contactFallback } from "./reply";
 import { contactDetails } from "./orderHelp";
-import { notifyStaffOfLead } from "./staffAlerts";
+import { notifyStaffOfLead, shouldAlertWaitingMessage } from "./staffAlerts";
 import { runCustomerTurn, type TurnOutput } from "./turn";
 import type { BotSettings, ChatMessage, ConversationState, Locale } from "./types";
 
@@ -51,6 +51,23 @@ async function saveLead(conversation: ChatConversation, leaseOwner: string, text
   if (notify) background(notifyStaffOfLead({ kind: "handoff", platform: conversation.channel, customerMessage: text, contactPhone: phone || undefined }));
 }
 
+/** A message arrived while nobody automated is answering: ping the owner once per burst. Never blocks or fails the request. */
+async function alertStaffOfWaitingMessage(conversation: ChatConversation, messageId: string, text: string): Promise<void> {
+  try {
+    const previous = await prisma.chatMessage.findFirst({
+      where: { conversationId: conversation.id, role: "customer", id: { not: messageId } },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    });
+    if (!shouldAlertWaitingMessage(previous?.createdAt)) return;
+    const state = (conversation.state || {}) as ConversationState;
+    const phone = contactDetails(text).phone || (typeof state.phone === "string" ? state.phone : "") || undefined;
+    background(notifyStaffOfLead({ kind: "inbox", platform: conversation.channel, customerMessage: text, contactPhone: phone }));
+  } catch (error) {
+    await logError((error as { code?: string }).code || "STAFF_ALERT_FAILURE", "alertStaffOfWaitingMessage", conversation.id);
+  }
+}
+
 export async function handleCustomerMessage(input: { conversationId: string; text: string; clientMessageId: string }): Promise<TurnResult> {
   const { conversationId, clientMessageId } = input;
   let text = input.text;
@@ -78,8 +95,11 @@ export async function handleCustomerMessage(input: { conversationId: string; tex
       const customerMessage = duplicate || await prisma.chatMessage.create({ data: { conversationId, role: "customer", text, clientMessageId } });
       conversation = await prisma.chatConversation.update({ where: { id: conversationId }, data: { ...(!duplicate ? { unread: { increment: 1 } } : {}) } });
 
-      // Staff takeover / global off: keep the message for the inbox, no automated reply.
-      if (conversation.paused || !settings.enabled) return { conversationId, reply: null, paused: true };
+      // Staff takeover / global off: keep the message for the inbox, no automated reply, but tell the owner.
+      if (conversation.paused || !settings.enabled) {
+        if (!duplicate) await alertStaffOfWaitingMessage(conversation, customerMessage.id, text);
+        return { conversationId, reply: null, paused: true };
+      }
 
       const firstContext = await readContext(settings as BotSettings, conversation.locale === "en" ? "en" : "mn");
       const locale = detectLanguage(text, conversation.locale, firstContext.products);
