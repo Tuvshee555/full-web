@@ -30,7 +30,8 @@ const pg = new EmbeddedPostgres({
   databaseDir: path.join(directory, "postgres"), port, user: "postgres", password,
   persistent: true,
   initdbFlags: ["--encoding=UTF8", "--locale=C", "--no-sync"],
-  postgresFlags: ["-c", "listen_addresses=127.0.0.1"],
+  // io_method=sync: no PostgreSQL 18 io_worker processes, which outlive stop() on Windows.
+  postgresFlags: ["-c", "listen_addresses=127.0.0.1", "-c", "io_method=sync"],
   onLog: () => {}, onError: () => {},
 });
 let started = false;
@@ -158,7 +159,8 @@ try {
   if (started) await pg.stop();
   const resolved = path.resolve(directory);
   if (resolved.startsWith(path.resolve(temporaryPrefix)) && path.dirname(resolved) === path.resolve(os.tmpdir())) {
-    await rm(resolved, { recursive: true, force: true });
+    // On Windows, postgres worker processes release their files a moment after stop().
+    await rm(resolved, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
   } else throw new Error("Refusing to remove an unexpected migration-test directory");
 }
 
