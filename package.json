@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "node server.mjs --dev",
     "build": "prisma generate && next build",
+    "vercel-build": "node scripts/vercel-build.mjs",
     "start": "node server.mjs",
     "api": "node server/index.js",
     "lint": "eslint src",

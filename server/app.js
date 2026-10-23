@@ -86,9 +86,17 @@ app.get("/ready", async (_, res) => {
   res.set("Cache-Control", "no-store");
   try {
     const { prisma } = await import("./prismaClient.js");
-    await prisma.$queryRaw`SELECT 1`;
+    // Read one full row from every table a sale touches. A bare SELECT 1 kept
+    // saying "ready" for 4 days while code and schema disagreed (2026-10-19).
+    await Promise.all([
+      prisma.product.findFirst(), prisma.productSize.findFirst(), prisma.category.findFirst(),
+      prisma.order.findFirst(), prisma.orderItem.findFirst(), prisma.payment.findFirst(),
+    ]);
     return res.json({ status: "ready" });
-  } catch { return res.status(503).json({ status: "unavailable" }); }
+  } catch (error) {
+    console.error("Readiness check failed:", error?.code || error?.message);
+    return res.status(503).json({ status: "unavailable" });
+  }
 });
 
 app.use("/products", productRouter);
