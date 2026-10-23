@@ -8,6 +8,7 @@ import { ArrowLeft, ChevronDown, LockKeyhole } from "lucide-react";
 import { STORE } from "@/config/store";
 import { money } from "../lib/product";
 import { useStoreT } from "../lib/useStoreT";
+import { imageUrl } from "@/lib/image";
 
 /** Shared, bounded checkout layout with a compact summary on phones. */
 export function OrderStatusShell({ order, children }: { order?: any; children: ReactNode }) {
@@ -75,7 +76,7 @@ export function OrderSummary({ order }: { order: any }) {
         {(order?.items ?? []).map((it: any, i: number) => (
           <li key={it.id ?? i} className="flex items-center gap-[14px]">
             <div className="relative h-[64px] w-[64px] shrink-0 bg-paper">
-              {it.product?.image ? <img src={it.product.image} alt="" className="h-full w-full object-cover" /> : null}
+              {it.product?.image ? <img src={imageUrl(it.product.image, 200)} alt="" className="h-full w-full object-cover" /> : null}
               <span className="absolute -right-[8px] -top-[8px] flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-ink px-[5px] text-[11px] text-paper">
                 {it.quantity}
               </span>

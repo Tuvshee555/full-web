@@ -9,6 +9,7 @@ import { useStoreCart } from "./lib/useCart";
 import { collectionUrl, money, productUrl } from "./lib/product";
 import { useStoreT } from "./lib/useStoreT";
 import { Drawer, QuantityInput } from "./ui";
+import { imageUrl } from "@/lib/image";
 
 /** Shopify Dawn cart drawer: opens on "Add to cart" and from the header bag icon. */
 export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -73,7 +74,7 @@ function CartLine({ item, onNavigate, locale }: { item: StoreCartItem; onNavigat
   return (
     <li className="flex gap-[15px] py-[20px] border-b border-[rgba(28,23,20,0.08)] last:border-0">
       <Link href={href} onClick={onNavigate} className="h-[76px] w-[64px] sm:h-[96px] sm:w-[80px] shrink-0 bg-[#efe7dd]">
-        {item.product?.image ? <img src={item.product.image} alt="" className="h-full w-full object-cover" /> : null}
+        {item.product?.image ? <img src={imageUrl(item.product.image, 200)} alt="" className="h-full w-full object-cover" /> : null}
       </Link>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-start justify-between gap-x-[10px] gap-y-[4px]">

@@ -13,6 +13,7 @@ import { useStoreT } from "@/components/store/lib/useStoreT";
 import { useAuthDialog } from "@/components/header/email/components/AuthDialogProvider";
 import type { StoreCartItem } from "@/components/store/lib/cart";
 import { useCheckout, type DeliveryFormData, type PaymentMethod } from "./components/components/useCheckout";
+import { imageUrl } from "@/lib/image";
 
 export default function CheckoutPage() {
   const { st, locale } = useStoreT();
@@ -265,7 +266,7 @@ function Summary({ items, c }: { items: StoreCartItem[]; c: ReturnType<typeof us
         {items.map((i) => (
           <li key={`${i.productId}-${i.selectedSize ?? ""}`} className="flex items-center gap-[14px]">
             <div className="relative h-[64px] w-[64px] shrink-0 bg-paper">
-              {i.product?.image ? <img src={i.product.image} alt="" className="h-full w-full object-cover" /> : null}
+              {i.product?.image ? <img src={imageUrl(i.product.image, 200)} alt="" className="h-full w-full object-cover" /> : null}
               <span className="absolute -right-[8px] -top-[8px] flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-ink px-[5px] text-[11px] text-paper">
                 {i.quantity}
               </span>

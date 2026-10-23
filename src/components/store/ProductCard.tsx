@@ -11,6 +11,7 @@ import { firstLine, isBestseller, isSoldOut, onSale, priceRange, productImages, 
 import { useStoreT } from "./lib/useStoreT";
 import { Badge, Price, salePercent, Stars } from "./ui";
 import { StockBadge } from "./StockBadge";
+import { imageSrcSet, imageUrl } from "@/lib/image";
 
 /** Clean product card: photo (2nd photo on hover), small badge, name, price.
  *  Quick add is a small "+" on the photo instead of a big button per card. */
@@ -43,7 +44,9 @@ export function ProductCard({ product, quickAdd = true }: { product: any; quickA
       <div className="relative aspect-[4/5] overflow-hidden bg-sand">
         <Link href={href} className="absolute inset-0" aria-label={product.productName}>
           <img
-            src={images[0]}
+            src={imageUrl(images[0], 640)}
+            srcSet={imageSrcSet(images[0], [320, 480, 640, 960])}
+            sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
             alt={product.productName ?? ""}
             className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-300 ease-silk
               md:group-hover:scale-[1.04] ${images[1] ? "md:group-hover:opacity-0" : ""}`}
@@ -52,7 +55,9 @@ export function ProductCard({ product, quickAdd = true }: { product: any; quickA
           />
           {images[1] && (
             <img
-              src={images[1]}
+              src={imageUrl(images[1], 640)}
+              srcSet={imageSrcSet(images[1], [320, 480, 640, 960])}
+              sizes="(min-width: 1024px) 25vw, 33vw"
               alt=""
               aria-hidden
               className="absolute inset-0 hidden h-full w-full object-cover opacity-0 transition-[opacity,transform] duration-300 ease-silk

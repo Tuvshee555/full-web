@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { GoogleLogin, type GoogleLoginProps } from "@react-oauth/google";
+import { GoogleLogin, GoogleOAuthProvider, type GoogleLoginProps } from "@react-oauth/google";
 
-/** Google's iframe uses a pixel width; measure the available space before mounting. */
+/**
+ * Google's iframe uses a pixel width; measure the available space before mounting.
+ * The provider lives here, not at the top of the app: it downloads Google's sign-in script (~100 KB),
+ * which only a page that shows this button needs.
+ */
 export function ResponsiveGoogleLogin(props: Omit<GoogleLoginProps, "width">) {
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -14,5 +18,9 @@ export function ResponsiveGoogleLogin(props: Omit<GoogleLoginProps, "width">) {
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
-  return <div ref={ref} className="min-h-[44px] w-full min-w-0">{width > 0 && <GoogleLogin {...props} width={width} />}</div>;
+  return <div ref={ref} className="min-h-[44px] w-full min-w-0">{width > 0 && (
+      <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
+        <GoogleLogin {...props} width={width} />
+      </GoogleOAuthProvider>
+    )}</div>;
 }

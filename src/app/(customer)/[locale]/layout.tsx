@@ -1,11 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Cormorant_Garamond, Onest } from "next/font/google";
 import { notFound } from "next/navigation";
 
 import "../globals.css";
-import RootClient from "../RootClient";
 import ClientI18nProvider from "@/components/i18n/ClientI18nProvider";
 import QueryProvider from "./QueryProvider";
 import { AuthProvider } from "./provider/AuthProvider";
@@ -14,27 +12,16 @@ import Providers from "@/components/Providers"; // client wrapper for next-theme
 import AppShellClient from "@/components/AppShellClient";
 import { AuthDialogProvider } from "@/components/header/email/components/AuthDialogProvider";
 import { STORE, brandFor } from "@/config/store";
+import { displayFont, displayItalic, storeFont } from "@/lib/fonts";
 import { localeOf, metadataBase } from "@/lib/seo";
-
-// Editorial beauty pairing, both with full Cyrillic (Ө/Ү live in cyrillic-ext):
-// high-contrast serif for headlines, a Cyrillic-native grotesk for everything else.
-const storeFont = Onest({
-  variable: "--font-store",
-  subsets: ["latin", "cyrillic", "cyrillic-ext"],
-  weight: ["300", "400", "500", "600"],
-});
-
-const displayFont = Cormorant_Garamond({
-  variable: "--font-display",
-  subsets: ["latin", "cyrillic", "cyrillic-ext"],
-  weight: ["400", "500", "600"],
-  style: ["normal", "italic"],
-});
 
 type Props = {
   children: ReactNode;
   params: any;
 };
+
+// The browser's address bar and the phone's task switcher take the store's paper colour.
+export const viewport: Viewport = { themeColor: "#fbf8f3" };
 
 export function generateStaticParams() {
   return [{ locale: "mn" }, { locale: "en" }];
@@ -66,20 +53,18 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body className={`${storeFont.variable} ${displayFont.variable} store-body antialiased`}>
-        <RootClient>
-          <QueryProvider>
-            <ClientI18nProvider locale={locale} messages={messages}>
-              <AuthProvider>
-                <Providers>
-                  <AuthDialogProvider>
-                    <AppShellClient>{children}</AppShellClient>
-                  </AuthDialogProvider>
-                </Providers>
-              </AuthProvider>
-            </ClientI18nProvider>
-          </QueryProvider>
-        </RootClient>
+      <body className={`${storeFont.variable} ${displayFont.variable} ${displayItalic.variable} store-body antialiased`}>
+        <QueryProvider>
+          <ClientI18nProvider locale={locale} messages={messages}>
+            <AuthProvider>
+              <Providers>
+                <AuthDialogProvider>
+                  <AppShellClient>{children}</AppShellClient>
+                </AuthDialogProvider>
+              </Providers>
+            </AuthProvider>
+          </ClientI18nProvider>
+        </QueryProvider>
       </body>
     </html>
   );

@@ -15,13 +15,15 @@ import { Reveal } from "./Reveal";
 import { collectionUrl, money, productImages, productUrl } from "./lib/product";
 import { useStoreT } from "./lib/useStoreT";
 import { DevHint, Price, Stars } from "./ui";
+import { HERO_IMAGE, imageSrcSet, imageUrl } from "@/lib/image";
 
 // Literal class names so Tailwind generates them
 const VALUE_COLS: Record<number, string> = { 1: "", 2: "md:grid-cols-2", 3: "md:grid-cols-3", 4: "md:grid-cols-4" };
 
 type LatestReview = { id: string; rating: number; comment: string; verifiedPurchase: boolean; name: string | null; product: { id: string; name: string; image: string } | null };
 
-export function HomePage() {
+/** `initialHero`: the server's pick of hero photo, shown until the live product list arrives. */
+export function HomePage({ initialHero }: { initialHero?: { image: string; name: string } | null }) {
   const { st, locale } = useStoreT();
   const BRAND = brandFor(locale);
   const { data: products = [], isLoading, isError, refetch } = useProducts();
@@ -53,6 +55,8 @@ export function HomePage() {
   const hasSales = products.some((p: any) => Number(p.salesCount ?? 0) > 0);
   const picksLabel = st(hasSales ? "best_sellers" : "featured_products");
   const hero = bestSellers[0];
+  const heroPhoto = hero ? productImages(hero)[0] : initialHero?.image;
+  const heroName = hero ? hero.productName : (initialHero?.name ?? "");
   const spotlight = bestSellers[1] ?? bestSellers[0];
 
   // Category tiles use the first product photo in each category (real data)
@@ -105,8 +109,8 @@ export function HomePage() {
         <div className="relative min-w-0 lg:col-span-6">
           <Reveal>
             <div className="relative aspect-[5/4] w-full overflow-hidden bg-sand lg:aspect-[4/5] lg:max-h-[620px]">
-              {hero ? (
-                <img src={productImages(hero)[0]} alt={hero.productName} fetchPriority="high" className="h-full w-full object-cover" />
+              {heroPhoto ? (
+                <img src={imageUrl(heroPhoto, HERO_IMAGE.width)} srcSet={imageSrcSet(heroPhoto, [...HERO_IMAGE.widths])} sizes={HERO_IMAGE.sizes} alt={heroName} fetchPriority="high" className="h-full w-full object-cover" />
               ) : (
                 <img src="/product-image-coming-soon.svg" alt="" className="h-full w-full object-contain" />
               )}
@@ -178,7 +182,10 @@ export function HomePage() {
               >
                 <Link href={collectionUrl(locale, c.id)} className="group relative block h-full min-h-[260px] overflow-hidden bg-sand md:min-h-[300px]">
                   <img
-                    src={productImages(c.cover)[0]}
+                    src={imageUrl(productImages(c.cover)[0], 800)}
+                    srcSet={imageSrcSet(productImages(c.cover)[0], [480, 800, 1200])}
+                    sizes="(min-width: 768px) 58vw, 100vw"
+                    loading="lazy"
                     alt=""
                     className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-silk group-hover:scale-[1.05]"
                   />
@@ -203,7 +210,10 @@ export function HomePage() {
             <Reveal className="md:col-span-6">
               <Link href={productUrl(locale, spotlight.id)} className="group block aspect-[4/5] overflow-hidden bg-ink">
                 <img
-                  src={productImages(spotlight)[0]}
+                  src={imageUrl(productImages(spotlight)[0], 800)}
+                  srcSet={imageSrcSet(productImages(spotlight)[0], [480, 800, 1200])}
+                  sizes="(min-width: 768px) 50vw, 100vw"
+                  loading="lazy"
                   alt={spotlight.productName}
                   className="h-full w-full object-cover transition-transform duration-500 ease-silk group-hover:scale-[1.04]"
                 />

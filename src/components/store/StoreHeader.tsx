@@ -15,6 +15,7 @@ import { useStoreCart } from "./lib/useCart";
 import { collectionUrl, productImages, productUrl } from "./lib/product";
 import { useStoreT } from "./lib/useStoreT";
 import { Drawer, Price } from "./ui";
+import { imageUrl } from "@/lib/image";
 
 export function AnnouncementBar() {
   const { locale } = useStoreT();
@@ -307,7 +308,7 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
                     {results.map((p: any) => (
                       <li key={p.id}>
                         <Link href={productUrl(locale, p.id)} onClick={onClose} className="flex items-center gap-[15px] py-[8px] hover:bg-[rgba(28,23,20,0.04)]">
-                          <img src={productImages(p)[0]} alt="" className="h-[50px] w-[50px] object-cover bg-[#efe7dd]" />
+                          <img src={imageUrl(productImages(p)[0], 120)} alt="" className="h-[50px] w-[50px] object-cover bg-[#efe7dd]" />
                           <div>
                             <p className="font-medium text-ink text-[15px]">{p.productName}</p>
                             <Price product={p} className="text-[13px]" />

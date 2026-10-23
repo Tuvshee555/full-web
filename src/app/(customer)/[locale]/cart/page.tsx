@@ -8,6 +8,7 @@ import { useStoreCart } from "@/components/store/lib/useCart";
 import { collectionUrl, money, productUrl } from "@/components/store/lib/product";
 import { useStoreT } from "@/components/store/lib/useStoreT";
 import { QuantityInput } from "@/components/store/ui";
+import { imageUrl } from "@/lib/image";
 
 export default function CartPage() {
   const { st, locale } = useStoreT();
@@ -39,7 +40,7 @@ export default function CartPage() {
             return (
               <li key={`${item.productId}-${item.selectedSize ?? ""}`} className="flex gap-[16px] border-b border-ink/15 py-[24px] sm:gap-[24px]">
                 <Link href={href} className="h-[104px] w-[80px] shrink-0 bg-sand sm:h-[140px] sm:w-[112px]">
-                  {item.product?.image && <img src={item.product.image} alt={item.product.productName} className="h-full w-full object-cover" />}
+                  {item.product?.image && <img src={imageUrl(item.product.image, 240)} alt={item.product.productName} className="h-full w-full object-cover" />}
                 </Link>
                 <div className="min-w-0 flex-1">
                   <Link href={href} className="text-[15px] font-medium leading-snug text-ink link-underline sm:text-[17px]">{item.product?.productName}</Link>

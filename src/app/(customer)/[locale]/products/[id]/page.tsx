@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/JsonLd";
+import { PRODUCT_IMAGE, imageSrcSet, imageUrl } from "@/lib/image";
 import { localeOf, loadProductMeta, pageMetadata, productJsonLd, storeMessages } from "@/lib/seo";
 import ProductRoute from "./ProductRoute";
 
@@ -33,6 +34,17 @@ export default async function Product({ params }: Props) {
   if (product === null) notFound();
   return (
     <>
+      {/* The main photo is the largest thing on screen: fetch it now, not after the page's JavaScript has loaded. */}
+      {product?.image && (
+        <link
+          rel="preload"
+          as="image"
+          href={imageUrl(product.image, PRODUCT_IMAGE.width)}
+          imageSrcSet={imageSrcSet(product.image, [...PRODUCT_IMAGE.widths])}
+          imageSizes={PRODUCT_IMAGE.sizes}
+          fetchPriority="high"
+        />
+      )}
       {product && <JsonLd data={productJsonLd(product, localeOf(locale))} />}
       <ProductRoute id={id} />
     </>

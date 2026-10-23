@@ -139,6 +139,30 @@ export async function loadProductMeta(id: string): Promise<ProductMeta | null | 
   }
 }
 
+/**
+ * The home page's hero photo and name, so the server can put the real <img> into the HTML and the
+ * download starts before any JavaScript runs. Same pick as the page itself: most sold, then featured,
+ * then newest. null when there is none.
+ */
+export type HeroPhoto = { image: string; name: string };
+export function loadHeroImage(): Promise<HeroPhoto | null> {
+  return cached("seo:hero-image", 60_000, async () => {
+    try {
+      const { prisma } = await import("../../server/prismaClient.js");
+      const hero = await prisma.product.findFirst({
+        orderBy: [{ salesCount: "desc" }, { isFeatured: "desc" }, { createdAt: "desc" }],
+        select: { productName: true, image: true, extraImages: true },
+      });
+      const photos: (string | null | undefined)[] = [hero?.image, ...(hero?.extraImages ?? [])];
+      const image = photos.find((u): u is string => /^https?:\/\//.test(u ?? ""));
+      return hero && image ? { image, name: hero.productName } : null;
+    } catch (error) {
+      console.error("SEO hero lookup failed:", (error as Error)?.message);
+      return null;
+    }
+  });
+}
+
 /** Category name for a /collections/<id> page, or null for an unknown id. */
 export function loadCategoryName(id: string): Promise<string | null> {
   if (!id || id.length > 100) return Promise.resolve(null);

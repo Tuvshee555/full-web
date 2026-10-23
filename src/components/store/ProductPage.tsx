@@ -16,6 +16,7 @@ import { useStoreT } from "./lib/useStoreT";
 import { ProductCard } from "./ProductCard";
 import { Badge, CREAM, DevHint, Price, QuantityInput, salePercent, Stars } from "./ui";
 import { StockBadge } from "./StockBadge";
+import { PRODUCT_IMAGE, imageSrcSet, imageUrl } from "@/lib/image";
 
 type Media = { type: "image" | "video"; src: string };
 
@@ -352,7 +353,7 @@ function MediaView({ m, alt }: { m: Media; alt: string }) {
   return m.type === "video" ? (
     <video src={m.src} className="absolute inset-0 h-full w-full object-cover" muted playsInline preload="metadata" />
   ) : (
-    <img src={m.src} alt={alt} className="absolute inset-0 h-full w-full object-cover" draggable={false} />
+    <img src={imageUrl(m.src, PRODUCT_IMAGE.width)} srcSet={imageSrcSet(m.src, [...PRODUCT_IMAGE.widths])} sizes={PRODUCT_IMAGE.sizes} alt={alt} className="absolute inset-0 h-full w-full object-cover" draggable={false} />
   );
 }
 
@@ -420,7 +421,7 @@ function Lightbox({ media, start, alt, onClose }: { media: Media[]; start: numbe
       <div className="mx-auto max-w-[1000px] space-y-[10px] py-[60px]">
         {media.map((m, i) => (
           <div key={m.src + i} ref={(el) => void (refs.current[i] = el)}>
-            {m.type === "video" ? <video src={m.src} controls className="w-full" /> : <img src={m.src} alt={alt} className="w-full" />}
+            {m.type === "video" ? <video src={m.src} controls className="w-full" /> : <img src={imageUrl(m.src, 1600)} srcSet={imageSrcSet(m.src, [960, 1280, 1600])} sizes="100vw" alt={alt} className="w-full" />}
           </div>
         ))}
       </div>
