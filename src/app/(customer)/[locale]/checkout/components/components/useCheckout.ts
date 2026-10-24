@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useI18n } from "@/components/i18n/ClientI18nProvider";
 import { useAuth } from "@/app/(customer)/[locale]/provider/AuthProvider";
 import { DELIVERY_FEE, DeliveryZone, ULAANBAATAR_DISTRICTS } from "@/data/mongoliaLocations";
-import { clearCart, type StoreCartItem } from "@/components/store/lib/cart";
+import { clearCart, refreshCartPrices, type StoreCartItem } from "@/components/store/lib/cart";
 
 /** Payment methods offered at checkout (no cards). Must match the backend enum. */
 export type PaymentMethod = "QPAY" | "BANK";
@@ -72,9 +72,10 @@ export function useCheckout(cart: StoreCartItem[]) {
   const submissionActive = useRef(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const idempotencyKey = useRef(newKey());
+  const attemptPayload = useRef<string | null>(null);
 
   const productTotal = useMemo(() => cart.reduce((s, i) => s + Number(i.product?.price ?? 0) * (Number(i.quantity) || 0), 0), [cart]);
-  const deliveryFee = DELIVERY_FEE;
+  const [deliveryFee, setDeliveryFee] = useState(DELIVERY_FEE);
   const total = productTotal + deliveryFee;
 
   // Clear a field's error as soon as it has a value again (re-checked on submit)
@@ -143,10 +144,8 @@ export function useCheckout(cart: StoreCartItem[]) {
     return true;
   };
 
-  const postOrder = (bearer: string) =>
-    axios.post(
-      `${API_BASE_URL}/order`,
-      {
+  const postOrder = (bearer: string) => {
+    const payload = {
         items: cart
           .map((i) => ({ productId: i.product?.id ?? i.productId, quantity: Number(i.quantity) || 0, size: i.selectedSize ?? null }))
           .filter((i) => i.productId && i.quantity > 0),
@@ -161,10 +160,18 @@ export function useCheckout(cart: StoreCartItem[]) {
         khoroo: form.khoroo?.trim(),
         address: form.address?.trim(),
         notes: form.notes?.trim() ?? "",
-        idempotencyKey: idempotencyKey.current,
-      },
+    };
+    const signature = JSON.stringify(payload);
+    // A retry of the same submission keeps its key. Editing the cart, payment
+    // method or address after a failure must not replay a different order.
+    if (attemptPayload.current !== null && attemptPayload.current !== signature) idempotencyKey.current = newKey();
+    attemptPayload.current = signature;
+    return axios.post(
+      `${API_BASE_URL}/order`,
+      { ...payload, idempotencyKey: idempotencyKey.current },
       { headers: { Authorization: `Bearer ${bearer}` }, timeout: 60_000 },
     );
+  };
 
   const placeOrder = async () => {
     if (submissionActive.current || !cart.length) return;
@@ -205,7 +212,17 @@ export function useCheckout(cart: StoreCartItem[]) {
           : `/${locale}/checkout/bank-transfer?orderId=${orderId}`,
       );
     } catch (err: any) {
-      setSubmitError(err?.message === "session" ? st("err_session") : (err?.response?.data?.message ?? st("err_order")));
+      const quote = err?.response?.data;
+      if (err?.response?.status === 409 && quote?.code === "PRICE_CHANGED" && Array.isArray(quote.items) &&
+          typeof quote.deliveryFee === "number" && Number.isFinite(quote.deliveryFee) && quote.deliveryFee >= 0 &&
+          quote.items.every((item: any) => typeof item?.productId === "string" &&
+            (item.size === null || typeof item.size === "string") && typeof item.unitPrice === "number" && Number.isFinite(item.unitPrice) && item.unitPrice >= 0)) {
+        refreshCartPrices(quote.items);
+        setDeliveryFee(quote.deliveryFee);
+        setSubmitError(st("prices_updated"));
+      } else {
+        setSubmitError(err?.message === "session" ? st("err_session") : (typeof quote?.message === "string" ? quote.message : st("err_order")));
+      }
       setSubmitting(false);
       submissionActive.current = false;
     }

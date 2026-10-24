@@ -25,6 +25,8 @@ const config: Config = {
         ink: "#1c1714",
         espresso: "#2a211c",
         taupe: "#6f655d",
+        bronze: "#80634c",
+        line: "#ded7ce",
         terracotta: "#a8452f",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",

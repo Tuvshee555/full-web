@@ -1,5 +1,6 @@
 import { prisma } from "../../prismaClient.js";
 import { REVENUE_WHERE, businessDateKey, revenueWindows } from "../../utils/revenue.js";
+import { paymentState } from "../../utils/paymentState.js";
 const ORDER_STATUSES = new Set([
   "PENDING",
   "WAITING_PAYMENT",
@@ -16,11 +17,12 @@ const parsePositiveInt = (value, fallback, max = 100) => {
   return Math.min(parsed, max);
 };
 
-const toOrderDto = (order) => ({
+const toOrderDto = (order, payment) => ({
   id: order.id,
   orderNumber: order.orderNumber,
   status: order.status,
   paymentMethod: order.paymentMethod,
+  paymentStatus: paymentState(order, payment),
   totalPrice: order.totalPrice,
   deliveryFee: order.deliveryFee,
   deliveryZone: order.deliveryZone,
@@ -45,6 +47,8 @@ const toOrderDto = (order) => ({
     id: item.id,
     quantity: item.quantity,
     size: item.size,
+    unitPrice: item.unitPrice ?? null,
+    lineTotal: item.unitPrice == null ? null : Number((item.unitPrice * item.quantity).toFixed(2)),
     product: item.product
       ? {
           id: item.product.id,
@@ -194,6 +198,7 @@ export const getAllOrder = async (req, res) => {
         skip: (page - 1) * limit,
         take: limit,
         include: {
+          lemonPayments: { select: { status: true } },
           user: {
             select: {
               id: true,
@@ -218,8 +223,15 @@ export const getAllOrder = async (req, res) => {
       }),
     ]);
 
+    // Payment has no Prisma relation on Order. One batch lookup avoids an
+    // extra query per row and exposes no invoice or provider credentials.
+    const receipts = orders.length ? await prisma.payment.findMany({
+      where: { orderId: { in: orders.map((order) => order.id) } },
+      select: { orderId: true, status: true },
+    }) : [];
+    const paymentByOrder = new Map(receipts.map((payment) => [payment.orderId, payment]));
     return res.status(200).json({
-      orders: orders.map(toOrderDto),
+      orders: orders.map((order) => toOrderDto(order, paymentByOrder.get(order.id))),
       counts: Object.fromEntries(
         statusGroups.map((g) => [g.status, g._count._all])
       ),

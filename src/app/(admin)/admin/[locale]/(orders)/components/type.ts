@@ -30,6 +30,7 @@ export type RawOrder = {
   updatedAt?: string;
   status?: OrderStatus;
   paymentMethod?: string;
+  paymentStatus?: "PAID" | "UNPAID" | "REVIEW" | "REFUNDED";
   user?: { id?: string; email?: string; address?: string | null } | null;
   delivery?: {
     firstName?: string | null;
@@ -52,6 +53,8 @@ export type RawOrder = {
   orderItems?: Array<{
     id?: string;
     quantity: number;
+    size?: string | null;
+    unitPrice?: number | null;
     product?: {
       id?: string;
       productName?: string;

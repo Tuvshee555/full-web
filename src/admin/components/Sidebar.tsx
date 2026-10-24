@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, ClipboardList, LogOut, Package, MessageCircle } from "lucide-react";
+import { ArrowUpRight, BarChart3, ClipboardList, LayoutDashboard, LogOut, Package, MessageCircle } from "lucide-react";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@admin/components/ui/sheet";
 import { adminLogout } from "@admin/utils/logout";
 import { STORE } from "@/config/store";
 
-export type AdminView = "products" | "orders" | "revenue" | "chatbot";
+export type AdminView = "overview" | "products" | "orders" | "revenue" | "chatbot";
 
 type Props = {
   active: AdminView;
@@ -43,6 +43,7 @@ export const Sidebar = ({ active, onNavigate, openOrders = 0, isMobile, open, on
   };
 
   const nav: { id: AdminView; label: string; icon: typeof Package; badge?: number }[] = [
+    { id: "overview", label: t("overview.title"), icon: LayoutDashboard },
     { id: "products", label: t("sidebar.product_catalog"), icon: Package },
     { id: "orders", label: t("sidebar.orders"), icon: ClipboardList, badge: openOrders },
     { id: "revenue", label: t("sidebar.revenue"), icon: BarChart3 },
@@ -56,9 +57,9 @@ export const Sidebar = ({ active, onNavigate, openOrders = 0, isMobile, open, on
 
   const content = (
     <aside className="flex h-full w-[248px] flex-col bg-espresso text-paper">
-      <Link href="/admin" className="px-[26px] pb-[26px] pt-[30px]">
+      <Link href={`/admin/${locale}/home-page`} className="px-[26px] pb-[30px] pt-[32px]">
         <span className="store-heading block text-[30px] !text-paper">{STORE.name}</span>
-        <span className="eyebrow mt-[4px] !text-paper/60">Admin</span>
+        <span className="mt-[6px] block text-[12px] text-paper/60">{t("overview.workspace")}</span>
       </Link>
 
       <nav className="flex flex-1 flex-col gap-[2px] px-[14px]">
@@ -91,6 +92,9 @@ export const Sidebar = ({ active, onNavigate, openOrders = 0, isMobile, open, on
       </nav>
 
       <div className="space-y-[14px] border-t border-paper/10 px-[26px] py-[20px]">
+        <Link href={`/${locale}`} target="_blank" className="flex min-h-[44px] items-center justify-between gap-2 text-[13px] text-paper/80 hover:text-paper">
+          {t("overview.visit_store")}<ArrowUpRight className="h-4 w-4" />
+        </Link>
         <div className="flex gap-[2px]" role="group" aria-label="Language">
           {LOCALES.map((l) => (
             <button

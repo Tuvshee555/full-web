@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { Alert, Badge, Button, Card, EmptyState, Icons, Input, useToast } from "./ui";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Alert, Badge, Button, Card, EmptyState, Icons, Input } from "./ui";
 import { LoadingPanel, SectionHeading, StatCard, TabHeader } from "./AdminShared";
 import { formatDateTime } from "@admin/utils/format";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
@@ -37,7 +37,6 @@ export function ErrorLogsTab({
 }: {
   apiFetch: (url: string, init?: RequestInit) => Promise<Response>;
 }) {
-  const toast = useToast();
   const { t } = useI18n();
   const [hours, setHours] = useState<number>(24);
   const [level, setLevel] = useState<"" | LogLevel>("");
@@ -49,8 +48,12 @@ export function ErrorLogsTab({
   const [retentionDays, setRetentionDays] = useState(7);
   const [summary, setSummary] = useState<ErrorLogSummary[]>([]);
   const [rows, setRows] = useState<ErrorLogRow[]>([]);
+  const [loadError, setLoadError] = useState("");
+  const requestSequence = useRef<symbol>(Symbol());
 
   const load = useCallback(async () => {
+    const sequence = Symbol();
+    requestSequence.current = sequence;
     setLoading(true);
     try {
       const params = new URLSearchParams({ hours: String(hours), limit: "200" });
@@ -58,20 +61,24 @@ export function ErrorLogsTab({
       if (event) params.set("event", event);
       if (search) params.set("search", search);
       const res = await apiFetch(`/api/chatbot/admin/error-logs?${params.toString()}`);
+      if (!res.ok) throw new Error("Error log request failed");
       const data = await res.json();
+      if (sequence !== requestSequence.current) return;
       setConfigured(data?.configured !== false);
       setRetentionDays(typeof data?.retentionDays === "number" ? data.retentionDays : 7);
       setSummary(Array.isArray(data?.summary) ? data.summary : []);
       setRows(Array.isArray(data?.rows) ? data.rows : []);
+      setLoadError("");
     } catch {
-      toast.error(t("chatbot.error_logs.load_failed"));
+      if (sequence === requestSequence.current) setLoadError(t("chatbot.error_logs.load_failed"));
     } finally {
-      setLoading(false);
+      if (sequence === requestSequence.current) setLoading(false);
     }
-  }, [apiFetch, toast, hours, level, event, search, t]);
+  }, [apiFetch, hours, level, event, search, t]);
 
   useEffect(() => {
     void load();
+    return () => { requestSequence.current = Symbol(); };
   }, [load]);
 
   const errorCount = summary.filter((s) => s.level === "error").reduce((n, s) => n + s.count, 0);
@@ -90,6 +97,8 @@ export function ErrorLogsTab({
           </Button>
         }
       />
+
+      {loadError && <Alert tone="danger">{loadError}</Alert>}
 
       {!configured && (
         <Alert tone="info">
@@ -158,7 +167,7 @@ export function ErrorLogsTab({
 
       {loading ? (
         <LoadingPanel />
-      ) : (
+      ) : loadError ? null : (
         <>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <StatCard label={t("chatbot.error_logs.level_error")} value={errorCount} tone={errorCount ? "text-terracotta" : undefined} />

@@ -4,6 +4,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ChevronDown, ChevronLeft, ChevronRight, CreditCard, HelpCircle, PackageSearch, Share2, Truck, X } from "lucide-react";
 import { toast } from "sonner";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -11,11 +12,12 @@ import { STORE, productContent, type ProductContent } from "@/config/store";
 import { DELIVERY_FEE } from "@/data/mongoliaLocations";
 import { ProductReviews } from "@/components/review/ProductReviews";
 import { addToCart } from "./lib/cart";
-import { isSoldOut, money, onSale, ownSizePrice, rating, sizeLabel, sizeSoldOut } from "./lib/product";
+import { collectionUrl, isSoldOut, money, onSale, ownSizePrice, rating, sizeLabel, sizeSoldOut } from "./lib/product";
 import { useStoreT } from "./lib/useStoreT";
 import { ProductCard } from "./ProductCard";
-import { Badge, CREAM, DevHint, Price, QuantityInput, salePercent, Stars } from "./ui";
+import { Badge, CREAM, Price, QuantityInput, salePercent, Stars } from "./ui";
 import { StockBadge } from "./StockBadge";
+import { ProductImage } from "./ProductImage";
 import { PRODUCT_IMAGE, imageSrcSet, imageUrl } from "@/lib/image";
 
 type Media = { type: "image" | "video"; src: string };
@@ -80,6 +82,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
   return (
     <>
       <div className="page-width pb-[72px] pt-[20px] md:pt-[48px]">
+        <nav aria-label={st("shop")} className="mb-5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-taupe"><Link href={`/${locale}`} className="inline-flex min-h-8 items-center link-underline">Lorentz</Link><span aria-hidden className="self-center">/</span><Link href={collectionUrl(locale)} className="inline-flex min-h-8 items-center link-underline">{st("all_products")}</Link><span aria-hidden className="self-center">/</span><span className="inline-flex min-h-8 items-center text-ink">{product.productName}</span></nav>
         <div className="grid gap-[20px] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-[48px]">
           {/* Media */}
           <div className="min-w-0">
@@ -118,7 +121,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
               <StockBadge level={product.stockLevel} locale={locale} />
               {soldOut ? <Badge kind="soldout">{st("sold_out")}</Badge> : onSale(product) && ownSizePrice(sizes.find((s) => sizeLabel(s) === size)) === null && <Badge kind="sale">-{salePercent(product)}%</Badge>}
             </div>
-            <p className="mt-[6px] text-[13px]">{st("shipping_note")}</p>
+            <p className="mt-[6px] text-[13px] text-taupe">{st("delivery_fee_note", { fee: money(DELIVERY_FEE) })}</p>
 
             {/* REFY benefit tags */}
             {content.benefits?.length ? (
@@ -129,11 +132,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
                   </li>
                 ))}
               </ul>
-            ) : (
-              <div className="mt-[16px]">
-                <DevHint>PRODUCT_CONTENT.benefits: short true tags, e.g. «Веган», «Үнэргүй», «5 мл» (src/config/store.ts)</DevHint>
-              </div>
-            )}
+            ) : null}
 
             {sizes.length > 0 && (
               <fieldset className="mt-[24px]">
@@ -170,13 +169,13 @@ export function ProductPage({ product, related }: { product: any; related: any[]
             </div>
 
             <div ref={ctaRef} className="mt-[24px] flex flex-col gap-[10px]">
-              <button type="button" className="btn-secondary w-full" disabled={unavailable} onClick={() => addToCart(product, qty, size)}>
+              <button type="button" className="btn w-full" disabled={unavailable} onClick={() => addToCart(product, qty, size)}>
                 {unavailable ? st("sold_out") : st("add_to_cart")}
               </button>
               {!unavailable && (
                 <button
                   type="button"
-                  className="btn w-full"
+                  className="btn-secondary w-full"
                   onClick={() => {
                     addToCart(product, qty, size, false);
                     router.push(`/${locale}/checkout`);
@@ -315,16 +314,7 @@ function DetailTabs({ content }: { content: ProductContent }) {
 
   const [active, setActive] = useState(0);
 
-  if (!tabs.length) {
-    return (
-      <section className="mt-[60px]">
-        <DevHint>
-          PRODUCT_CONTENT in src/config/store.ts: fill howTo (steps), keyIngredients, fullIngredients (INCI from the box) and faq. Each one becomes a
-          tab here, REFY-style. Hidden on the live site until filled.
-        </DevHint>
-      </section>
-    );
-  }
+  if (!tabs.length) return null;
 
   return (
     <section className="mt-[60px]">
@@ -353,7 +343,7 @@ function MediaView({ m, alt }: { m: Media; alt: string }) {
   return m.type === "video" ? (
     <video src={m.src} className="absolute inset-0 h-full w-full object-cover" muted playsInline preload="metadata" />
   ) : (
-    <img src={imageUrl(m.src, PRODUCT_IMAGE.width)} srcSet={imageSrcSet(m.src, [...PRODUCT_IMAGE.widths])} sizes={PRODUCT_IMAGE.sizes} alt={alt} className="absolute inset-0 h-full w-full object-cover" draggable={false} />
+    <ProductImage src={imageUrl(m.src, PRODUCT_IMAGE.width)} srcSet={imageSrcSet(m.src, [...PRODUCT_IMAGE.widths])} sizes={PRODUCT_IMAGE.sizes} alt={alt} className="absolute inset-0 h-full w-full object-contain p-5 sm:p-8" draggable={false} />
   );
 }
 

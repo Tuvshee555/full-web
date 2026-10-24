@@ -96,11 +96,17 @@ export default function OrderDetailPage() {
     );
   }
 
-  const step = STEP[order.status] ?? 0;
+  // Cash is collected at delivery, so dispatch must never complete a Paid step.
+  const cashOnDelivery = order.paymentMethod === "COD";
+  const step = cashOnDelivery
+    ? (order.status === "CANCELLED" ? -1 : order.status === "DELIVERED" ? 2 : order.status === "DELIVERING" ? 1 : 0)
+    : STEP[order.status] ?? 0;
   const awaitingBankTransfer =
     order.paymentMethod === "BANK" && (order.status === "PENDING" || order.status === "WAITING_PAYMENT");
   const placed = formatDate(order.createdAt, locale);
-  const steps = [st("step_ordered"), st("step_paid"), st("step_delivering"), st("step_delivered")];
+  const steps = cashOnDelivery
+    ? [st("step_ordered"), st("step_delivering"), st("step_delivered")]
+    : [st("step_ordered"), st("step_paid"), st("step_delivering"), st("step_delivered")];
 
   return (
     <div className="page-width pb-[96px] pt-[32px] md:pt-[56px]">
@@ -124,7 +130,7 @@ export default function OrderDetailPage() {
 
           {/* Progress tracker */}
           {step >= 0 ? (
-            <ol className="mt-[36px] grid grid-cols-4 gap-[8px]">
+            <ol className={`mt-[36px] grid gap-[8px] ${cashOnDelivery ? "grid-cols-3" : "grid-cols-4"}`}>
               {steps.map((label, i) => {
                 const done = i <= step;
                 return (

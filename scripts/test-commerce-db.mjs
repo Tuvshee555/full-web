@@ -47,7 +47,7 @@ const applySchema = () => new Promise((resolve, reject) => {
   child.once("error", reject);
   child.once("close", (code) => code === 0 ? resolve() : reject(new Error(`Could not initialize isolated schema: ${output.replaceAll(password, "[redacted]")}`)));
 });
-const response = () => ({ code: 200, body: null, status(code) { this.code = code; return this; }, json(body) { this.body = body; return this; } });
+const response = () => ({ code: 200, body: null, headers: {}, status(code) { this.code = code; return this; }, set(key, value) { this.headers[key] = value; return this; }, json(body) { this.body = body; return this; } });
 const delivery = { firstName: "Integration", lastName: "Buyer", phone: "99112233", city: "UB", district: "Test", khoroo: "1", address: "Isolated test only" };
 
 try {
@@ -74,6 +74,12 @@ try {
   const { createOrder } = await import("../server/controller/orders/create-orders.js");
   const { updatedOrder } = await import("../server/controller/orders/update-orders.js");
   const { deleteOrder } = await import("../server/controller/orders/delete-orders.js");
+  const { createProduct } = await import("../server/controller/products/create-product.js");
+  const { updateProduct } = await import("../server/controller/products/update-product.js");
+  const { getProduct } = await import("../server/controller/products/get-product.js");
+  const { getProductById } = await import("../server/controller/products/get-product-by-id.js");
+  const { getAllOrder } = await import("../server/controller/orders/all-order.js");
+  const { REVENUE_WHERE } = await import("../server/utils/revenue.js");
   const { backgroundSettled } = await import("../server/utils/background.js");
   const user = await prisma.user.create({ data: { email: "integration@example.invalid", isVerified: true } });
   const request = (body, id, role = "USER") => ({ body, params: { id }, user: { id: user.id, role } });
@@ -86,7 +92,7 @@ try {
   const fixture = async ({ stock = 5 } = {}) => {
     await backgroundSettled();
     await prisma.$transaction([
-      prisma.payment.deleteMany(), prisma.orderItem.deleteMany(), prisma.order.deleteMany(),
+      prisma.payment.deleteMany(), prisma.lemonPayment.deleteMany(), prisma.orderItem.deleteMany(), prisma.order.deleteMany(),
       prisma.productSize.deleteMany(), prisma.product.deleteMany(),
     ]);
     return prisma.product.create({ data: {
@@ -114,6 +120,85 @@ try {
     product: await prisma.product.findUnique({ where: { id: product.id }, include: { sizes: true } }),
   });
   const confirm = (sample) => confirmPaidOrder({ orderId: sample.order.id, invoiceId: sample.payment.invoiceId });
+
+  await check("admin-created and edited products appear in the public catalog with stock privacy", async () => {
+    await fixture();
+    const created = response();
+    await createProduct(request({ productName: "Catalog visibility integration", price: 29000,
+      image: "/product-image-coming-soon.svg", ingredients: "Isolated test description",
+      sizes: [{ label: "10 ml", stock: 12 }] }, undefined, "ADMIN"), created);
+    assert.equal(created.code, 201);
+    const id = created.body.id;
+    const publicList = response();
+    await getProduct({}, publicList);
+    const visible = publicList.body.find((product) => product.id === id);
+    assert.equal(visible.productName, "Catalog visibility integration");
+    assert.equal(visible.sizes[0].stock, undefined);
+    const adminList = response();
+    await getProduct({ user: { role: "ADMIN" } }, adminList);
+    assert.equal(adminList.body.find((product) => product.id === id).sizes[0].stock, 12);
+    const edited = response();
+    await updateProduct(request({ productName: "Updated catalog visibility", price: 32000 }, id, "ADMIN"), edited);
+    assert.equal(edited.code, 200);
+    const refreshed = response();
+    await getProduct({}, refreshed);
+    assert.equal(refreshed.body.find((product) => product.id === id).price, 32000);
+    const detail = response();
+    await getProductById({ params: { id } }, detail);
+    assert.equal(detail.body.productName, "Updated catalog visibility");
+    assert.equal(detail.body.price, 32000);
+  });
+
+  await check("order payment DTO and recognized revenue agree for COD, pending, cancelled and refunded records", async () => {
+    const product = await fixture();
+    const samples = [
+      { paymentMethod: "BANK", status: "WAITING_PAYMENT", expected: "UNPAID" },
+      { paymentMethod: "BANK", status: "PAID", expected: "PAID" },
+      { paymentMethod: "COD", status: "DELIVERING", expected: "UNPAID" },
+      { paymentMethod: "COD", status: "DELIVERED", expected: "PAID" },
+      { paymentMethod: "QPAY", status: "CANCELLED", expected: "REVIEW", receipt: true },
+      { paymentMethod: "LEMON", status: "DELIVERED", expected: "REFUNDED", refund: true },
+    ];
+    const expected = new Map();
+    for (const sample of samples) {
+      const order = await prisma.order.create({ data: {
+        userId: user.id, orderNumber: crypto.randomUUID(), totalPrice: 100,
+        paymentMethod: sample.paymentMethod, status: sample.status,
+        orderItems: { create: { productId: product.id, quantity: 2, unitPrice: sample.paymentMethod === "BANK" ? 50 : null } },
+      } });
+      expected.set(order.id, sample.expected);
+      if (sample.receipt) await prisma.payment.create({ data: { orderId: order.id, invoiceId: crypto.randomUUID(), amount: 100, status: "PAID" } });
+      if (sample.refund) await prisma.lemonPayment.create({ data: { orderId: order.id, status: "REFUNDED", amount: 100 } });
+    }
+    const res = response();
+    await getAllOrder({ user: { id: user.id, role: "ADMIN" }, query: { limit: "100" } }, res);
+    assert.equal(res.code, 200);
+    for (const order of res.body.orders) {
+      assert.equal(order.paymentStatus, expected.get(order.id));
+      assert.equal(order.orderItems[0].unitPrice, order.paymentMethod === "BANK" ? 50 : null);
+      assert.equal(order.orderItems[0].lineTotal, order.paymentMethod === "BANK" ? 100 : null);
+    }
+    const revenue = await prisma.order.aggregate({ where: REVENUE_WHERE, _sum: { totalPrice: true }, _count: true });
+    assert.equal(revenue._sum.totalPrice, 200);
+    assert.equal(revenue._count, 2);
+  });
+
+  await check("changed checkout quotes cannot create orders or reserve real inventory before review", async () => {
+    const product = await fixture();
+    const body = { ...delivery, paymentMethod: "BANK", totalPrice: 1, idempotencyKey: "price-review",
+      items: [{ productId: product.id, quantity: 2, size: "Small" }] };
+    const changed = response();
+    await createOrder(request(body), changed);
+    assert.equal(changed.code, 409);
+    assert.equal(changed.body.code, "PRICE_CHANGED");
+    assert.equal(await prisma.order.count(), 0);
+    assert.equal((await prisma.productSize.findFirst({ where: { productId: product.id } })).stock, 5);
+    const reviewed = response();
+    await createOrder(request({ ...body, totalPrice: changed.body.totalPrice }), reviewed);
+    assert.equal(reviewed.code, 201);
+    assert.equal(reviewed.body.totalPrice, changed.body.totalPrice);
+    assert.equal((await prisma.productSize.findFirst({ where: { productId: product.id } })).stock, 3);
+  });
 
   await check("concurrent checkouts cannot oversell real PostgreSQL variant stock", async () => {
     const product = await fixture({ stock: 5 });

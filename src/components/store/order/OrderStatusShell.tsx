@@ -1,14 +1,14 @@
-/* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import Link from "next/link";
+import { imageUrl } from "@/lib/image";
 import { useState, type ReactNode } from "react";
 import { ArrowLeft, ChevronDown, LockKeyhole } from "lucide-react";
 import { STORE } from "@/config/store";
 import { money } from "../lib/product";
 import { useStoreT } from "../lib/useStoreT";
-import { imageUrl } from "@/lib/image";
+import { ProductImage } from "../ProductImage";
 
 /** Shared, bounded checkout layout with a compact summary on phones. */
 export function OrderStatusShell({ order, children }: { order?: any; children: ReactNode }) {
@@ -76,7 +76,7 @@ export function OrderSummary({ order }: { order: any }) {
         {(order?.items ?? []).map((it: any, i: number) => (
           <li key={it.id ?? i} className="flex items-center gap-[14px]">
             <div className="relative h-[64px] w-[64px] shrink-0 bg-paper">
-              {it.product?.image ? <img src={imageUrl(it.product.image, 200)} alt="" className="h-full w-full object-cover" /> : null}
+              <ProductImage src={imageUrl(it.product?.image ?? "", 200)} alt="" className="h-full w-full object-contain" />
               <span className="absolute -right-[8px] -top-[8px] flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-ink px-[5px] text-[11px] text-paper">
                 {it.quantity}
               </span>
@@ -85,7 +85,7 @@ export function OrderSummary({ order }: { order: any }) {
               <p className="break-words font-medium leading-snug">{it.product?.productName}</p>
               {it.size && <p className="text-[12px] text-taupe">{it.size}</p>}
             </div>
-            <span className="shrink-0 whitespace-nowrap tabular-nums">{money(Number(it.product?.price ?? 0) * Number(it.quantity ?? 0))}</span>
+            {typeof it.lineTotal === "number" ? <span className="shrink-0 whitespace-nowrap tabular-nums">{money(it.lineTotal)}</span> : typeof it.unitPrice === "number" ? <span className="shrink-0 whitespace-nowrap tabular-nums">{money(it.unitPrice * Number(it.quantity ?? 0))}</span> : null}
           </li>
         ))}
       </ul>

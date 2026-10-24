@@ -1,6 +1,7 @@
 "use client";
 
 import { API_BASE_URL } from "@admin/lib/api";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RefreshCcw } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -45,7 +46,7 @@ function ChartTooltip({ active, payload, t }: { active?: boolean; payload?: { pa
 }
 
 export default function RevenueDashboard() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { token } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -53,6 +54,7 @@ export default function RevenueDashboard() {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [range, setRange] = useState<Range>(7);
+  const [counts, setCounts] = useState<Record<string, number> | null>(null);
   const request = useRef<AbortController | null>(null);
 
   const load = useCallback(async () => {
@@ -63,6 +65,9 @@ export default function RevenueDashboard() {
     setLoading(true);
     setFailed(false);
     try {
+      const countsRequest = fetch(`${API_BASE_URL}/order?limit=1`, {
+        headers: { Authorization: `Bearer ${token}` }, cache: "no-store", signal: controller.signal,
+      }).then(async (response) => response.ok ? (await response.json()).counts ?? null : null).catch(() => null);
       const res = await fetch(`${API_BASE_URL}/order?mode=revenue`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
@@ -70,6 +75,9 @@ export default function RevenueDashboard() {
       });
       if (!res.ok) throw new Error(String(res.status));
       const data = await res.json();
+      const nextCounts = await countsRequest;
+      if (controller.signal.aborted) return;
+      setCounts(nextCounts);
       setStats(data?.stats ?? null);
       setPayments(Array.isArray(data?.payments) ? data.payments : []);
       setChartData(
@@ -97,7 +105,8 @@ export default function RevenueDashboard() {
   const revenue = sum(current, "revenue");
   const orders = sum(current, "orders");
   const avg = orders ? revenue / orders : 0;
-  const trend = calcTrend(revenue, sum(previous, "revenue"));
+  const priorRevenue = sum(previous, "revenue");
+  const trend = calcTrend(revenue, priorRevenue);
   const hasRevenue = revenue > 0;
 
   const tiles = [
@@ -105,7 +114,9 @@ export default function RevenueDashboard() {
       label: t(range === 7 ? "revenue_ui.revenue_7" : "revenue_ui.revenue_30"),
       value: formatMNT(revenue),
       foot:
-        trend.direction === "flat"
+        priorRevenue === 0
+          ? t(revenue === 0 ? "revenue_ui.no_qualifying_orders" : "revenue_ui.no_comparison")
+          : trend.direction === "flat"
           ? t("revenue_ui.same_as_before")
           : `${trend.direction === "up" ? "▲" : "▼"} ${trend.value}% ${t("vs_last_period")}`,
       footTone: trend.direction === "up" ? "text-[#44523a]" : trend.direction === "down" ? "text-terracotta" : "text-taupe",
@@ -180,6 +191,7 @@ export default function RevenueDashboard() {
         <h2 className="text-[14px] font-medium text-ink">
           {t(range === 7 ? "revenue_ui.daily_7" : "revenue_ui.daily_30")}
         </h2>
+        <p className="mt-1 text-xs text-taupe">{current[0]?.date.replace(/-/g, ".")} — {current[current.length - 1]?.date.replace(/-/g, ".")} · {t("overview.timezone")}</p>
         <div className="mt-[16px] h-[260px]">
           {loading ? (
             <Skeleton className="h-full w-full rounded-none" />
@@ -208,13 +220,16 @@ export default function RevenueDashboard() {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex h-full flex-col items-center justify-center gap-[4px] px-[16px] text-center text-[13px] text-taupe">
-              <p className="text-ink">{t("revenue_ui.no_revenue_range")}</p>
-              <p>{t("revenue_ui.no_revenue_hint")}</p>
+            <div className="flex h-full flex-col items-center justify-center gap-[8px] border border-dashed border-ink/15 bg-paper/60 px-[16px] text-center text-[13px] text-taupe">
+              <p className="text-base font-medium text-ink">{t("revenue_ui.no_revenue_range")}</p>
+              <p className="max-w-lg">{t("revenue_ui.no_revenue_hint")}</p>
+              {counts ? <p className="text-xs">{t("revenue_ui.pending_summary", { pending: (counts.PENDING ?? 0) + (counts.WAITING_PAYMENT ?? 0) + (counts.COD_PENDING ?? 0), cancelled: counts.CANCELLED ?? 0 })}</p> : <p className="text-xs">{t("revenue_ui.counts_unavailable")}</p>}
+              <Link className="btn-secondary mt-2" href={`/admin/${locale}/home-page?view=orders`}>{t("sidebar.orders")}</Link>
             </div>
           )}
         </div>
       </section>
+      <p className="mt-3 max-w-3xl text-xs leading-relaxed text-taupe">{t("revenue_ui.date_rule")}</p>
 
       {/* Recent paid orders */}
       <section className="mt-[24px] border border-ink/10 bg-white">

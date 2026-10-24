@@ -37,8 +37,8 @@ export default function AdminLayout({
         />
       </div>
 
-      <main id="admin-main" tabIndex={-1} className="w-full min-w-0 flex-1 px-[16px] pb-[32px] pt-[76px] lg:px-[32px] lg:py-[32px] xl:px-[48px]">
-        <div className="mx-auto max-w-[1280px]">{children}</div>
+      <main id="admin-main" tabIndex={-1} className="w-full min-w-0 flex-1 px-[16px] pb-[32px] pt-[80px] lg:px-[32px] lg:py-[36px]">
+        <div className="mx-auto w-full max-w-[1600px]">{children}</div>
       </main>
     </div>
   );

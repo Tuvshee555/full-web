@@ -50,6 +50,7 @@ export const ProductCatalog = () => {
   const [selected, setSelected] = useState<string>(ALL);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("newest");
+  const [availability, setAvailability] = useState("all");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editor, setEditor] = useState<{ open: boolean; product: ProductType | null }>({ open: false, product: null });
   const [categoryError, setCategoryError] = useState(false);
@@ -118,7 +119,7 @@ export const ProductCatalog = () => {
     const inCat = selected === ALL ? null : new Set(descendants.get(selected) ?? [selected]);
     const q = query.trim().toLowerCase();
     const list = products.filter(
-      (f) => (!inCat || inCat.has(f.categoryId)) && (!q || f.productName.toLowerCase().includes(q))
+      (f) => (!inCat || inCat.has(f.categoryId)) && (!q || `${f.productName} ${f.ingredients}`.toLowerCase().includes(q)) && (availability === "all" || (availability === "available" ? f.stockLevel !== "soldout" : f.stockLevel === availability))
     );
     const by: Record<Sort, (a: ProductType, b: ProductType) => number> = {
       newest: (a, b) => time(b) - time(a),
@@ -127,7 +128,7 @@ export const ProductCatalog = () => {
       price_high: (a, b) => Number(b.price) - Number(a.price),
     };
     return [...list].sort(by[sort]);
-  }, [products, selected, descendants, query, sort]);
+  }, [products, selected, descendants, query, sort, availability]);
 
   const toggleFeatured = async (product: ProductType) => {
     const id = String(product.id);
@@ -185,15 +186,15 @@ export const ProductCatalog = () => {
         </button>
       </div>
 
-      <div className="lg:grid lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-[28px]">
+      <div className="xl:grid xl:grid-cols-[216px_minmax(0,1fr)] xl:gap-[24px]">
         {/* Desktop categories */}
-        <aside className="hidden self-start lg:sticky lg:top-[28px] lg:block">
+        <aside className="hidden self-start border border-ink/10 bg-white p-[14px] xl:sticky xl:top-[28px] xl:block">
           <CategoryTree {...treeProps} onSelect={setSelected} />
         </aside>
 
         <section className="min-w-0">
           {/* Mobile: category picker + manage */}
-          <div className="mb-[12px] flex gap-[8px] lg:hidden">
+          <div className="mb-[12px] flex gap-[8px] xl:hidden">
             <select
               value={selected}
               onChange={(e) => setSelected(e.target.value)}
@@ -222,8 +223,8 @@ export const ProductCatalog = () => {
           </div>
 
           {/* Toolbar */}
-          <div className="mb-[12px] flex flex-col gap-[8px] sm:flex-row sm:items-center">
-            <div className="relative flex-1">
+          <div className="mb-[16px] grid gap-[8px] sm:grid-cols-2 2xl:grid-cols-[minmax(200px,1fr)_160px_180px]">
+            <div className="relative sm:col-span-2 2xl:col-span-1">
               <Search className="pointer-events-none absolute left-[12px] top-1/2 h-[16px] w-[16px] -translate-y-1/2 text-taupe" strokeWidth={1.5} />
               <input
                 type="search"
@@ -244,10 +245,16 @@ export const ProductCatalog = () => {
                 </button>
               )}
             </div>
+            <select value={availability} onChange={(event) => setAvailability(event.target.value)} aria-label={t("editor.availability")} className="h-[44px] min-w-0 border border-ink/20 bg-white px-3 text-sm">
+              <option value="all">{t("editor.all_stock")}</option>
+              <option value="available">{t("editor.in_stock")}</option>
+              <option value="low">{t("overview.low_stock")}</option>
+              <option value="soldout">{t("overview.soldout")}</option>
+            </select>
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as Sort)}
-              className="h-[44px] cursor-pointer border border-ink/20 bg-white px-[12px] text-[14px] text-ink sm:w-[200px]"
+              className="h-[44px] min-w-0 cursor-pointer border border-ink/20 bg-white px-[12px] text-[14px] text-ink"
               aria-label={t("editor.sort")}
             >
               <option value="newest">{t("editor.sort_newest")}</option>

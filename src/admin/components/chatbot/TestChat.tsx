@@ -2,11 +2,15 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "@admin/lib/api";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
-import { ChatThread, type ChatMessage } from "@/components/chatbot/ChatThread";
+import type { ChatMessage } from "@/components/chatbot/ChatThread";
 import { button, input } from "./types";
+import { Loader2, MessageSquare, RotateCcw, Send } from "lucide-react";
+import { useSupportCopy } from "./supportCopy";
+import { ConversationTranscript } from "./ConversationTranscript";
 
 export function TestChat() {
   const { t, locale } = useI18n();
+  const copy = useSupportCopy();
   const [id, setId] = useState<string>();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
@@ -37,11 +41,10 @@ export function TestChat() {
     catch { setNotice(t("chatbot.error")); }
     finally { submitting.current = false; setBusy(false); }
   };
-  return <section className="max-w-3xl border border-ink/10 bg-white p-5">
-    <p className="mb-4 text-sm text-taupe">{t("chatbot.test_hint")}</p>
-    <div ref={scroll} className="h-[45dvh] min-h-[220px] max-h-[520px] overflow-y-auto bg-paper p-4"><ChatThread messages={messages} empty={t("chatbot.test_empty")} /></div>
-    {notice && <p role="status" className="mt-3 text-sm text-terracotta">{notice}</p>}
-    <form onSubmit={send} className="mt-4 flex flex-col gap-3 sm:flex-row"><input disabled={busy} aria-label={t("chatbot.message")} value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} className={input} /><button type="submit" disabled={busy || !text.trim()} className={button}>{t("chatbot.send")}</button></form>
-    <button onClick={reset} disabled={busy} className={`${button} mt-3`}>{t("chatbot.reset")}</button>
+  return <section className="max-w-5xl overflow-hidden border border-ink/15 bg-white">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 p-5"><div><h2 className="text-base font-semibold">{copy.testTitle}</h2><p className="mt-1 max-w-2xl text-sm leading-relaxed text-taupe">{t("chatbot.test_hint")}</p></div><button type="button" onClick={reset} disabled={busy} className={`${button} inline-flex items-center gap-2`}><RotateCcw size={15} />{t("chatbot.reset")}</button></div>
+    <div ref={scroll} className="h-[45dvh] min-h-[300px] max-h-[560px] overflow-y-auto bg-paper/70 p-5 sm:p-6">{messages.length ? <ConversationTranscript messages={messages} /> : <div className="flex min-h-[250px] flex-col items-center justify-center text-center"><MessageSquare size={30} strokeWidth={1.3} className="mb-5 text-taupe" /><p className="text-base font-medium">{copy.testEmpty}</p><p className="mt-2 max-w-md text-sm leading-relaxed text-taupe">{copy.testHint}</p></div>}</div>
+    {notice && <p role="status" className="border-t border-ink/10 px-5 py-3 text-sm text-terracotta">{notice}</p>}
+    <form onSubmit={send} className="flex flex-col gap-3 border-t border-ink/10 p-5 sm:flex-row"><input disabled={busy} aria-label={t("chatbot.message")} placeholder={t("chatbot.test_empty")} value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} className={input} /><button type="submit" disabled={busy || !text.trim()} className="btn shrink-0">{busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}{busy ? copy.sending : t("chatbot.send")}</button></form>
   </section>;
 }

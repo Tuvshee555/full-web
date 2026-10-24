@@ -1,7 +1,7 @@
 "use client";
 
 import { API_BASE_URL } from "@admin/lib/api";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import axios from "axios";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { Button } from "@admin/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -37,15 +38,17 @@ export const AddCategoryButton: React.FC<Props> = ({
   const [open, setOpen] = useState(false);
   const [categoryName, setCategoryName] = useState("");
   const [loading, setLoading] = useState(false);
+  const pending = useRef(false);
 
   const handleSubmit = async () => {
-    if (!categoryName.trim()) return;
+    if (!categoryName.trim() || pending.current) return;
     if (!token) {
       toast.error(t("unauthorized"));
       return;
     }
 
     try {
+      pending.current = true;
       setLoading(true);
       await axios.post(
         `${API_BASE_URL}/category`,
@@ -62,12 +65,13 @@ export const AddCategoryButton: React.FC<Props> = ({
         : t("unauthorized");
       toast.error(message);
     } finally {
+      pending.current = false;
       setLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(next) => { if (!loading) setOpen(next); }}>
       <DialogTrigger asChild>
         {variant === "primary" ? (
           <Button variant="outline" size="sm" className="gap-1.5 h-8" title={tooltip}>
@@ -95,15 +99,21 @@ export const AddCategoryButton: React.FC<Props> = ({
         )}
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[400px] bg-card text-foreground">
+      <DialogContent className="max-w-[calc(100vw-32px)] bg-card text-foreground sm:max-w-[440px]">
         <DialogHeader>
           <DialogTitle>{t("category.add")}</DialogTitle>
+          <DialogDescription>{t("category.add_description")}</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-3 py-4">
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">{t("category.name")}</label>
+            <label htmlFor={`category-name-${parentId ?? "root"}`} className="text-sm font-medium">{t("category.name")}</label>
             <input
+              id={`category-name-${parentId ?? "root"}`}
+              autoFocus
+              maxLength={100}
+              disabled={loading}
+              onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void handleSubmit(); } }}
               className="h-[44px] rounded-none border border-border bg-background px-3 text-sm"
               value={categoryName}
               onChange={(e) => setCategoryName(e.target.value)}
@@ -123,6 +133,7 @@ export const AddCategoryButton: React.FC<Props> = ({
             type="button"
             variant="outline"
             onClick={() => setOpen(false)}
+            disabled={loading}
             className="h-[44px]"
           >
             {t("common.cancel")}
@@ -130,7 +141,7 @@ export const AddCategoryButton: React.FC<Props> = ({
           <Button
             type="button"
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={loading || !categoryName.trim()}
             className="h-[44px]"
           >
             {loading ? t("common.adding") : t("common.add")}

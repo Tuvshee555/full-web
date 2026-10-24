@@ -199,6 +199,8 @@ export const updatedOrder = async (req, res) => {
         id: it.id,
         quantity: it.quantity,
         size: it.size,
+        unitPrice: it.unitPrice ?? null,
+        lineTotal: it.unitPrice == null ? null : Number((it.unitPrice * it.quantity).toFixed(2)),
         product: {
           id: it.product.id,
           productName: it.product.productName,

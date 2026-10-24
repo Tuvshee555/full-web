@@ -244,7 +244,10 @@
     "sort_name": "Name (A–Z)",
     "sort_price_low": "Price: low to high",
     "sort_price_high": "Price: high to low",
-    "no_search_results": "No products match your search."
+    "no_search_results": "No products match your search.",
+    "availability": "Stock availability",
+    "all_stock": "All availability",
+    "in_stock": "Available"
   },
   "order_action": {
     "WAITING_PAYMENT": "Await payment",
@@ -277,7 +280,12 @@
     "search_placeholder": "Search by number, name or phone",
     "order": "Order",
     "customer": "Customer",
-    "qpay_verification": "QPay payments are confirmed automatically by the payment provider. Check the payment before arranging delivery."
+    "qpay_verification": "QPay payments are confirmed automatically by the payment provider. Check the payment before arranging delivery.",
+    "payment_state": "Payment",
+    "fulfillment_state": "Order workflow",
+    "payment_review": "A payment exists for a cancelled order. Verify the receipt and follow up with the customer before any further action.",
+    "confirm_bank_title": "Confirm the bank transfer",
+    "confirm_bank_body": "Verify that {amount} has arrived in the bank account for order #{order}. This records the payment as paid; delivery status is managed separately."
   },
   "revenue_ui": {
     "orders_short": "orders",
@@ -297,7 +305,12 @@
     "daily_30": "Daily revenue · 30 days",
     "no_revenue_range": "No revenue in this period.",
     "no_revenue_hint": "Paid orders will show up here day by day.",
-    "no_payments_hint": "Orders that have been paid are listed here."
+    "no_payments_hint": "Orders that have been paid are listed here.",
+    "no_qualifying_orders": "No qualifying orders in this period",
+    "no_comparison": "No prior revenue to compare",
+    "pending_summary": "All-time orders: {pending} awaiting payment or cash collection · {cancelled} cancelled.",
+    "counts_unavailable": "Order-status counts are currently unavailable.",
+    "date_rule": "Reports use the order creation date in Ulaanbaatar time. Confirmed bank/QPay payments and delivered cash orders qualify; unpaid, cancelled and refunded orders are excluded."
   },
   "chatbot": {
     "title": "Chatbot",
@@ -388,5 +401,36 @@
       "request": "Request ID",
       "sender": "Sender hash"
     }
+  },
+  "overview": {
+    "title": "Overview",
+    "workspace": "Store workspace",
+    "visit_store": "View storefront",
+    "description": "Orders, stock and recognized revenue in one place.",
+    "operations": "Order operations",
+    "attention": "Orders needing attention",
+    "awaiting_payment": "Awaiting payment",
+    "to_fulfill": "Awaiting fulfillment",
+    "completed": "Delivered orders",
+    "all_time": "All time · current status",
+    "recent_orders": "Recent orders",
+    "view_all": "View all",
+    "orders_hint": "New customer orders will appear here with payment and delivery details.",
+    "revenue": "Recognized revenue",
+    "revenue_rule": "Confirmed bank/QPay orders and delivered cash orders. Unpaid, cancelled and refunded orders are excluded. Grouped by order creation date.",
+    "view_analytics": "View revenue details",
+    "inventory": "Catalog & stock",
+    "low_stock": "Low stock",
+    "soldout": "Out of stock",
+    "no_stock_alerts": "No tracked stock needs attention. Products with untracked stock are not included in alerts.",
+    "timezone": "Ulaanbaatar time (UTC+8)",
+    "load_failed": "Some data could not be loaded. Unavailable figures are shown as a dash; refresh to try again."
+  },
+  "payment_state": {
+    "PAID": "Paid",
+    "UNPAID": "Unpaid",
+    "REVIEW": "Payment review",
+    "REFUNDED": "Refunded",
+    "UNKNOWN": "Not verified"
   }
 }

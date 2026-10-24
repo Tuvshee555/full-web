@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@admin/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@admin/components/ui/dialog";
+import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 
 type Props = {
   open: boolean;
@@ -10,6 +12,7 @@ type Props = {
   placeholder?: string;
   onCancel: () => void;
   onConfirm: (value: string) => void;
+  busy?: boolean;
 };
 
 export function RenameDialog({
@@ -19,40 +22,45 @@ export function RenameDialog({
   placeholder,
   onCancel,
   onConfirm,
+  busy = false,
 }: Props) {
+  const { t } = useI18n();
   const [value, setValue] = useState(initialValue);
-
-  if (!open) return null;
+  useEffect(() => { if (open) setValue(initialValue); }, [open, initialValue]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-background rounded-none w-full max-w-sm p-4">
-        <div className="text-sm font-semibold mb-3">{title}</div>
+    <Dialog open={open} onOpenChange={(next) => { if (!next && !busy) onCancel(); }}>
+      <DialogContent className="max-w-[calc(100vw-32px)] sm:max-w-[440px]">
+        <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{t("category.add_description")}</DialogDescription></DialogHeader>
 
         <input
           autoFocus
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder={placeholder}
-          className="w-full border border-border rounded-none px-3 py-2 text-sm"
+          maxLength={100}
+          aria-label={t("category.name")}
+          disabled={busy}
+          onKeyDown={(event) => { if (event.key === "Enter" && value.trim() && !busy) { event.preventDefault(); onConfirm(value.trim()); } }}
+          className="h-11 w-full border border-border bg-white px-3 text-sm"
         />
 
-        <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" size="sm" onClick={onCancel}>
-            Cancel
+        <DialogFooter>
+          <Button variant="outline" onClick={onCancel} disabled={busy}>
+            {t("common.cancel")}
           </Button>
 
           <Button
-            size="sm"
+            disabled={busy || !value.trim()}
             onClick={() => {
               if (!value.trim()) return;
               onConfirm(value.trim());
             }}
           >
-            Save
+            {busy ? t("editor.saving") : t("common.save")}
           </Button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

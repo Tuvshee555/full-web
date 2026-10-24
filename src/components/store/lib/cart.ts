@@ -111,6 +111,15 @@ export function clearCart() {
   writeCart([]);
 }
 
+/** Refresh only quoted prices; quantities and other cart details stay intact. */
+export function refreshCartPrices(prices: { productId: string; size: string | null; unitPrice: number }[]) {
+  writeCart(readCart().map((item) => {
+    const quote = prices.find((price) => same(item, price.productId, price.size));
+    if (!quote || !Number.isFinite(quote.unitPrice) || quote.unitPrice < 0) return item;
+    return { ...item, product: { ...item.product, price: quote.unitPrice, oldPrice: null } };
+  }));
+}
+
 export const cartCount = (items: StoreCartItem[]) =>
   items.reduce((s, i) => s + (Number(i.quantity) || 0), 0);
 

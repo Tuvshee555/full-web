@@ -105,7 +105,7 @@
     font-family: var(--font-store), system-ui, sans-serif;
     background: #fbf8f3;
     color: #1c1714;
-    font-size: 14px;
+    font-size: 15px;
     line-height: 1.55;
   }
   .store-heading {
@@ -129,6 +129,13 @@
     font-weight: 600;
     letter-spacing: -0.015em;
     line-height: 1.4;
+  }
+  .admin-surface {
+    @apply border border-ink/10 bg-white;
+  }
+  .admin-section-title {
+    @apply mb-4 text-[15px] font-semibold text-ink;
+    letter-spacing: -0.01em;
   }
   .display-italic {
     font-family: var(--font-display), Georgia, serif;

@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import { ArrowRight } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
@@ -17,6 +17,7 @@ export default function BankTransferPage() {
   const { t } = useI18n();
   const { st, locale } = useStoreT();
   const orderId = useSearchParams()?.get("orderId");
+  const router = useRouter();
   const [order, setOrder] = useState<any>(null);
   const [state, setState] = useState<"loading" | "ready" | "missing">("loading");
 
@@ -25,14 +26,25 @@ export default function BankTransferPage() {
     // guest who just checked out must not be bounced to a login page.
     const token = localStorage.getItem("token");
     if (!orderId || !token) return setState("missing");
+    const controller = new AbortController();
+    setOrder(null);
+    setState("loading");
     axios
-      .get(`${API_BASE_URL}/order/${orderId}`, { headers: { Authorization: `Bearer ${token}` } })
+      .get(`${API_BASE_URL}/order/${encodeURIComponent(orderId)}`, { headers: { Authorization: `Bearer ${token}` }, timeout: 25_000, signal: controller.signal })
       .then((res) => {
+        if (controller.signal.aborted) return;
+        // An old confirmation URL must not invite a second transfer after
+        // payment, or offer bank transfer for another payment method.
+        if (res.data?.paymentMethod !== "BANK" || !["PENDING", "WAITING_PAYMENT"].includes(res.data?.status)) {
+          router.replace(`/${locale}/profile/orders/${encodeURIComponent(orderId)}`);
+          return;
+        }
         setOrder(res.data);
         setState("ready");
       })
-      .catch(() => setState("missing"));
-  }, [orderId]);
+      .catch(() => { if (!controller.signal.aborted) setState("missing"); });
+    return () => controller.abort();
+  }, [orderId, locale, router]);
 
   return (
     <OrderStatusShell order={state === "ready" ? order : undefined}>

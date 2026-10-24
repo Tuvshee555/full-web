@@ -46,7 +46,9 @@ export function StoreFooter() {
     <footer className="overflow-hidden bg-espresso text-paper/70">
       <div className="page-width grid grid-cols-2 gap-x-[24px] gap-y-[32px] pt-[48px] pb-[32px] md:grid-cols-12 md:pt-[64px]">
         <div className="col-span-2 md:col-span-6">
-          <p className="display-italic max-w-[420px] text-[30px] leading-[1.15] text-paper md:text-[36px]">{st("hero_text")}</p>
+          <Link href={`/${locale}`} className="store-heading !text-paper text-[42px]">{STORE.name}</Link>
+          <p className="mt-4 max-w-[340px] text-sm leading-relaxed text-paper/70">{st("story_body")}</p>
+          <Link href={`/${locale}/contact`} className="mt-4 inline-flex min-h-11 items-center text-sm text-paper link-underline">{st("here_to_help")} ↗</Link>
           {(STORE.social.facebook || STORE.social.instagram) && (
             <ul className="mt-[20px] flex gap-[20px] text-[14px]">
               {STORE.social.facebook && (

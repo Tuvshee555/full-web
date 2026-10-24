@@ -161,17 +161,22 @@ export const createOrder = async (req, res) => {
     const computedTotalPrice = Number((itemsSubtotal + deliveryFee).toFixed(2));
 
     const requestedTotalPrice = Number(totalPrice);
+    const hasRequestedTotal = totalPrice !== undefined && totalPrice !== null && totalPrice !== "";
+    if (hasRequestedTotal && (!Number.isFinite(requestedTotalPrice) || !["number", "string"].includes(typeof totalPrice))) {
+      return res.status(400).json({ message: "Invalid order total" });
+    }
     if (
-      typeof totalPrice !== "undefined" &&
-      totalPrice !== null &&
-      totalPrice !== "" &&
-      Number.isFinite(requestedTotalPrice) &&
+      hasRequestedTotal &&
       Math.abs(requestedTotalPrice - computedTotalPrice) > 0.01
     ) {
-      console.warn("CREATE ORDER WARNING: client/server total mismatch", {
-        userId,
-        requestedTotalPrice,
-        computedTotalPrice,
+      // A saved cart can outlive a price or delivery-fee change. Do not create
+      // an order for a different amount than the shopper just approved.
+      return res.status(409).json({
+        code: "PRICE_CHANGED",
+        message: "Prices or delivery charges changed. Review the updated total and submit again.",
+        totalPrice: computedTotalPrice,
+        deliveryFee,
+        items: pricedItems.map(({ productId, size, unitPrice }) => ({ productId, size, unitPrice })),
       });
     }
 

@@ -19,21 +19,22 @@ const ProductCatalog = dynamic(() => import("../(products)/ProductCatalog").then
 const OrdersAdmin = dynamic(() => import("../(orders)/OrdersAdmin"), { loading: PanelLoading });
 const RevenueDashboard = dynamic(() => import("../(revenue)/RevenueDashboard"), { loading: PanelLoading });
 const ChatbotDashboard = dynamic(() => import("@admin/components/chatbot/ChatbotDashboard").then((module) => module.ChatbotDashboard), { loading: PanelLoading });
+const Overview = dynamic(() => import("@admin/components/admin/Overview"), { loading: PanelLoading });
 
-const VIEWS: AdminView[] = ["products", "orders", "revenue", "chatbot"];
+const VIEWS: AdminView[] = ["overview", "products", "orders", "revenue", "chatbot"];
 
 function AdminHome() {
   const router = useRouter();
   const pathname = usePathname() ?? "/admin/home-page";
   const params = useSearchParams();
   const fromUrl = params?.get("view") as AdminView | null;
-  const view: AdminView = fromUrl && VIEWS.includes(fromUrl) ? fromUrl : "products";
+  const view: AdminView = fromUrl && VIEWS.includes(fromUrl) ? fromUrl : "overview";
   const [openOrders, setOpenOrders] = useState(0);
 
   // Keep the current section in the URL so refresh/back/links land on it
   const navigate = (next: AdminView) => {
     if (next === view) return;
-    router.push(next === "products" ? pathname : `${pathname}?view=${next}`, { scroll: false });
+    router.push(next === "overview" ? pathname : `${pathname}?view=${next}`, { scroll: false });
     window.scrollTo({ top: 0 });
   };
 
@@ -61,6 +62,7 @@ function AdminHome() {
 
   return (
     <AdminLayout active={view} onNavigate={navigate} openOrders={openOrders}>
+      {view === "overview" && <Overview onNavigate={navigate} />}
       {view === "products" && <ProductCatalog />}
       {view === "orders" && <OrdersAdmin onChanged={refreshOpenOrders} />}
       {view === "revenue" && <RevenueDashboard />}

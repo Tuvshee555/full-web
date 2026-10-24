@@ -1,6 +1,6 @@
 import test, { type TestContext } from "node:test";
 import assert from "node:assert/strict";
-import { normalizeCart, cartSubtotal, readCart, setQuantity } from "../../src/components/store/lib/cart";
+import { normalizeCart, cartSubtotal, readCart, setQuantity, refreshCartPrices } from "../../src/components/store/lib/cart";
 import { useCart } from "../../src/app/(customer)/[locale]/store/cartStore";
 
 test("corrupted saved cart entries cannot crash pages or produce invalid totals", () => {
@@ -86,4 +86,19 @@ test("the alternate cart store loads existing carts and persists canonical items
   useCart.getState().add({ ...item, quantity: 1 });
   assert.deepEqual(savedCart(), [{ ...item, quantity: 3 }]);
   assert.equal(JSON.stringify(savedCart()).includes("food"), false);
+});
+
+test("a changed server quote refreshes the matching variant price while preserving cart choices", (t) => {
+  const small = { ...legacyItem, selectedSize: "10 ml", quantity: 1 };
+  withBrowserCart(t, [legacyItem, small]);
+  refreshCartPrices([{ productId: "serum", size: "20 ml", unitPrice: 42000 }]);
+  const cart = readCart();
+  assert.equal(cart[0].product.price, 42000);
+  assert.equal(cart[0].product.oldPrice, null);
+  assert.equal(cart[0].quantity, 2);
+  assert.equal(cart[0].selectedSize, "20 ml");
+  assert.equal(cart[1].product.price, 39900);
+  assert.equal(cart[1].quantity, 1);
+  refreshCartPrices([{ productId: "serum", size: "20 ml", unitPrice: NaN }]);
+  assert.equal(readCart()[0].product.price, 42000);
 });

@@ -101,6 +101,7 @@ export function StoreHeader({ onOpenAccount, onOpenCart }: { onOpenAccount: () =
             </Link>
 
             <div className="flex items-center justify-self-end -mr-[10px]">
+              <Link href={pathname?.replace(/^\/(mn|en)(?=\/|$)/, locale === "mn" ? "/en" : "/mn") ?? (locale === "mn" ? "/en" : "/mn")} hrefLang={locale === "mn" ? "en" : "mn"} aria-label={locale === "mn" ? "Switch to English" : "Монгол хэлээр үзэх"} className="hidden min-h-11 items-center px-3 text-xs font-medium text-taupe hover:text-ink sm:inline-flex">{locale === "mn" ? "EN" : "MN"}</Link>
               <button type="button" className={`${iconBtn} hidden lg:flex`} aria-label={st("search")} onClick={() => setSearchOpen(true)}>
                 <Search className="h-[19px] w-[19px]" strokeWidth={1.1} />
               </button>
@@ -184,7 +185,8 @@ const stagger = (open: boolean) =>
   `transition-[opacity,transform] duration-700 ease-silk ${open ? "translate-y-0 opacity-100" : "translate-y-[18px] opacity-0"}`;
 
 function MenuDrawer({ open, onClose, nav, onOpenAccount }: { open: boolean; onClose: () => void; nav: any[]; onOpenAccount: () => void }) {
-  const { st } = useStoreT();
+  const { st, locale } = useStoreT();
+  const pathname = usePathname();
   const [sub, setSub] = useState<any | null>(null);
   useEffect(() => {
     if (!open) setSub(null);
@@ -227,17 +229,18 @@ function MenuDrawer({ open, onClose, nav, onOpenAccount }: { open: boolean; onCl
           </ul>
         )}
       </nav>
-      <div className="border-t border-ink/10 px-[24px] py-[20px] md:px-[30px]">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-ink/10 px-[24px] py-[20px] md:px-[30px]">
         <button
           type="button"
           onClick={() => {
             onClose();
             onOpenAccount();
           }}
-          className="flex items-center gap-[10px] text-[15px] text-[#1c1714]"
+          className="flex min-h-11 items-center gap-[10px] text-[15px] text-[#1c1714]"
         >
           <User className="h-[18px] w-[18px]" strokeWidth={1.4} /> {st("account")}
         </button>
+        <Link href={pathname?.replace(/^\/(mn|en)(?=\/|$)/, locale === "mn" ? "/en" : "/mn") ?? (locale === "mn" ? "/en" : "/mn")} onClick={onClose} hrefLang={locale === "mn" ? "en" : "mn"} className="inline-flex min-h-11 items-center px-3 text-sm text-taupe link-underline">{locale === "mn" ? "English" : "Монгол"}</Link>
       </div>
     </Drawer>
   );
@@ -246,7 +249,7 @@ function MenuDrawer({ open, onClose, nav, onOpenAccount }: { open: boolean; onCl
 function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { st, locale } = useStoreT();
   const router = useRouter();
-  const { data: products = [] } = useProducts();
+  const { data: products = [], isLoading, isError, refetch } = useProducts();
   const [q, setQ] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
@@ -301,7 +304,7 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
         {term && (
           <div className="page-width pb-[10px]">
             <div className="mx-auto max-w-[740px] border-t border-[rgba(28,23,20,0.08)]">
-              {results.length ? (
+              {isLoading ? <p role="status" className="py-5 text-sm text-taupe">{st("loading_products")}</p> : isError ? <div role="alert" className="py-5 text-sm"><p>{st("catalogue_error")}</p><button type="button" onClick={() => void refetch()} className="mt-2 min-h-11 underline">{st("retry")}</button></div> : results.length ? (
                 <>
                   <p className="pt-[14px] pb-[6px] text-[11px] uppercase tracking-[0.06em]">{st("products")}</p>
                   <ul>

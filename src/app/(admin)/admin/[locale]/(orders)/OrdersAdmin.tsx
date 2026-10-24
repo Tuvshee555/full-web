@@ -11,7 +11,7 @@ import { normalizeOrderId } from "@admin/utils/normalizeOrderId";
 import { formatDateTime, formatMNT } from "@admin/utils/format";
 import { PaginationControls } from "./components/PaginationControls";
 import { useOrdersAdmin } from "./components/hooks/useOrdersAdmin";
-import { NextStepButton, OrderDetails, StatusBadge } from "./components/OrderDetails";
+import { NextStepButton, OrderDetails, PaymentBadge, StatusBadge } from "./components/OrderDetails";
 import { ORDER_TABS, OrderStatus, PLACEHOLDER, RawOrder } from "./components/type";
 
 const customerName = (o: RawOrder, fallback: string) =>
@@ -134,7 +134,7 @@ export default function OrdersAdmin({ onChanged }: { onChanged?: () => void }) {
             <span>{t("orders_ui.customer")}</span>
             <span>{t("orders_ui.items")}</span>
             <span className="text-right">{t("amount")}</span>
-            <span>{t("status")}</span>
+            <span>{t("orders_ui.fulfillment_state")} / {t("orders_ui.payment_state")}</span>
             <span />
             <span />
           </div>
@@ -162,8 +162,9 @@ export default function OrdersAdmin({ onChanged }: { onChanged?: () => void }) {
                     </div>
                     <ItemThumbs order={o} />
                     <p className="text-right text-[14px] font-medium tabular-nums text-ink">{formatMNT(o.totalPrice)}</p>
-                    <div>
+                    <div className="flex flex-col items-start gap-2">
                       <StatusBadge status={status} t={t} />
+                      <PaymentBadge status={o.paymentStatus} t={t} />
                     </div>
                     <div className="relative z-[2] flex justify-end">
                       <NextStepButton order={o} t={t} busy={busy} onChange={(s) => changeStatus(o.id, s)} />
@@ -185,6 +186,7 @@ export default function OrdersAdmin({ onChanged }: { onChanged?: () => void }) {
                       <div className="flex shrink-0 flex-col items-end gap-[6px]">
                         <span className="text-[15px] font-medium tabular-nums text-ink">{formatMNT(o.totalPrice)}</span>
                         <StatusBadge status={status} t={t} />
+                        <PaymentBadge status={o.paymentStatus} t={t} />
                       </div>
                     </div>
                     <div className="mt-[12px] flex items-center justify-between gap-[12px]">

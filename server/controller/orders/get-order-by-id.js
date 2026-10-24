@@ -1,5 +1,6 @@
 // controller/orders/get-order-by-id.js
 import { prisma } from "../../prismaClient.js";
+import { paymentState } from "../../utils/paymentState.js";
 
 export const getOrderById = async (req, res) => {
   try {
@@ -19,6 +20,7 @@ export const getOrderById = async (req, res) => {
     const order = await prisma.order.findUnique({
       where: { id },
       include: {
+        lemonPayments: { select: { status: true } },
         orderItems: {
           include: {
             product: true,
@@ -54,6 +56,7 @@ export const getOrderById = async (req, res) => {
       orderNumber: order.orderNumber,
       status: order.status,
       paymentMethod: order.paymentMethod,
+      paymentStatus: paymentState(order, payment),
       totalPrice: order.totalPrice,
       deliveryFee: order.deliveryFee,
       deliveryZone: order.deliveryZone,
@@ -75,6 +78,8 @@ export const getOrderById = async (req, res) => {
         id: item.id,
         quantity: item.quantity,
         size: item.size,
+        unitPrice: item.unitPrice ?? null,
+        lineTotal: item.unitPrice == null ? null : Number((item.unitPrice * item.quantity).toFixed(2)),
         product: {
           id: item.product.id,
           productName: item.product.productName,

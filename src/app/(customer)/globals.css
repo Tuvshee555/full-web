@@ -100,7 +100,7 @@
    Serif display (Cormorant Garamond) + Cyrillic grotesk (Onest). Sharp corners. */
 @layer components {
   .page-width {
-    @apply mx-auto w-full max-w-[1320px] px-[20px] sm:px-[32px] lg:px-[48px];
+    @apply mx-auto w-full max-w-[1440px] px-[20px] sm:px-[32px] lg:px-[56px];
   }
   .store-body {
     font-family: var(--font-store), system-ui, sans-serif;
@@ -129,13 +129,26 @@
   }
   /* Tiny label above headings */
   .eyebrow {
-    @apply inline-block text-[12px] font-medium text-taupe;
-    letter-spacing: 0.02em;
+    @apply inline-block text-[12px] font-medium text-bronze;
+    letter-spacing: 0.06em;
   }
   .btn {
     @apply relative inline-flex items-center justify-center gap-[12px] min-h-[52px] px-[28px] text-[14px] font-medium
       bg-ink text-paper transition-[background-color,transform] duration-200 ease-silk active:scale-[0.985]
       disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .catalog-state {
+    @apply my-8 border border-line bg-sand/30 px-6 py-12 text-center sm:py-16;
+  }
+  .product-media {
+    @apply relative overflow-hidden bg-sand;
+  }
+  .product-media img {
+    @apply h-full w-full object-contain p-4 sm:p-6;
+    mix-blend-mode: multiply;
+  }
+  .collection-search {
+    @apply flex min-h-12 w-full items-center gap-3 border border-line bg-white/60 px-4 text-sm transition-colors focus-within:border-bronze;
   }
   .btn:not(:disabled):hover {
     background: #3a2f28;

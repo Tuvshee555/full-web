@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
@@ -11,6 +10,7 @@ import { firstLine, isBestseller, isSoldOut, onSale, priceRange, productImages, 
 import { useStoreT } from "./lib/useStoreT";
 import { Badge, Price, salePercent, Stars } from "./ui";
 import { StockBadge } from "./StockBadge";
+import { ProductImage } from "./ProductImage";
 import { imageSrcSet, imageUrl } from "@/lib/image";
 
 /** Clean product card: photo (2nd photo on hover), small badge, name, price.
@@ -43,26 +43,26 @@ export function ProductCard({ product, quickAdd = true, headingLevel = 3 }: { pr
 
   return (
     <div className="group relative">
-      <div className="relative aspect-[4/5] overflow-hidden bg-sand">
+      <div className="product-media aspect-[4/5] border border-ink/5">
         <Link href={href} className="absolute inset-0" aria-label={product.productName}>
-          <img
+          <ProductImage
             src={imageUrl(images[0], 640)}
             srcSet={imageSrcSet(images[0], [320, 480, 640, 960])}
             sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
             alt={product.productName ?? ""}
-            className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-300 ease-silk
+            className={`absolute inset-0 h-full w-full object-contain transition-[opacity,transform] duration-300 ease-silk
               md:group-hover:scale-[1.04] ${images[1] ? "md:group-hover:opacity-0" : ""}`}
             loading="lazy"
             draggable={false}
           />
           {images[1] && (
-            <img
+            <ProductImage
               src={imageUrl(images[1], 640)}
               srcSet={imageSrcSet(images[1], [320, 480, 640, 960])}
               sizes="(min-width: 1024px) 25vw, 33vw"
               alt=""
               aria-hidden
-              className="absolute inset-0 hidden h-full w-full object-cover opacity-0 transition-[opacity,transform] duration-300 ease-silk
+              className="absolute inset-0 hidden h-full w-full object-contain opacity-0 transition-[opacity,transform] duration-300 ease-silk
                 md:block md:group-hover:scale-[1.04] md:group-hover:opacity-100"
               loading="lazy"
               draggable={false}

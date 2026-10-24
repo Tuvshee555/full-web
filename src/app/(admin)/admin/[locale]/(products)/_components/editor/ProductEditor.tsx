@@ -269,13 +269,13 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
     <Sheet open={open} onOpenChange={requestClose}>
       <SheetContent
         side="right"
-        className="flex w-full flex-col gap-0 border-l border-ink/10 bg-paper p-0 sm:max-w-[620px] [&>button]:hidden"
+        className="flex w-full flex-col gap-0 border-l border-ink/10 bg-paper p-0 sm:max-w-[min(980px,calc(100vw-48px))] [&>button]:hidden"
         onPointerDownOutside={(e) => saving && e.preventDefault()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-[16px] border-b border-ink/10 px-[24px] py-[20px]">
+        <div className="flex shrink-0 items-start justify-between gap-[16px] border-b border-ink/10 bg-white px-[24px] py-[20px]">
           <div className="min-w-0">
-            <SheetTitle className="store-heading text-[28px]">
+            <SheetTitle className="text-[24px] font-semibold tracking-tight">
               {isEdit ? t("edit_product") : t("product.add_modal.title")}
             </SheetTitle>
             <SheetDescription className="mt-[4px] truncate text-[13px] text-taupe">
@@ -294,9 +294,9 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
 
         {/* Body */}
         <div className="min-h-0 flex-1 overflow-y-auto px-[16px] py-[24px] sm:px-[24px]">
-          <fieldset disabled={saving} className="min-w-0 space-y-[32px] disabled:opacity-70">
-            <section>
-              <h3 className="eyebrow mb-[14px]">{t("editor.section_photos")}</h3>
+          <fieldset disabled={saving} className="grid min-w-0 gap-[24px] disabled:opacity-70 md:grid-cols-2">
+            <section className="admin-surface min-w-0 p-[18px]">
+              <h3 className="admin-section-title">01 / {t("editor.section_photos")}</h3>
               <PhotosField
                 disabled={saving}
                 items={photos}
@@ -308,8 +308,8 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
               />
             </section>
 
-            <section className="space-y-[18px]">
-              <h3 className="eyebrow">{t("editor.section_details")}</h3>
+            <section className="admin-surface min-w-0 space-y-[18px] p-[18px]">
+              <h3 className="admin-section-title">02 / {t("editor.section_details")}</h3>
               <div>
                 <label className={label} htmlFor="pe-name">{t("editor.name")}</label>
                 <input
@@ -351,9 +351,9 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
               </div>
             </section>
 
-            <section className="space-y-[18px]">
-              <h3 className="eyebrow">{t("editor.section_price")}</h3>
-              <div className="grid grid-cols-1 gap-[16px] sm:grid-cols-2">
+            <section className="admin-surface min-w-0 space-y-[18px] p-[18px]">
+              <h3 className="admin-section-title">03 / {t("editor.section_price")}</h3>
+              <div className="grid grid-cols-1 gap-[16px] min-[900px]:grid-cols-2">
                 <div>
                   <label className={label} htmlFor="pe-price">{t("editor.price")}</label>
                   <div className="relative">
@@ -393,8 +393,8 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
               </div>
             </section>
 
-            <section className="space-y-[14px]">
-              <h3 className="eyebrow">{t("editor.section_options")}</h3>
+            <section className="admin-surface min-w-0 space-y-[14px] p-[18px] md:row-span-2">
+              <h3 className="admin-section-title">04 / {t("editor.section_options")}</h3>
               <div>
                 <span className={label}>{t("editor.sizes")}</span>
                 <div className="flex gap-[8px]">
@@ -497,9 +497,9 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
               </label>
             </section>
 
-            <section>
-              <h3 className="eyebrow mb-[14px]">
-                {t("editor.section_video")} <span className="normal-case tracking-normal">({t("editor.optional")})</span>
+            <section className="admin-surface min-w-0 p-[18px]">
+              <h3 className="admin-section-title">
+                05 / {t("editor.section_video")} <span className="font-normal text-taupe">({t("editor.optional")})</span>
               </h3>
               <VideoField video={video} onChange={setVideo} />
             </section>
@@ -507,7 +507,7 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
         </div>
 
         {/* Footer */}
-        <div className="border-t border-ink/10 bg-paper px-[24px] py-[16px]">
+        <div className="shrink-0 border-t border-ink/10 bg-white px-[16px] py-[16px] sm:px-[24px]">
           {confirm === "discard" ? (
             <div className="flex flex-col gap-[12px] sm:flex-row sm:items-center sm:justify-between">
               <p className="text-[13px] text-ink">{t("editor.discard_question")}</p>

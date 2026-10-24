@@ -2,6 +2,9 @@
 const OFFSET = 8 * 60 * 60 * 1000;
 const DAY = 24 * 60 * 60 * 1000;
 export const REVENUE_WHERE = {
+  // Legacy Lemon records can retain a fulfilled order after a refund. Their
+  // provider refund state must take precedence over the workflow status.
+  NOT: { paymentMethod: "LEMON", lemonPayments: { some: { status: "REFUNDED" } } },
   OR: [
     { paymentMethod: { not: "COD" }, status: { in: ["PAID", "DELIVERING", "DELIVERED"] } },
     { paymentMethod: "COD", status: "DELIVERED" },

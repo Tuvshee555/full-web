@@ -1,7 +1,7 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import Link from "next/link";
+import { imageUrl } from "@/lib/image";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { cartSubtotal, setQuantity, type StoreCartItem } from "./lib/cart";
@@ -9,7 +9,8 @@ import { useStoreCart } from "./lib/useCart";
 import { collectionUrl, money, productUrl } from "./lib/product";
 import { useStoreT } from "./lib/useStoreT";
 import { Drawer, QuantityInput } from "./ui";
-import { imageUrl } from "@/lib/image";
+import { CartTotals } from "./CartTotals";
+import { ProductImage } from "./ProductImage";
 
 /** Shopify Dawn cart drawer: opens on "Add to cart" and from the header bag icon. */
 export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -46,11 +47,7 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
             ))}
           </ul>
           <div className="border-t border-[rgba(28,23,20,0.08)] px-[20px] md:px-[30px] pt-[20px] pb-[25px]">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium text-ink text-[16px]">{st("estimated_total")}</h3>
-              <span className="text-[16px] tracking-normal text-[#1c1714]">{money(cartSubtotal(items))}</span>
-            </div>
-            <p className="mt-[8px] text-[13px]">{st("shipping_note")}</p>
+            <CartTotals subtotal={cartSubtotal(items)} />
             <button
               type="button"
               className="btn mt-[18px] w-full"
@@ -74,7 +71,7 @@ function CartLine({ item, onNavigate, locale }: { item: StoreCartItem; onNavigat
   return (
     <li className="flex gap-[15px] py-[20px] border-b border-[rgba(28,23,20,0.08)] last:border-0">
       <Link href={href} onClick={onNavigate} className="h-[76px] w-[64px] sm:h-[96px] sm:w-[80px] shrink-0 bg-[#efe7dd]">
-        {item.product?.image ? <img src={imageUrl(item.product.image, 200)} alt="" className="h-full w-full object-cover" /> : null}
+        <ProductImage src={imageUrl(item.product?.image ?? "", 240)} alt="" className="h-full w-full object-contain" />
       </Link>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-start justify-between gap-x-[10px] gap-y-[4px]">

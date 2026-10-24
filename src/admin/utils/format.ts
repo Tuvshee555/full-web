@@ -12,18 +12,20 @@ export const formatMNTCompact = (value: number) =>
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-/** "2026.10.11 20:16" */
+/** "2026.10.11 20:16" in the store's Ulaanbaatar business timezone. */
 export const formatDateTime = (iso?: string | Date | null) => {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const local = new Date(d.getTime() + 8 * 3600 * 1000);
+  return `${local.getUTCFullYear()}.${pad(local.getUTCMonth() + 1)}.${pad(local.getUTCDate())} ${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}`;
 };
 
 /** "10.11" for chart ticks. */
 export const formatShortDate = (iso: string) => {
   const d = new Date(iso);
-  return `${pad(d.getMonth() + 1)}.${pad(d.getDate())}`;
+  if (Number.isNaN(d.getTime())) return "—";
+  return `${pad(d.getUTCMonth() + 1)}.${pad(d.getUTCDate())}`;
 };
 
 /** YYYY-MM-DD in Ulaanbaatar time (UTC+8), matching the server's revenue buckets. */

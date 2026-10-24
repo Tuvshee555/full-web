@@ -75,14 +75,14 @@ export const BRAND_COPY = {
         heroText: "Хөмсгөө арчлах, хэлбэржүүлэх, тодруулах бүтээгдэхүүнүүд. Улаанбаатар болон орон нутагт хүргэнэ.",
         values: [
             { title: "Ил тод үнэ", text: "Хуурамч хямдралгүй. Харагдаж буй үнэ бол таны төлөх үнэ." },
-            { title: "Хурдан хүргэлт", text: `Улаанбаатар болон орон нутагт ${fee}-өөр хүргэнэ.` },
+            { title: "Хүргэлт", text: `Улаанбаатар болон орон нутагт ${fee}-өөр хүргэнэ.` },
             { title: "Хялбар төлбөр", text: "Банкныхаа аппаар QPay-р эсвэл дансны шилжүүлгээр төлнө." },
             { title: "Шууд дэмжлэг", text: "Захиалга, бүтээгдэхүүний талаар асуух зүйл байвал бидэнтэй шууд холбогдоорой." },
         ],
         about: [
-            "Lorentz бол хөмсгөө арчлах, хэлбэржүүлэх хүмүүст зориулсан шинэхэн дэлгүүр.",
-            "Бид жижгээс эхэлсэн: сайтар сонгосон цөөн бүтээгдэхүүн, ойлгомжтой үнэ, хурдан хүргэлт. Хөмсгийн арчилгаа төвөгтэй байх албагүй гэдэгт итгэдэг.",
-            "Бүтээгдэхүүн бүр дээр хэрхэн хэрэглэхийг энгийнээр бичсэн. Асуух зүйл гарвал бидэнтэй шууд холбогдоорой.",
+            "Lorentz бол хөмсгийн арчилгаа, хэлбэржүүлэлтийн бүтээгдэхүүний дэлгүүр.",
+            "Цуглуулгаас өөрт тохирох бүтээгдэхүүнээ сонгож, үнэ болон боломжит хувилбаруудтай нь танилцаарай. Улаанбаатар болон орон нутагт хүргэлттэй.",
+            "Бүтээгдэхүүн, хэрэглэх заавар эсвэл захиалгын талаар асуух зүйл гарвал бидэнтэй шууд холбогдоорой.",
             "Lorentz-ийг сонгосонд баярлалаа.",
         ],
         faq: [
@@ -105,14 +105,14 @@ export const BRAND_COPY = {
         heroText: "Products to care for, shape and define your brows. Delivered across Ulaanbaatar and the countryside.",
         values: [
             { title: "Honest pricing", text: "No fake discounts. The price you see is the price you pay." },
-            { title: "Fast delivery", text: `Delivered across Ulaanbaatar and the countryside for ${fee}.` },
+            { title: "Delivery", text: `Delivered across Ulaanbaatar and the countryside for ${fee}.` },
             { title: "Easy payment", text: "Pay with QPay from your bank app, or by bank transfer." },
             { title: "Real support", text: "Questions about an order or a product? Message us directly." },
         ],
         about: [
-            "Lorentz is a new store for people who care for and shape their brows.",
-            "We started small: a few carefully chosen products, clear prices and fast delivery. We believe brow care doesn't have to be complicated.",
-            "Every product page explains how to use it in plain words. If you have a question, just reach out.",
+            "Lorentz is a store for brow care and shaping products.",
+            "Explore the collection, compare prices and available options, and choose what suits your routine. We deliver across Ulaanbaatar and the countryside.",
+            "For product information, usage instructions or help with an order, please contact us directly.",
             "Thank you for choosing Lorentz.",
         ],
         faq: [

@@ -364,6 +364,39 @@ test("cash-on-delivery sales are counted once on completed delivery", async () =
 });
 
 const delivery = { firstName: "Test", lastName: "Buyer", phone: "99112233", city: "UB", district: "Test district", khoroo: "1", address: "Test address" };
+test("stale product prices require review before an order reserves stock", async () => {
+  reset({ payment: false });
+  const { deliveryFee } = await import("../../server/utils/deliveryFee.js");
+  const req = request({ paymentMethod: "BANK", ...delivery, totalPrice: 1,
+    items: [{ productId: "product-1", quantity: 2, size: "Small" }] });
+  const res = response(); await createOrder(req, res);
+  assert.equal(res.code, 409); assert.equal(res.body.code, "PRICE_CHANGED");
+  assert.equal(res.body.totalPrice, 200 + deliveryFee());
+  assert.deepEqual(res.body.items, [{ productId: "product-1", size: "Small", unitPrice: 100 }]);
+  assert.equal(state.orders.length, 1); assert.equal(state.sizes[0].stock, 3);
+  req.body.totalPrice = res.body.totalPrice;
+  const reviewed = response(); await createOrder(req, reviewed);
+  assert.equal(reviewed.code, 201); assert.equal(state.sizes[0].stock, 1);
+  await backgroundSettled();
+});
+
+test("changed delivery charges require review even when catalog prices still match", async () => {
+  reset({ payment: false });
+  const previous = process.env.DELIVERY_FEE;
+  try {
+    process.env.DELIVERY_FEE = "9500";
+    const res = response();
+    await createOrder(request({ paymentMethod: "BANK", ...delivery, totalPrice: 9100,
+      items: [{ productId: "product-1", quantity: 1, size: "Small" }] }), res);
+    assert.equal(res.code, 409); assert.equal(res.body.code, "PRICE_CHANGED");
+    assert.equal(res.body.deliveryFee, 9500); assert.equal(res.body.totalPrice, 9600);
+    assert.equal(state.orders.length, 1); assert.equal(state.sizes[0].stock, 3);
+  } finally {
+    if (previous === undefined) delete process.env.DELIVERY_FEE;
+    else process.env.DELIVERY_FEE = previous;
+  }
+});
+
 test("checkout rejects malformed rows and fractional/coerced quantities without stock changes", async () => {
   for (const item of [null, { productId: "product-1", quantity: "2garbage" }, { productId: "product-1", quantity: 1.5 }, { productId: "product-1", quantity: [] }, { productId: "product-1", quantity: -2 }]) {
     reset({ payment: false });

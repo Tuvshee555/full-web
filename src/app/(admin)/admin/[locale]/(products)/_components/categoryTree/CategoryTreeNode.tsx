@@ -3,7 +3,7 @@
 import { API_BASE_URL } from "@admin/lib/api";
 import axios from "axios";
 import { ChevronRight, ChevronDown, Pencil, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { CategoryNode } from "./types";
 import { AddCategoryButton } from "../AddCategoryButton";
@@ -38,6 +38,8 @@ export const CategoryTreeNode: React.FC<Props> = ({
 
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const pending = useRef(false);
 
   const hasChildren = node.children && node.children.length > 0;
   const isOpen = expanded[node.id] ?? true;
@@ -45,6 +47,7 @@ export const CategoryTreeNode: React.FC<Props> = ({
 
   /* ------------------ RENAME ------------------ */
   const handleRenameConfirm = async (newName: string) => {
+    if (pending.current) return;
     if (!newName.trim() || newName === node.categoryName) {
       setRenameOpen(false);
       return;
@@ -56,6 +59,8 @@ export const CategoryTreeNode: React.FC<Props> = ({
     }
 
     try {
+      pending.current = true;
+      setBusy(true);
       await axios.put(
         `${API_BASE_URL}/category`,
         { id: node.id, categoryName: newName.trim() },
@@ -70,12 +75,15 @@ export const CategoryTreeNode: React.FC<Props> = ({
         ? error.response?.data?.message || t("update_failed")
         : t("update_failed");
       toast.error(message);
+    } finally {
+      pending.current = false;
+      setBusy(false);
     }
   };
 
   /* ------------------ DELETE ------------------ */
   const handleDeleteConfirm = async () => {
-    setDeleteOpen(false);
+    if (pending.current) return;
 
     if (!token) {
       toast.error(t("unauthorized"));
@@ -83,18 +91,24 @@ export const CategoryTreeNode: React.FC<Props> = ({
     }
 
     try {
+      pending.current = true;
+      setBusy(true);
       await axios.delete(`${API_BASE_URL}/category`, {
         data: { id: node.id },
         headers: { Authorization: `Bearer ${token}` },
       });
 
       onChanged();
+      setDeleteOpen(false);
       toast.success(t("deleted"));
     } catch (error) {
       const message = axios.isAxiosError(error)
         ? error.response?.data?.message || t("update_failed")
         : t("update_failed");
       toast.error(message);
+    } finally {
+      pending.current = false;
+      setBusy(false);
     }
   };
 
@@ -107,7 +121,6 @@ export const CategoryTreeNode: React.FC<Props> = ({
           isSelected ? "bg-sand text-ink" : "text-ink hover:bg-sand/60"
         }`}
         style={{ paddingLeft: 4 + depth * 14 }}
-        onClick={() => onSelect(node.id)}
       >
         {hasChildren ? (
           <button
@@ -125,9 +138,9 @@ export const CategoryTreeNode: React.FC<Props> = ({
           <span className="w-[24px] shrink-0" />
         )}
 
-        <span className={`min-w-0 flex-1 py-[8px] leading-snug ${isSelected ? "font-medium" : ""}`}>
+        <button type="button" onClick={() => onSelect(node.id)} aria-pressed={isSelected} className={`min-w-0 flex-1 py-[8px] text-left leading-snug ${isSelected ? "font-medium" : ""}`}>
           {node.categoryName}
-        </span>
+        </button>
 
         {/* Count; swapped for actions on hover, always-on actions when selected or on touch */}
         <span
@@ -171,6 +184,7 @@ export const CategoryTreeNode: React.FC<Props> = ({
         placeholder={t("category.name")}
         onCancel={() => setRenameOpen(false)}
         onConfirm={handleRenameConfirm}
+        busy={busy}
       />
 
       {/* DELETE DIALOG */}
@@ -180,6 +194,7 @@ export const CategoryTreeNode: React.FC<Props> = ({
         description={t("delete_category_description") ?? ""}
         onCancel={() => setDeleteOpen(false)}
         onConfirm={handleDeleteConfirm}
+        busy={busy}
       />
 
       {/* CHILDREN */}

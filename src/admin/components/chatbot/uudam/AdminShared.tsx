@@ -57,13 +57,13 @@ export function StatCard({
   tone?: string;
 }) {
   return (
-    <Card className="p-3.5">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-taupe">
+    <Card className="p-5">
+      <p className="text-[13px] font-medium text-taupe">
         {label}
       </p>
       <p
         className={cx(
-          "mt-1.5 text-[26px] font-extrabold leading-none tracking-tight tabular-nums",
+          "mt-3 text-[32px] font-medium leading-none tracking-tight tabular-nums",
           tone ?? "text-ink",
         )}
       >

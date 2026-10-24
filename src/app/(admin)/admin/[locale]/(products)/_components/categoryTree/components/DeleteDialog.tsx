@@ -1,6 +1,8 @@
 "use client";
 
 import { Button } from "@admin/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@admin/components/ui/dialog";
+import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 
 type Props = {
   open: boolean;
@@ -8,6 +10,7 @@ type Props = {
   description: string;
   onCancel: () => void;
   onConfirm: () => void;
+  busy?: boolean;
 };
 
 export function DeleteDialog({
@@ -16,24 +19,24 @@ export function DeleteDialog({
   description,
   onCancel,
   onConfirm,
+  busy = false,
 }: Props) {
-  if (!open) return null;
+  const { t } = useI18n();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-background rounded-none w-full max-w-sm p-4">
-        <div className="text-sm font-semibold">{title}</div>
-        <div className="text-sm mt-2">{description}</div>
+    <Dialog open={open} onOpenChange={(next) => { if (!next && !busy) onCancel(); }}>
+      <DialogContent className="max-w-[calc(100vw-32px)] sm:max-w-[440px]">
+        <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader>
 
-        <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" size="sm" onClick={onCancel}>
-            Cancel
+        <DialogFooter>
+          <Button variant="outline" onClick={onCancel} disabled={busy}>
+            {t("common.cancel")}
           </Button>
-          <Button size="sm" variant="destructive" onClick={onConfirm}>
-            Delete
+          <Button variant="destructive" onClick={onConfirm} disabled={busy}>
+            {busy ? t("editor.saving") : t("confirm_delete")}
           </Button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

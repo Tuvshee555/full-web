@@ -6,6 +6,7 @@ import { Copy, Loader2, Phone } from "lucide-react";
 import { normalizeDelivery } from "@admin/utils/normalizeDelivery";
 import { formatDateTime, formatMNT } from "@admin/utils/format";
 import { OrderStatus, PLACEHOLDER, RawOrder, STATUS_BADGE, STATUS_FLOW, primaryNext } from "./type";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@admin/components/ui/dialog";
 
 type T = (key: string, params?: Record<string, string | number>) => string;
 
@@ -15,6 +16,10 @@ export function StatusBadge({ status, t }: { status: OrderStatus; t: T }) {
       {t(`order_status.${status}`)}
     </span>
   );
+}
+
+export function PaymentBadge({ status, t }: { status?: RawOrder["paymentStatus"]; t: T }) {
+  return <span className={`inline-flex whitespace-nowrap px-[9px] py-[3px] text-[12px] font-medium ${status === "PAID" ? "bg-[#5b6b4b]/15 text-[#44523a]" : status === "REVIEW" || status === "REFUNDED" ? "bg-terracotta/10 text-terracotta" : "bg-sand text-taupe"}`}>{t(`payment_state.${status ?? "UNKNOWN"}`)}</span>;
 }
 
 /** Primary "next step" button for an order, e.g. "Хүргэлтэнд гаргах". */
@@ -31,15 +36,17 @@ export function NextStepButton({
   onChange: (next: OrderStatus) => void;
   className?: string;
 }) {
+  const [confirmPayment, setConfirmPayment] = useState(false);
   const status = (order.status ?? "PENDING") as OrderStatus;
   const next = primaryNext(status, order.paymentMethod);
   if (!next) return null;
   return (
-    <button
+    <><button
       type="button"
       disabled={busy}
       onClick={(e) => {
         e.stopPropagation();
+        if (next === "PAID") { setConfirmPayment(true); return; }
         onChange(next);
       }}
       className={`inline-flex min-h-[44px] items-center justify-center gap-[6px] whitespace-nowrap bg-ink px-[14px] text-[13px] font-medium text-paper transition-colors hover:bg-[#3a2f28] disabled:opacity-50 ${className}`}
@@ -47,6 +54,12 @@ export function NextStepButton({
       {busy && <Loader2 className="h-[14px] w-[14px] animate-spin" />}
       {t(`order_action.${next}`)}
     </button>
+    <Dialog open={confirmPayment} onOpenChange={(open) => { if (!busy) setConfirmPayment(open); }}>
+      <DialogContent className="max-w-[calc(100vw-32px)] sm:max-w-[460px]">
+        <DialogHeader><DialogTitle>{t("orders_ui.confirm_bank_title")}</DialogTitle><DialogDescription>{t("orders_ui.confirm_bank_body", { order: order.orderNumber ?? order.id.slice(0, 8), amount: formatMNT(order.totalPrice) })}</DialogDescription></DialogHeader>
+        <DialogFooter><button type="button" className="btn-secondary" disabled={busy} onClick={() => setConfirmPayment(false)}>{t("common.cancel")}</button><button type="button" className="btn" disabled={busy} onClick={() => { onChange(next); setConfirmPayment(false); }}>{t("order_action.PAID")}</button></DialogFooter>
+      </DialogContent>
+    </Dialog></>
   );
 }
 
@@ -98,6 +111,7 @@ export function OrderDetails({ order, t, busy, copy, onChange }: Props) {
                   {"size" in it && (it as { size?: string }).size ? ` · ${(it as { size?: string }).size}` : ""}
                 </p>
               </div>
+              {"unitPrice" in it && it.unitPrice != null && <div className="shrink-0 text-right tabular-nums"><p className="text-sm font-medium">{formatMNT(Number(it.unitPrice) * it.quantity)}</p><p className="text-xs text-taupe">{formatMNT(Number(it.unitPrice))} × {it.quantity}</p></div>}
             </li>
           ))}
         </ul>
@@ -163,7 +177,11 @@ export function OrderDetails({ order, t, busy, copy, onChange }: Props) {
             <span className="text-right text-ink">{t(`payment_method.${order.paymentMethod ?? "UNKNOWN"}`)}</span>
           </div>
           <div className={row}>
-            <span className="text-taupe">{t("status")}</span>
+            <span className="text-taupe">{t("orders_ui.payment_state")}</span>
+            <PaymentBadge status={order.paymentStatus} t={t} />
+          </div>
+          <div className={row}>
+            <span className="text-taupe">{t("orders_ui.fulfillment_state")}</span>
             <StatusBadge status={status} t={t} />
           </div>
           <div className={row}>
@@ -178,6 +196,8 @@ export function OrderDetails({ order, t, busy, copy, onChange }: Props) {
             </button>
           </div>
         </div>
+
+        {order.paymentStatus === "REVIEW" && <p role="status" className="mt-3 border border-terracotta/30 bg-white p-3 text-sm text-terracotta">{t("orders_ui.payment_review")}</p>}
 
         {status === "WAITING_PAYMENT" && order.paymentMethod === "QPAY" && <p className="mt-[12px] text-[13px] leading-relaxed text-taupe">{t("orders_ui.qpay_verification")}</p>}
 

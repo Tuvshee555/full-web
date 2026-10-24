@@ -1,17 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { ChevronDown, SlidersHorizontal, X } from "lucide-react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import { useProducts } from "@/hooks/useProducts";
+import { useCategoryTree } from "@/hooks/useCategoryTree";
 import { sanitizeProductList } from "@/utils/catalogSanitizer";
 import { ProductCard, ProductCardSkeleton } from "./ProductCard";
-import { isSoldOut, money, onSale, priceRange } from "./lib/product";
+import { collectionUrl, isSoldOut, money, onSale, priceRange } from "./lib/product";
 import { useStoreT } from "./lib/useStoreT";
 import { Drawer } from "./ui";
+import { CatalogState } from "./CatalogState";
 
 type Sort = "featured" | "best" | "newest" | "oldest" | "low" | "high";
 type Filters = { inStock: boolean; outOfStock: boolean; sale: boolean; min: string; max: string };
@@ -54,7 +57,9 @@ function useCollection(id: string) {
 }
 
 export function CollectionPage({ id }: { id: string }) {
-  const { st } = useStoreT();
+  const { st, locale } = useStoreT();
+  const router = useRouter();
+  const { data: categories = [] } = useCategoryTree();
   const q = (useSearchParams()?.get("q") ?? "").trim();
   const { products, title, loading, error, retry } = useCollection(id);
   const [sort, setSort] = useState<Sort>(id === "bestseller" ? "best" : "featured");
@@ -70,9 +75,9 @@ export function CollectionPage({ id }: { id: string }) {
   const visible = useMemo(() => {
     const min = Number(filters.min) || 0;
     const max = filters.max === "" ? Infinity : Number(filters.max);
-    const term = q.toLowerCase();
+    const term = q.toLocaleLowerCase(locale);
     const list = products.filter((p) => {
-      if (term && !String(p.productName ?? "").toLowerCase().includes(term)) return false;
+      if (term && !`${p.productName ?? ""} ${p.ingredients ?? ""}`.toLocaleLowerCase(locale).includes(term)) return false;
       const sold = isSoldOut(p);
       if (filters.inStock !== filters.outOfStock && (filters.inStock ? sold : !sold)) return false;
       if (filters.sale && !onSale(p)) return false;
@@ -90,7 +95,7 @@ export function CollectionPage({ id }: { id: string }) {
       high: (a, b) => priceRange(b).max - priceRange(a).max,
     };
     return [...list].sort(sorters[sort]);
-  }, [products, filters, sort, q]);
+  }, [products, filters, sort, q, locale]);
 
   const pages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
   const currentPage = Math.min(page, pages);
@@ -117,11 +122,22 @@ export function CollectionPage({ id }: { id: string }) {
     ["low", st("sort_low")],
     ["high", st("sort_high")],
   ];
-  const countText = st("products_count", { n: visible.length });
+  const countText = error ? st("catalogue_unavailable") : loading ? st("loading_products") : st(visible.length === 1 ? "product_count_one" : "products_count", { n: visible.length });
+  const filtered = Boolean(q || pills.length);
+  const clearFilters = () => {
+    setFilters(NO_FILTERS);
+    if (q) router.push(collectionUrl(locale, id));
+  };
 
   return (
     <div className="page-width pb-[72px]">
-      <h1 className="store-heading page-title mt-[32px] lg:mt-[56px]">{q ? `“${q}”` : title || st("all_products")}</h1>
+      <div className="grid gap-6 border-b border-line pb-8 pt-8 lg:grid-cols-[1.2fr_1fr] lg:items-end lg:pt-12">
+        <div><Link href={`/${locale}`} className="eyebrow link-underline">Lorentz / {st("shop")}</Link><h1 className="store-heading page-title mt-3">{q ? `“${q}”` : title || st("all_products")}</h1><p className="mt-4 max-w-lg text-sm leading-relaxed text-taupe">{st("collection_intro")}</p></div>
+        <form key={q} className="collection-search lg:justify-self-end lg:max-w-sm" role="search" onSubmit={(event) => { event.preventDefault(); const term = String(new FormData(event.currentTarget).get("q") ?? "").trim(); router.push(`${collectionUrl(locale, id)}${term ? `?q=${encodeURIComponent(term)}` : ""}`); }}>
+          <Search size={17} className="shrink-0 text-taupe" strokeWidth={1.4} aria-hidden /><input name="q" defaultValue={q} aria-label={st("search_products")} placeholder={st("search_products")} className="min-w-0 flex-1 bg-transparent py-3 text-ink outline-none" /><button type="submit" className="min-h-11 text-sm text-ink">{st("search")}</button>
+        </form>
+      </div>
+      {categories.length > 0 && <nav aria-label={st("shop_by_category")} className="mt-5 flex gap-2 overflow-x-auto pb-2 text-sm"><Link href={collectionUrl(locale)} aria-current={id === "all" ? "page" : undefined} className={`inline-flex min-h-11 shrink-0 items-center border px-4 ${id === "all" ? "border-ink bg-ink text-paper" : "border-line hover:border-bronze"}`}>{st("all_products")}</Link>{categories.flatMap((category) => [category, ...(category.children ?? [])]).map((category) => <Link key={category.id} href={collectionUrl(locale, category.id)} aria-current={id === category.id ? "page" : undefined} className={`inline-flex min-h-11 shrink-0 items-center border px-4 ${id === category.id ? "border-ink bg-ink text-paper" : "border-line hover:border-bronze"}`}>{category.categoryName}</Link>)}</nav>}
 
       {/* Desktop facets */}
       <div className="mt-[28px] hidden xl:flex flex-wrap items-center justify-between gap-[20px] border-y border-ink/15 py-[16px]">
@@ -185,8 +201,8 @@ export function CollectionPage({ id }: { id: string }) {
       <div className="mt-[28px] grid grid-cols-2 gap-x-[14px] gap-y-[32px] sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-[24px] lg:gap-y-[40px]">
         {loading ? Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />) : shown.map((p) => <ProductCard key={p.id} product={p} headingLevel={2} />)}
       </div>
-      {error && <div role="alert" className="border border-ink/15 bg-sand/50 p-[24px] text-center"><p>{st("catalogue_error")}</p><button type="button" onClick={retry} className="btn-secondary mt-[16px]">{st("retry")}</button></div>}
-      {!loading && !error && visible.length === 0 && <div className="py-[48px] text-center"><p>{st("no_products")}</p>{(pills.length > 0) && <button type="button" onClick={() => setFilters(NO_FILTERS)} className="btn-secondary mt-[16px]">{st("clear_all")}</button>}</div>}
+      {error && <CatalogState error onAction={retry} />}
+      {!loading && !error && visible.length === 0 && <CatalogState filtered={filtered} onAction={filtered ? clearFilters : undefined} />}
 
       {pages > 1 && (
         <nav className="mt-[48px] flex flex-wrap items-center justify-center gap-[4px] text-[15px]">
@@ -300,6 +316,7 @@ function Check({ label, checked, onChange }: { label: string; checked: boolean; 
 
 function PriceRange({ filters, setFilters, maxPrice }: { filters: Filters; setFilters: React.Dispatch<React.SetStateAction<Filters>>; maxPrice: number }) {
   const { st } = useStoreT();
+  const fieldId = useId();
   return (
     <div className="py-[6px]">
       <p className="mb-[10px] text-[13px]">{`${st("price_to")}: ${money(maxPrice)}`}</p>
@@ -307,13 +324,13 @@ function PriceRange({ filters, setFilters, maxPrice }: { filters: Filters; setFi
         {(["min", "max"] as const).map((k) => (
           <div key={k} className="field">
             <input
-              id={`price-${k}`}
+              id={`${fieldId}-price-${k}`}
               inputMode="numeric"
               placeholder=" "
               value={filters[k]}
               onChange={(e) => setFilters((f) => ({ ...f, [k]: e.target.value.replace(/\D/g, "") }))}
             />
-            <label htmlFor={`price-${k}`}>{k === "min" ? st("price_from") : st("price_to")} ₮</label>
+            <label htmlFor={`${fieldId}-price-${k}`}>{k === "min" ? st("price_from") : st("price_to")} ₮</label>
           </div>
         ))}
       </div>

@@ -1,14 +1,15 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import Link from "next/link";
+import { imageUrl } from "@/lib/image";
 import { Trash2 } from "lucide-react";
 import { cartSubtotal, setQuantity } from "@/components/store/lib/cart";
 import { useStoreCart } from "@/components/store/lib/useCart";
 import { collectionUrl, money, productUrl } from "@/components/store/lib/product";
 import { useStoreT } from "@/components/store/lib/useStoreT";
 import { QuantityInput } from "@/components/store/ui";
-import { imageUrl } from "@/lib/image";
+import { CartTotals } from "@/components/store/CartTotals";
+import { ProductImage } from "@/components/store/ProductImage";
 
 export default function CartPage() {
   const { st, locale } = useStoreT();
@@ -40,7 +41,7 @@ export default function CartPage() {
             return (
               <li key={`${item.productId}-${item.selectedSize ?? ""}`} className="flex gap-[16px] border-b border-ink/15 py-[24px] sm:gap-[24px]">
                 <Link href={href} className="h-[104px] w-[80px] shrink-0 bg-sand sm:h-[140px] sm:w-[112px]">
-                  {item.product?.image && <img src={imageUrl(item.product.image, 240)} alt={item.product.productName} className="h-full w-full object-cover" />}
+                  <ProductImage src={imageUrl(item.product?.image ?? "", 240)} alt={item.product?.productName} className="h-full w-full object-contain" />
                 </Link>
                 <div className="min-w-0 flex-1">
                   <Link href={href} className="text-[15px] font-medium leading-snug text-ink link-underline sm:text-[17px]">{item.product?.productName}</Link>
@@ -57,11 +58,7 @@ export default function CartPage() {
         </ul>
         <aside className="border border-ink/10 bg-sand/60 p-[24px] lg:sticky lg:top-[108px]">
           <h2 className="text-[17px] font-medium text-ink">{st("order_summary")}</h2>
-          <div className="mt-[24px] flex flex-wrap items-baseline justify-between gap-[12px] border-t border-ink/15 pt-[20px]">
-            <span className="text-[14px]">{st("estimated_total")}</span>
-            <span className="text-[24px] font-medium text-ink tabular-nums">{money(cartSubtotal(items))}</span>
-          </div>
-          <p className="mt-[10px] text-[13px] text-taupe">{st("shipping_note")}</p>
+          <div className="mt-6"><CartTotals subtotal={cartSubtotal(items)} /></div>
           <Link href={`/${locale}/checkout`} className="btn mt-[24px] w-full">{st("checkout")}</Link>
         </aside>
       </div>

@@ -46,12 +46,7 @@ export default function ProductRoute({ id }: { id: string }) {
   );
   if (!shown) return <ProductSkeleton />;
 
-  // Same category first, then everything else
-  const others = all.filter((p: any) => p.id !== shown.id);
-  const related = [
-    ...others.filter((p: any) => p.categoryId && p.categoryId === shown.categoryId),
-    ...others.filter((p: any) => !p.categoryId || p.categoryId !== shown.categoryId),
-  ];
+  const related = all.filter((p: any) => p.id !== shown.id && p.categoryId && p.categoryId === shown.categoryId);
 
   return <ProductPage key={shown.id} product={shown} related={related} />;
 }

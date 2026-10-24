@@ -34,10 +34,9 @@ export function ProductList({ products, categoryName, showCategory, onEdit, onTo
   return (
     <div className="border border-ink/10 bg-white">
       {/* Column labels (desktop) */}
-      <div className="hidden grid-cols-[64px_minmax(0,1fr)_150px_130px_56px_92px] items-center gap-[16px] border-b border-ink/10 px-[16px] py-[10px] text-[11px] font-medium uppercase tracking-[0.12em] text-taupe 2xl:grid">
+      <div className="hidden grid-cols-[56px_minmax(0,1fr)_140px_44px_72px] items-center gap-[16px] border-b border-ink/10 px-[16px] py-[10px] text-[12px] font-medium text-taupe xl:grid">
         <span />
         <span>{t("editor.name")}</span>
-        <span>{showCategory ? t("category.title") : ""}</span>
         <span className="text-right">{t("editor.price")}</span>
         <span className="text-center" title={t("product.fields.featured")}>
           <Star className="mx-auto h-[13px] w-[13px]" strokeWidth={1.6} />
@@ -62,12 +61,12 @@ export function ProductList({ products, categoryName, showCategory, onEdit, onTo
           return (
             <li key={String(f.id)}>
               <div
-                className="relative grid grid-cols-[56px_minmax(0,1fr)_auto] items-center gap-[14px] px-[12px] py-[10px] transition-colors hover:bg-paper 2xl:grid-cols-[64px_minmax(0,1fr)_150px_130px_56px_92px] 2xl:gap-[16px] 2xl:px-[16px]"
+                className="relative grid grid-cols-[56px_minmax(0,1fr)_auto] items-center gap-[14px] px-[12px] py-[10px] transition-colors hover:bg-paper xl:grid-cols-[56px_minmax(0,1fr)_140px_44px_72px] xl:gap-[16px] xl:px-[16px]"
               >
                 <button type="button" onClick={() => onEdit(f)} aria-label={`${t("editor.edit")}: ${f.productName}`} className="absolute inset-0 z-[1]" />
-                <div className="h-[56px] w-[56px] overflow-hidden bg-sand 2xl:h-[64px] 2xl:w-[64px]">
+                <div className="h-[56px] w-[56px] overflow-hidden bg-sand">
                   {img ? (
-                    <img src={img} alt="" loading="lazy" className="h-full w-full object-cover" />
+                    <img src={img} alt="" loading="lazy" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = "/product-image-coming-soon.svg"; }} className="h-full w-full object-contain p-1" />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-taupe">
                       <ImageOff className="h-[18px] w-[18px]" strokeWidth={1.2} />
@@ -77,29 +76,26 @@ export function ProductList({ products, categoryName, showCategory, onEdit, onTo
 
                 <div className="min-w-0">
                   <div className="flex items-center gap-[8px]">
-                    <p className="truncate text-[14px] font-medium text-ink">{f.productName}</p>
+                    <p className="truncate text-[15px] font-medium text-ink">{f.productName}</p>
                     <StockBadge level={f.stockLevel} locale={locale} />
                     {f.isFeatured && (
-                      <Star className="h-[12px] w-[12px] shrink-0 fill-ink text-ink 2xl:hidden" strokeWidth={1.6} />
+                      <Star className="h-[12px] w-[12px] shrink-0 fill-ink text-ink xl:hidden" strokeWidth={1.6} />
                     )}
                   </div>
                   <p className="mt-[2px] truncate text-[12px] text-taupe">
-                    <span className="md:hidden">
+                    <span className="xl:hidden">
                       {priceText}
                       {onSale && <span className="ml-[6px] text-terracotta">−{Math.round((1 - price / old) * 100)}%</span>}
                     </span>
-                    <span className="hidden 2xl:inline">{f.ingredients || "—"}</span>
+                    <span className="hidden xl:inline">{showCategory ? categoryName(f.categoryId) : f.ingredients || "—"}</span>
                   </p>
                 </div>
 
                 {/* Mobile: chevron */}
-                <ChevronRight className="h-[18px] w-[18px] text-ink/50 2xl:hidden" strokeWidth={1.4} />
+                <ChevronRight className="h-[18px] w-[18px] text-ink/50 xl:hidden" strokeWidth={1.4} />
 
                 {/* Desktop columns */}
-                <span className="hidden truncate text-[13px] text-taupe 2xl:block">
-                  {showCategory ? categoryName(f.categoryId) : ""}
-                </span>
-                <span className="hidden text-right tabular-nums 2xl:block">
+                <span className="hidden text-right tabular-nums xl:block">
                   <span className="block text-[14px] font-medium text-ink">{priceText}</span>
                   {onSale && (
                     <span className="block text-[12px] text-taupe">
@@ -108,7 +104,7 @@ export function ProductList({ products, categoryName, showCategory, onEdit, onTo
                     </span>
                   )}
                 </span>
-                <span className="relative z-[2] hidden justify-center 2xl:flex">
+                <span className="relative z-[2] hidden justify-center xl:flex">
                   <button
                     type="button"
                     onClick={(e) => {
@@ -127,7 +123,7 @@ export function ProductList({ products, categoryName, showCategory, onEdit, onTo
                     />
                   </button>
                 </span>
-                <span className="hidden justify-end 2xl:flex">
+                <span className="hidden justify-end xl:flex">
                   <span className="inline-flex h-[36px] items-center gap-[6px] border border-ink/20 px-[12px] text-[13px] text-ink transition-colors group-hover:border-ink hover:bg-ink hover:text-paper">
                     <Pencil className="h-[13px] w-[13px]" strokeWidth={1.5} />
                     {t("editor.edit")}
