@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Tone } from "@admin/components/ui/status";
+
 export type OrderStatus =
   | "PENDING"
   | "WAITING_PAYMENT"
@@ -11,6 +13,8 @@ export type OrderStatus =
 export type ProductItem = {
   id?: string;
   quantity: number;
+  size?: string | null;
+  unitPrice?: number | null;
   product?: {
     id?: string;
     productName?: string;
@@ -21,7 +25,7 @@ export type ProductItem = {
 };
 
 export type RawOrder = {
-  __expanded: any;
+  __expanded?: any;
   id: string;
   orderNumber?: string;
   totalPrice?: number;
@@ -50,19 +54,7 @@ export type RawOrder = {
   khoroo?: string | null;
   address?: string | null;
   notes?: string | null;
-  orderItems?: Array<{
-    id?: string;
-    quantity: number;
-    size?: string | null;
-    unitPrice?: number | null;
-    product?: {
-      id?: string;
-      productName?: string;
-      price?: number;
-      image?: string | null;
-      categoryId?: string | null;
-    } | null;
-  }>;
+  orderItems?: ProductItem[];
   items?: ProductItem[];
 };
 
@@ -77,7 +69,7 @@ export const STATUS_FLOW: Record<OrderStatus, OrderStatus[]> = {
   CANCELLED: [],
 };
 
-/** Orders that still need the admin (confirm a payment, ship, …): drives the sidebar badge. */
+/** Orders that still need the admin (confirm a payment, ship, …). */
 export const OPEN_STATUSES: OrderStatus[] = ["PENDING", "WAITING_PAYMENT", "COD_PENDING", "PAID"];
 
 /** Filter tabs, grouped by what the admin has to do next. */
@@ -107,18 +99,65 @@ export function primaryNext(status: OrderStatus, paymentMethod?: string): OrderS
   }
 }
 
-export const PLACEHOLDER =
-  "data:image/svg+xml;utf8," +
-  encodeURIComponent(
-    `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='240'><rect width='100%' height='100%' fill='#f3f4f6'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='#9ca3af' font-size='16'>No image</text></svg>`
-  );
+type OrderLike = Pick<RawOrder, "status" | "paymentMethod" | "paymentStatus">;
 
-export const STATUS_BADGE: Record<OrderStatus, string> = {
-  PENDING: "bg-sand text-taupe border-transparent",
-  WAITING_PAYMENT: "bg-terracotta/10 text-terracotta border-transparent",
-  COD_PENDING: "bg-sand text-taupe border-transparent",
-  PAID: "bg-ink text-paper border-transparent",
-  DELIVERING: "bg-ink/10 text-ink border-transparent",
-  DELIVERED: "bg-[#5b6b4b]/15 text-[#44523a] border-transparent",
-  CANCELLED: "bg-ink/5 text-ink/45 border-transparent",
-};
+/** Status colour from the owner's point of view: does this order need me right now? */
+export function orderTone(order: OrderLike): Tone {
+  switch (order.status ?? "PENDING") {
+    case "PENDING":
+    case "COD_PENDING":
+    case "PAID":
+      return "attention";
+    case "WAITING_PAYMENT":
+      // Only a bank transfer needs the owner to check the account; QPay confirms itself.
+      return order.paymentMethod === "BANK" ? "attention" : "waiting";
+    case "DELIVERING":
+      return "progress";
+    case "DELIVERED":
+      return "success";
+    default:
+      return "neutral";
+  }
+}
+
+/** Key under "orders.next" for the plain sentence that says what happens next. */
+export function nextStepKey(order: OrderLike): string {
+  const status = order.status ?? "PENDING";
+  if (status === "CANCELLED") return order.paymentStatus === "REVIEW" ? "REVIEW" : "CANCELLED";
+  if (status === "WAITING_PAYMENT") {
+    return order.paymentMethod === "BANK" ? "WAITING_BANK" : order.paymentMethod === "QPAY" ? "WAITING_QPAY" : "WAITING_OTHER";
+  }
+  if (status === "DELIVERING" && order.paymentMethod === "COD") return "DELIVERING_COD";
+  return status;
+}
+
+/** Payment label (key under "payment_state") and its colour. */
+export function paymentDisplay(order: OrderLike): { tone: Tone; key: string } {
+  switch (order.paymentStatus) {
+    case "PAID":
+      return { tone: "success", key: "PAID" };
+    case "REVIEW":
+      return { tone: "danger", key: "REVIEW" };
+    case "REFUNDED":
+      return { tone: "neutral", key: "REFUNDED" };
+    case "UNPAID":
+      if (order.status === "CANCELLED") return { tone: "neutral", key: "UNPAID" };
+      return { tone: "waiting", key: order.paymentMethod === "COD" ? "COD" : "UNPAID" };
+    default:
+      return { tone: "neutral", key: "UNKNOWN" };
+  }
+}
+
+export type StepState = "done" | "current" | "todo";
+
+/** Placed → paid (or confirmed, for cash) → out for delivery → delivered. */
+export function orderSteps(order: OrderLike): { key: string; state: StepState }[] {
+  const keys = ["placed", order.paymentMethod === "COD" ? "confirmed" : "paid", "shipped", "delivered"];
+  const reached: Partial<Record<OrderStatus, number>> = { PENDING: 1, WAITING_PAYMENT: 1, COD_PENDING: 2, PAID: 2, DELIVERING: 3, DELIVERED: 4 };
+  const done = reached[order.status ?? "PENDING"] ?? 1;
+  return keys.map((key, index) => ({ key, state: index < done ? "done" : index === done ? "current" : "todo" }));
+}
+
+export const orderNumber = (order: Pick<RawOrder, "id" | "orderNumber">) => order.orderNumber ?? order.id.slice(0, 8);
+
+export const PLACEHOLDER = "/product-image-coming-soon.svg";

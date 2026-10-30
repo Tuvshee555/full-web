@@ -1,367 +1,314 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowRight, RefreshCcw } from "lucide-react";
-import { API_BASE_URL } from "@admin/lib/api";
-import { useAuth } from "@admin/provider/AuthProvider";
-import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
-import { AdminView } from "@admin/components/Sidebar";
-import { Skeleton } from "@admin/components/ui/skeleton";
-import { formatDateTime, formatMNT, ubDayKey } from "@admin/utils/format";
-import { ProductType } from "@admin/type/type";
 import {
-  OrderStatus,
-  RawOrder,
-} from "@/app/(admin)/admin/[locale]/(orders)/components/type";
-import { StatusBadge } from "@/app/(admin)/admin/[locale]/(orders)/components/OrderDetails";
+  AlertTriangle,
+  ArrowRight,
+  Banknote,
+  Bot,
+  CheckCircle2,
+  ClipboardCheck,
+  MessageCircle,
+  PackageX,
+  PhoneCall,
+  RefreshCw,
+  Truck,
+  TrendingDown,
+  type LucideIcon,
+} from "lucide-react";
+import { toast } from "sonner";
+import { api } from "@admin/lib/api";
+import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
+import { useAdminNav } from "@admin/lib/adminNav";
+import { PageHeader, Panel } from "@admin/components/ui/page";
+import { StatCard } from "@admin/components/ui/status";
+import { EmptyState, ErrorState, LoadingRows } from "@admin/components/ui/feedback";
+import { InfoTip } from "@admin/components/ui/controls";
+import { formatLongDate, formatMNT, formatWhen, ubDayKey } from "@admin/utils/format";
+import { needsRestock, stockSummary } from "@admin/utils/inventory";
+import { calcTrend } from "@admin/utils/revenue";
+import { cn } from "@admin/lib/utils";
+import { ProductType } from "@admin/type/type";
+import { RawOrder, orderNumber } from "@/app/(admin)/admin/[locale]/(orders)/components/type";
+import { OrderStatusPill, customerName } from "@/app/(admin)/admin/[locale]/(orders)/components/OrderDetails";
 
-type Orders = {
-  counts: Partial<Record<OrderStatus, number>>;
-  orders: RawOrder[];
-};
-type Revenue = {
-  chartData: { date: string; revenue: number; orders: number }[];
-};
+type Day = { date: string; revenue: number; orders: number };
+type Revenue = { stats: { totalRevenue: number; weeklyRevenue: number; monthlyRevenue: number }; chartData: Day[] };
 
-export default function Overview({
-  onNavigate,
-}: {
-  onNavigate: (view: AdminView) => void;
-}) {
+const days = (data: Day[], count: number, offset = 0) => {
+  const byDate = new Map(data.map((d) => [d.date, d]));
+  return Array.from({ length: count }, (_, i) => {
+    const key = ubDayKey(new Date(Date.now() - (count - 1 - i + offset) * 86_400_000));
+    return byDate.get(key) ?? { date: key, revenue: 0, orders: 0 };
+  });
+};
+const total = (list: Day[], key: "revenue" | "orders") => list.reduce((s, d) => s + (Number(d[key]) || 0), 0);
+
+type Todo = { id: string; tone: "danger" | "attention"; icon: LucideIcon; text: string; action: string; onClick: () => void; busy?: boolean };
+
+export default function Overview() {
   const { t, locale } = useI18n();
-  const { token } = useAuth();
-  const [orders, setOrders] = useState<Orders | null>(null);
+  const { go, summary, refreshSummary, setBot } = useAdminNav();
+  const [recent, setRecent] = useState<RawOrder[] | null>(null);
   const [revenue, setRevenue] = useState<Revenue | null>(null);
   const [inventory, setInventory] = useState<ProductType[] | null>(null);
+  const [reviewCount, setReviewCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [reload, setReload] = useState(0);
+  const [turningOn, setTurningOn] = useState(false);
 
   useEffect(() => {
-    if (!token) return;
     const controller = new AbortController();
-    const read = async (path: string) => {
-      const response = await fetch(`${API_BASE_URL}${path}`, {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: "no-store",
-        signal: controller.signal,
-      });
-      if (!response.ok) throw new Error(String(response.status));
-      return response.json();
-    };
     setLoading(true);
     setFailed(false);
     void Promise.allSettled([
-      read("/order?limit=6"),
-      read("/order?mode=revenue"),
-      read("/products/admin/inventory"),
-    ]).then((results) => {
+      api.get("/order", { params: { limit: 6 }, signal: controller.signal }),
+      api.get("/order", { params: { mode: "revenue" }, signal: controller.signal }),
+      api.get("/products/admin/inventory", { signal: controller.signal }),
+      // Money that arrived for a cancelled order needs a person (newest 100 cancelled orders).
+      api.get("/order", { params: { status: "CANCELLED", limit: 100 }, signal: controller.signal }),
+    ]).then(([orders, sales, stock, cancelled]) => {
       if (controller.signal.aborted) return;
-      const [orderResult, revenueResult, inventoryResult] = results;
-      setOrders(orderResult.status === "fulfilled" ? orderResult.value : null);
-      setRevenue(
-        revenueResult.status === "fulfilled" ? revenueResult.value : null,
-      );
-      setInventory(
-        inventoryResult.status === "fulfilled" &&
-          Array.isArray(inventoryResult.value)
-          ? inventoryResult.value
-          : null,
-      );
-      setFailed(results.some((result) => result.status === "rejected"));
+      setRecent(orders.status === "fulfilled" && Array.isArray(orders.value.data?.orders) ? orders.value.data.orders : null);
+      setRevenue(sales.status === "fulfilled" ? sales.value.data : null);
+      setInventory(stock.status === "fulfilled" && Array.isArray(stock.value.data) ? stock.value.data : null);
+      setReviewCount(cancelled.status === "fulfilled" && Array.isArray(cancelled.value.data?.orders) ? cancelled.value.data.orders.filter((o: RawOrder) => o.paymentStatus === "REVIEW").length : 0);
+      setFailed([orders, sales, stock].some((r) => r.status === "rejected"));
       setLoading(false);
     });
     return () => controller.abort();
-  }, [token, reload]);
+  }, [reload]);
 
-  const refresh = useCallback(() => setReload((value) => value + 1), []);
-  const recentRevenue = useMemo(() => {
-    const from = ubDayKey(new Date(Date.now() - 29 * 86_400_000));
-    const through = ubDayKey(new Date());
-    return (revenue?.chartData ?? []).filter(
-      (day) => day.date >= from && day.date <= through,
-    );
-  }, [revenue]);
-  const paidTotal = recentRevenue.reduce(
-    (total, day) => total + day.revenue,
-    0,
+  const refresh = useCallback(() => {
+    setReload((v) => v + 1);
+    refreshSummary();
+  }, [refreshSummary]);
+
+  const turnOnAssistant = async () => {
+    setTurningOn(true);
+    try {
+      const { data } = await api.patch("/chatbot/admin/settings", { fields: { enabled: true } });
+      setBot({ enabled: Boolean(data?.enabled), metaOutbound: Boolean(data?.metaOutbound) });
+      toast.success(t("assistant.toast.turned_on"));
+    } catch {
+      toast.error(t("assistant.toast.switch_failed"));
+    } finally {
+      setTurningOn(false);
+    }
+  };
+
+  const stockAlerts = useMemo(
+    () => (inventory ?? []).map((p) => ({ product: p, stock: stockSummary(p.sizes) })).filter((x) => needsRestock(x.stock)),
+    [inventory]
   );
-  const paidOrders = recentRevenue.reduce(
-    (total, day) => total + day.orders,
-    0,
-  );
-  const count = (...statuses: OrderStatus[]) =>
-    orders
-      ? String(
-          statuses.reduce(
-            (total, status) => total + (orders.counts[status] ?? 0),
-            0,
-          ),
-        )
-      : "—";
-  const lowStock =
-    inventory?.filter(
-      (product) =>
-        product.stockLevel === "low" || product.stockLevel === "soldout",
-    ) ?? [];
-  const tiles = [
-    {
-      label: "overview.attention",
-      value: count("PENDING", "WAITING_PAYMENT", "COD_PENDING", "PAID"),
-      note: "overview.all_time",
-      view: "orders",
-    },
-    {
-      label: "overview.awaiting_payment",
-      value: count("PENDING", "WAITING_PAYMENT"),
-      note: "overview.all_time",
-      view: "orders",
-    },
-    {
-      label: "overview.to_fulfill",
-      value: count("PAID", "COD_PENDING"),
-      note: "overview.all_time",
-      view: "orders",
-    },
-    {
-      label: "overview.completed",
-      value: count("DELIVERED"),
-      note: "overview.all_time",
-      view: "orders",
-    },
-  ] as const;
+  const soldOut = stockAlerts.filter((x) => x.stock.state === "soldout").length;
+  const running = stockAlerts.length - soldOut;
+
+  const todos: Todo[] = [];
+  if (reviewCount) todos.push({ id: "review", tone: "danger", icon: AlertTriangle, text: t("overview.todo.review", { count: reviewCount }), action: t("overview.todo.review_action"), onClick: () => go("orders", { tab: "cancelled" }) });
+  if (summary.bankToCheck) todos.push({ id: "bank", tone: "attention", icon: Banknote, text: t("overview.todo.bank", { count: summary.bankToCheck }), action: t("overview.todo.bank_action"), onClick: () => go("orders", { tab: "awaiting_payment" }) });
+  if (summary.toConfirm) todos.push({ id: "confirm", tone: "attention", icon: ClipboardCheck, text: t("overview.todo.confirm", { count: summary.toConfirm }), action: t("overview.todo.confirm_action"), onClick: () => go("orders", { tab: "awaiting_payment" }) });
+  if (summary.toShip) todos.push({ id: "ship", tone: "attention", icon: Truck, text: t("overview.todo.ship", { count: summary.toShip }), action: t("overview.todo.ship_action"), onClick: () => go("orders", { tab: "to_ship" }) });
+  if (summary.chatsNeedingYou) todos.push({ id: "chats", tone: "attention", icon: MessageCircle, text: t("overview.todo.chats", { count: summary.chatsNeedingYou }), action: t("overview.todo.chats_action"), onClick: () => go("messages", { filter: "attention" }) });
+  if (summary.newRequests) todos.push({ id: "requests", tone: "attention", icon: PhoneCall, text: t("overview.todo.requests", { count: summary.newRequests }), action: t("overview.todo.requests_action"), onClick: () => go("messages", { tab: "requests" }) });
+  if (summary.bot && !summary.bot.enabled) todos.push({ id: "bot", tone: "attention", icon: Bot, text: t("overview.todo.bot_off"), action: t("overview.todo.bot_off_action"), onClick: () => void turnOnAssistant(), busy: turningOn });
+  if (soldOut) todos.push({ id: "soldout", tone: "attention", icon: PackageX, text: t("overview.todo.soldout", { count: soldOut }), action: t("overview.todo.stock_action"), onClick: () => go("products", { stock: "soldout" }) });
+  if (running) todos.push({ id: "low", tone: "attention", icon: TrendingDown, text: t("overview.todo.low", { count: running }), action: t("overview.todo.stock_action"), onClick: () => go("products", { stock: "restock" }) });
+
+  const chart = revenue?.chartData ?? [];
+  const today = days(chart, 1)[0];
+  const week = days(chart, 7);
+  const lastWeek = days(chart, 7, 7);
+  const weekTotal = total(week, "revenue");
+  const trend = calcTrend(weekTotal, total(lastWeek, "revenue"));
+  const fortnight = days(chart, 14);
+  const peak = Math.max(1, ...fortnight.map((d) => d.revenue));
+  const ready = summary.ready && !loading;
+  const when = (iso?: string) => formatWhen(iso, { today: t("common.today"), yesterday: t("common.yesterday") });
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="mb-2 text-[12px] font-medium text-taupe">
-            LORENTZ / {t("overview.workspace")}
-          </p>
-          <h1>{t("overview.title")}</h1>
-          <p className="mt-2 text-sm text-taupe">{t("overview.description")}</p>
-        </div>
-        <button
-          type="button"
-          onClick={refresh}
-          disabled={loading}
-          className="btn-secondary !px-4"
-        >
-          <RefreshCcw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          {t("refresh")}
-        </button>
-      </header>
-
-      {failed && (
-        <div
-          role="alert"
-          className="border border-terracotta/30 bg-white p-4 text-sm text-terracotta"
-        >
-          {t("overview.load_failed")}
-        </div>
-      )}
-
-      <section
-        aria-label={t("overview.operations")}
-        className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
-      >
-        {tiles.map((tile) => (
-          <button
-            key={tile.label}
-            type="button"
-            onClick={() => onNavigate(tile.view)}
-            className="admin-surface p-5 text-left transition-colors hover:border-ink/40"
-          >
-            <p className="text-sm text-taupe">{t(tile.label)}</p>
-            {loading ? (
-              <Skeleton className="my-3 h-9 w-20" />
-            ) : (
-              <p className="my-2 text-[32px] font-medium tabular-nums leading-tight">
-                {tile.value}
-              </p>
-            )}
-            <span className="flex items-center justify-between text-xs text-taupe">
-              {t(tile.note)}
-              <ArrowRight className="h-4 w-4" />
-            </span>
+    <div className="space-y-[20px]">
+      <PageHeader
+        title={t("overview.title")}
+        description={t("overview.subtitle", { date: formatLongDate(new Date(), locale) })}
+        actions={
+          <button type="button" onClick={refresh} disabled={loading} className="btn-secondary">
+            <RefreshCw aria-hidden className={cn("h-[15px] w-[15px]", loading && "animate-spin")} />
+            {t("common.refresh")}
           </button>
-        ))}
+        }
+      />
+
+      {(failed || summary.ordersFailed) && !loading && <ErrorState message={t("overview.load_failed")} onRetry={refresh} />}
+
+      {/* What needs the owner, most urgent first */}
+      <Panel title={t("overview.todo.title")} description={t("overview.todo.subtitle")}>
+        {!ready ? (
+          <LoadingRows rows={3} rowClassName="h-[44px]" />
+        ) : todos.length === 0 ? (
+          <div className="flex items-center gap-[12px] px-[16px] py-[18px] md:px-[20px]">
+            <CheckCircle2 aria-hidden className="h-[22px] w-[22px] shrink-0 text-[#3d4a34]" strokeWidth={1.8} />
+            <div>
+              <p className="text-[15px] font-medium text-ink">{t("overview.todo.clear_title")}</p>
+              <p className="text-[13px] text-taupe">{t("overview.todo.clear_body")}</p>
+            </div>
+          </div>
+        ) : (
+          <ul className="divide-y divide-ink/10">
+            {todos.map(({ id, tone, icon: Icon, text, action, onClick, busy }) => (
+              <li key={id} className="flex flex-wrap items-center gap-x-[12px] gap-y-[8px] px-[16px] py-[12px] md:px-[20px]">
+                <span className={cn("flex h-[32px] w-[32px] shrink-0 items-center justify-center", tone === "danger" ? "bg-terracotta text-paper" : "bg-terracotta/10 text-terracotta")}>
+                  <Icon aria-hidden className="h-[16px] w-[16px]" strokeWidth={1.8} />
+                </span>
+                <p className="min-w-[180px] flex-1 text-[14px] text-ink">{text}</p>
+                <button type="button" onClick={onClick} disabled={busy} className="btn-secondary btn-sm">
+                  {action}
+                  <ArrowRight aria-hidden className="h-[14px] w-[14px]" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
+
+      {/* Money */}
+      <section aria-label={t("overview.sales_label")} className="grid grid-cols-2 gap-[12px] lg:grid-cols-4">
+        <StatCard
+          label={t("overview.stats.today")}
+          value={revenue ? formatMNT(today.revenue) : "—"}
+          hint={revenue ? t("overview.stats.paid_orders", { count: today.orders }) : undefined}
+          loading={loading}
+        />
+        <StatCard
+          label={t("overview.stats.week")}
+          value={revenue ? formatMNT(weekTotal) : "—"}
+          hint={
+            revenue
+              ? total(lastWeek, "revenue") === 0
+                ? t("overview.stats.no_compare")
+                : trend.direction === "flat"
+                ? t("overview.stats.same")
+                : t(trend.direction === "up" ? "overview.stats.up" : "overview.stats.down", { pct: trend.value })
+              : undefined
+          }
+          hintTone={trend.direction === "up" ? "good" : trend.direction === "down" ? "bad" : "muted"}
+          loading={loading}
+        />
+        <StatCard label={t("overview.stats.month")} value={revenue ? formatMNT(revenue.stats?.monthlyRevenue) : "—"} hint={t("overview.stats.month_hint")} loading={loading} />
+        <StatCard
+          label={t("overview.stats.delivering")}
+          value={summary.ready ? String(summary.counts.DELIVERING ?? 0) : "—"}
+          hint={t("overview.stats.delivering_hint")}
+          loading={!summary.ready}
+          onClick={() => go("orders", { tab: "delivering" })}
+          actionLabel={t("overview.stats.delivering_action")}
+        />
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,1fr)]">
-        <section className="admin-surface min-w-0">
-          <div className="flex items-center justify-between gap-3 border-b border-ink/10 p-5">
-            <h2 className="text-base font-semibold">
-              {t("overview.recent_orders")}
-            </h2>
-            <button
-              type="button"
-              onClick={() => onNavigate("orders")}
-              className="inline-flex min-h-10 items-center gap-2 text-sm underline-offset-4 hover:underline"
-            >
-              {t("overview.view_all")}
-              <ArrowRight className="h-4 w-4" />
-            </button>
-          </div>
+      <div className="grid gap-[20px] xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,1fr)]">
+        <Panel
+          title={t("overview.recent.title")}
+          action={<button type="button" onClick={() => go("orders")} className="btn-ghost btn-sm">{t("overview.recent.all")}<ArrowRight aria-hidden className="h-[14px] w-[14px]" /></button>}
+        >
           {loading ? (
-            <div className="space-y-3 p-5">
-              {[0, 1, 2, 3].map((value) => (
-                <Skeleton key={value} className="h-14 w-full" />
-              ))}
-            </div>
-          ) : !orders ? (
-            <p className="p-8 text-sm text-taupe">{t("fetch_failed")}</p>
-          ) : orders.orders.length === 0 ? (
-            <div className="px-6 py-14 text-center">
-              <p className="text-base font-medium">{t("orders_empty")}</p>
-              <p className="mx-auto mt-2 max-w-md text-sm text-taupe">
-                {t("overview.orders_hint")}
-              </p>
-              <button
-                type="button"
-                onClick={() => onNavigate("products")}
-                className="btn-secondary mt-5"
-              >
-                {t("sidebar.product_catalog")}
-              </button>
-            </div>
+            <LoadingRows rows={5} rowClassName="h-[48px]" />
+          ) : !recent ? (
+            <ErrorState className="m-[16px]" message={t("orders.errors.load_failed")} onRetry={refresh} />
+          ) : recent.length === 0 ? (
+            <EmptyState title={t("overview.recent.empty_title")} description={t("overview.recent.empty_body")} action={<button type="button" className="btn-secondary" onClick={() => go("products")}>{t("overview.recent.empty_action")}</button>} />
           ) : (
             <ul className="divide-y divide-ink/10">
-              {orders.orders.map((order) => (
+              {recent.map((order) => (
                 <li key={order.id}>
-                  <button
-                    type="button"
-                    onClick={() => onNavigate("orders")}
-                    className="flex w-full flex-wrap items-center justify-between gap-3 px-5 py-4 text-left hover:bg-paper"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium">
-                        #{order.orderNumber ?? order.id.slice(0, 8)}
-                      </p>
-                      <p className="mt-1 text-xs text-taupe">
-                        {[order.lastName, order.firstName]
-                          .filter(Boolean)
-                          .join(" ") ||
-                          order.user?.email ||
-                          "—"}{" "}
-                        · {formatDateTime(order.createdAt)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <StatusBadge status={order.status ?? "PENDING"} t={t} />
-                      <span className="text-sm font-medium tabular-nums">
-                        {formatMNT(order.totalPrice)}
-                      </span>
-                    </div>
+                  <button type="button" onClick={() => go("orders", { order: order.id })} className="flex w-full flex-wrap items-center justify-between gap-x-[12px] gap-y-[6px] px-[16px] py-[12px] text-left transition-colors hover:bg-paper md:px-[20px]">
+                    <span className="min-w-0">
+                      <span className="block text-[14px] font-medium text-ink">#{orderNumber(order)} · {customerName(order, t)}</span>
+                      <span className="block text-[12px] tabular-nums text-taupe">{when(order.createdAt)}</span>
+                    </span>
+                    <span className="flex items-center gap-[12px]">
+                      <OrderStatusPill order={order} t={t} />
+                      <span className="w-[92px] text-right text-[14px] font-medium tabular-nums">{formatMNT(order.totalPrice)}</span>
+                    </span>
                   </button>
                 </li>
               ))}
             </ul>
           )}
-        </section>
+        </Panel>
 
-        <div className="space-y-6">
-          <section className="admin-surface p-5">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-base font-semibold">
-                {t("overview.revenue")}
-              </h2>
-              <span className="text-xs text-taupe">
-                {t("revenue_ui.days_30")}
+        <div className="space-y-[20px]">
+          <Panel
+            title={
+              <span className="inline-flex items-center gap-[8px]">
+                {t("overview.chart.title")}
+                <InfoTip text={t("overview.chart.rule")} />
               </span>
-            </div>
+            }
+            action={<button type="button" onClick={() => go("revenue")} className="btn-ghost btn-sm">{t("overview.chart.open")}<ArrowRight aria-hidden className="h-[14px] w-[14px]" /></button>}
+            bodyClassName="px-[16px] py-[16px] md:px-[20px]"
+          >
             {loading ? (
-              <Skeleton className="my-4 h-10 w-40" />
-            ) : (
-              <p className="my-4 text-[30px] font-medium tabular-nums">
-                {revenue ? formatMNT(paidTotal) : "—"}
-              </p>
-            )}
-            <dl className="space-y-3 border-y border-ink/10 py-4 text-sm">
-              <div className="flex justify-between gap-4">
-                <dt className="text-taupe">{t("revenue_ui.orders")}</dt>
-                <dd className="tabular-nums">{revenue ? paidOrders : "—"}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-taupe">{t("revenue_ui.avg_order")}</dt>
-                <dd className="tabular-nums">
-                  {revenue
-                    ? formatMNT(paidOrders ? paidTotal / paidOrders : 0)
-                    : "—"}
-                </dd>
-              </div>
-            </dl>
-            <p className="mt-4 text-xs leading-relaxed text-taupe">
-              {t("overview.revenue_rule")}
-            </p>
-            <button
-              type="button"
-              onClick={() => onNavigate("revenue")}
-              className="mt-4 inline-flex min-h-10 items-center gap-2 text-sm font-medium"
-            >
-              {t("overview.view_analytics")}
-              <ArrowRight className="h-4 w-4" />
-            </button>
-          </section>
-
-          <section className="admin-surface p-5">
-            <h2 className="text-base font-semibold">
-              {t("overview.inventory")}
-            </h2>
-            {loading ? (
-              <Skeleton className="mt-4 h-20 w-full" />
-            ) : !inventory ? (
-              <p className="mt-3 text-sm text-taupe">{t("fetch_failed")}</p>
+              <LoadingRows rows={1} className="p-0" rowClassName="h-[96px]" />
+            ) : !revenue ? (
+              <p className="text-[13px] text-taupe">{t("revenue.errors.load_failed")}</p>
             ) : (
               <>
-                <p className="mt-2 text-sm text-taupe">
-                  {t("editor.page_hint", { count: inventory.length })}
-                </p>
-                {lowStock.length ? (
-                  <ul className="mt-4 divide-y divide-ink/10">
-                    {lowStock.slice(0, 5).map((product) => (
-                      <li
-                        key={String(product.id)}
-                        className="flex items-start justify-between gap-3 py-3 text-sm"
-                      >
-                        <span className="min-w-0 break-words">
-                          {product.productName}
-                        </span>
-                        <span className="shrink-0 text-xs text-terracotta">
-                          {t(
-                            product.stockLevel === "soldout"
-                              ? "overview.soldout"
-                              : "overview.low_stock",
-                          )}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="mt-4 border-t border-ink/10 pt-4 text-sm text-taupe">
-                    {t("overview.no_stock_alerts")}
-                  </p>
-                )}
-                <button
-                  type="button"
-                  onClick={() => onNavigate("products")}
-                  className="mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-medium"
-                >
-                  {t("sidebar.product_catalog")}
-                  <ArrowRight className="h-4 w-4" />
-                </button>
+                <p className="text-[22px] font-semibold tabular-nums">{formatMNT(total(fortnight, "revenue"))}</p>
+                <p className="text-[12px] text-taupe">{t("overview.chart.orders", { count: total(fortnight, "orders") })}</p>
+                <ul className="mt-[14px] flex h-[88px] items-end gap-[3px]" aria-label={t("overview.chart.bars_label")}>
+                  {fortnight.map((d) => (
+                    <li key={d.date} className="flex h-full flex-1 items-end" title={`${d.date.slice(5).replace("-", ".")}: ${formatMNT(d.revenue)}`}>
+                      <span className="sr-only">{`${d.date.slice(5).replace("-", ".")}: ${formatMNT(d.revenue)}`}</span>
+                      <span className={cn("block w-full", d.revenue ? "bg-ink" : "bg-ink/10")} style={{ height: `${Math.max(4, (d.revenue / peak) * 100)}%` }} />
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-[6px] flex justify-between text-[11px] tabular-nums text-taupe">
+                  <span>{fortnight[0].date.slice(5).replace("-", ".")}</span>
+                  <span>{t("common.today")}</span>
+                </div>
               </>
             )}
-          </section>
+          </Panel>
+
+          <Panel
+            title={t("overview.stock.title")}
+            action={<button type="button" onClick={() => go("products")} className="btn-ghost btn-sm">{t("overview.stock.open")}<ArrowRight aria-hidden className="h-[14px] w-[14px]" /></button>}
+          >
+            {loading ? (
+              <LoadingRows rows={3} rowClassName="h-[40px]" />
+            ) : !inventory ? (
+              <ErrorState className="m-[16px]" message={t("products.errors.load_failed")} onRetry={refresh} />
+            ) : stockAlerts.length === 0 ? (
+              <p className="px-[16px] py-[16px] text-[13px] leading-relaxed text-taupe md:px-[20px]">{t("overview.stock.none")}</p>
+            ) : (
+              <ul className="divide-y divide-ink/10">
+                {stockAlerts.slice(0, 6).map(({ product, stock }) => (
+                  <li key={String(product.id)}>
+                    <button type="button" onClick={() => go("products", { product: String(product.id) })} className="flex w-full items-start justify-between gap-[12px] px-[16px] py-[10px] text-left hover:bg-paper md:px-[20px]">
+                      <span className="min-w-0">
+                        <span className="block text-[14px] text-ink">{product.productName}</span>
+                        <span className="block text-[12px] text-taupe">
+                          {[
+                            ...stock.soldOut.map((label) => t("overview.stock.option_soldout", { option: label })),
+                            ...stock.low.map((s) => t("overview.stock.option_low", { option: s.label, count: s.stock })),
+                          ].join(" · ")}
+                        </span>
+                      </span>
+                      <span className={cn("shrink-0 text-[12px] font-medium", stock.state === "soldout" ? "text-terracotta" : "text-ink")}>
+                        {t(`stock.state.${stock.state}`)}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
         </div>
       </div>
-      <p className="text-xs text-taupe">
-        {t("overview.timezone")} ·{" "}
-        {new Intl.DateTimeFormat(locale === "mn" ? "mn-MN" : "en-GB", {
-          timeZone: "Asia/Ulaanbaatar",
-          dateStyle: "medium",
-        }).format(new Date())}
-      </p>
+
+      <p className="text-[12px] text-taupe">{t("common.timezone_note")}</p>
     </div>
   );
 }

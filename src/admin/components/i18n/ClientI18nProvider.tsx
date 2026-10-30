@@ -27,8 +27,8 @@ export default function ClientI18nProvider({
   const t = (key: string, params?: Params, fallback?: string) => {
     // Flat keys like "payment_method.QPAY" first, then nested objects
     const flat = (messages as Record<string, unknown>)[key];
-    const value =
-      typeof flat === "string"
+    let value =
+      flat !== undefined
         ? flat
         : key
             .split(".")
@@ -37,11 +37,16 @@ export default function ClientI18nProvider({
               messages
             );
 
-    let text = value ?? fallback ?? key;
+    // Counted phrases: { "one": "1 order", "other": "{count} orders" }
+    if (value && typeof value === "object" && "other" in value) {
+      value = params?.count === 1 && value.one ? value.one : value.other;
+    }
 
-    if (params && typeof text === "string") {
+    let text = typeof value === "string" ? value : fallback ?? key;
+
+    if (params) {
       Object.entries(params).forEach(([k, v]) => {
-        text = text.replace(`{${k}}`, String(v));
+        text = text.replaceAll(`{${k}}`, String(v));
       });
     }
 

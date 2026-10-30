@@ -4,8 +4,11 @@ import { API_BASE_URL } from "@admin/lib/api";
 import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, X } from "lucide-react";
+import { ArrowUpRight, Loader2, Plus, Trash2, X } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@admin/components/ui/sheet";
+import { ConfirmDialog } from "@admin/components/ui/confirm-dialog";
+import { Notice } from "@admin/components/ui/feedback";
+import { Switch } from "@admin/components/ui/controls";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 import { useAuth } from "@admin/provider/AuthProvider";
 import { uploadMedia } from "@admin/utils/uploadMedia";
@@ -37,7 +40,17 @@ type Form = {
   sizes: (InventoryOption & { price: string })[];
 };
 
-type Errors = Partial<Record<"productName" | "price" | "oldPrice" | "categoryId" | "photos" | "sizes", string>>;
+type ErrorKey = "productName" | "price" | "oldPrice" | "categoryId" | "photos" | "sizes";
+type Errors = Partial<Record<ErrorKey, string>>;
+/** Where each error's field lives, so the summary can jump to it. */
+const ERROR_TARGET: Record<ErrorKey, string> = {
+  photos: "pe-photos",
+  productName: "pe-name",
+  categoryId: "pe-cat",
+  price: "pe-price",
+  oldPrice: "pe-old",
+  sizes: "pe-sizes",
+};
 
 const digits = (v: string) => v.replace(/[^\d]/g, "");
 
@@ -72,8 +85,24 @@ function initialPhotos(product?: ProductType | null): MediaItem[] {
   return urls.map(mediaFromUrl);
 }
 
+/** The API answers in English; show the owner a sentence in their language instead. */
+function saveErrorText(err: unknown, t: (key: string) => string, isEdit: boolean, phase: "upload" | "save") {
+  // uploadMedia rethrows plain Errors, so the phase tells an upload failure apart.
+  if (phase === "upload") return t("editor.errors.upload");
+  if (axios.isAxiosError(err)) {
+    const status = err.response?.status;
+    const message = String(err.response?.data?.message || err.response?.data?.error || "");
+    if (!err.response) return t("common.errors.offline");
+    if (status === 401 || status === 403) return t("common.errors.signed_out");
+    if (/inventory changed/i.test(message)) return t("editor.errors.stock_changed");
+    if (/active order|order history|has orders/i.test(message)) return t("editor.errors.in_orders");
+    if (/category not found/i.test(message)) return t("editor.errors.category_missing");
+  }
+  return t(isEdit ? "editor.errors.save_failed" : "editor.errors.create_failed");
+}
+
 export function ProductEditor({ open, onOpenChange, product, categories, defaultCategoryId, onSaved }: Props) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { token } = useAuth();
   const isEdit = Boolean(product?.id);
 
@@ -82,6 +111,7 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
   const [video, setVideo] = useState<MediaItem | null>(null);
   const [sizeDraft, setSizeDraft] = useState("");
   const [errors, setErrors] = useState<Errors>({});
+  const [showSummary, setShowSummary] = useState(false);
   const [saving, setSaving] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   const [confirm, setConfirm] = useState<"discard" | "delete" | null>(null);
@@ -106,6 +136,7 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
     setVideo(v);
     setSizeDraft("");
     setErrors({});
+    setShowSummary(false);
     setConfirm(null);
     setProgress(null);
     setSnapshot(JSON.stringify([f, p.map((m) => m.url), v?.url ?? null]));
@@ -146,20 +177,20 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
 
   const validate = () => {
     const e: Errors = {};
-    if (!form.productName.trim()) e.productName = t("product.validation.name");
-    if (!Number.isFinite(priceNum) || priceNum <= 0 || priceNum > 1_000_000_000) e.price = t("product.validation.price");
-    if (form.oldPrice && (!Number.isFinite(oldPriceNum) || oldPriceNum <= priceNum || oldPriceNum > 1_000_000_000)) e.oldPrice = t("editor.old_price_rule");
-    if (!form.categoryId) e.categoryId = t("editor.category_required");
-    if (photos.length === 0) e.photos = t("editor.photo_required");
-    if (!validInventory(form.sizes)) e.sizes = t("editor.stock_rule");
+    if (!form.productName.trim()) e.productName = t("editor.errors.name");
+    if (!Number.isFinite(priceNum) || priceNum <= 0 || priceNum > 1_000_000_000) e.price = t("editor.errors.price");
+    if (form.oldPrice && (!Number.isFinite(oldPriceNum) || oldPriceNum <= priceNum || oldPriceNum > 1_000_000_000)) e.oldPrice = t("editor.errors.old_price");
+    if (!form.categoryId) e.categoryId = t("editor.errors.category");
+    if (photos.length === 0) e.photos = t("editor.errors.photo");
+    if (!validInventory(form.sizes)) e.sizes = t("editor.errors.stock");
     setErrors(e);
-    return Object.keys(e).length === 0;
+    return e;
   };
 
   const requestClose = (next: boolean) => {
     if (next) return onOpenChange(true);
     if (saving) return;
-    if (dirty && confirm !== "discard") return setConfirm("discard");
+    if (dirty) return setConfirm("discard");
     onOpenChange(false);
   };
 
@@ -167,13 +198,17 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
     if (savingRef.current || !token) return;
     if (sizeDraft.trim()) {
       addSize();
-      toast.error(t("editor.variant_draft_hint"));
+      toast.message(t("editor.option_added"));
       return;
     }
-    if (!validate()) {
-      toast.error(t("editor.fix_errors"));
+    const found = validate();
+    if (Object.keys(found).length) {
+      setShowSummary(true);
+      document.getElementById(ERROR_TARGET[Object.keys(found)[0] as ErrorKey])?.focus();
       return;
     }
+    setShowSummary(false);
+    let phase: "upload" | "save" = "upload";
     try {
       savingRef.current = true;
       setSaving(true);
@@ -213,23 +248,19 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
         video: videoUrl,
       };
       const headers = { Authorization: `Bearer ${token}` };
+      phase = "save";
 
       if (isEdit) {
         await axios.put(`${API_BASE_URL}/products/${String(product!.id)}`, payload, { headers });
-        toast.success(t("updated"));
+        toast.success(t("editor.toast.saved", { name: payload.productName }));
       } else {
         await axios.post(`${API_BASE_URL}/products`, payload, { headers });
-        toast.success(t("product.toast.success"));
+        toast.success(t("editor.toast.created", { name: payload.productName }));
       }
       onSaved();
       onOpenChange(false);
     } catch (err) {
-      const msg = axios.isAxiosError(err)
-        ? err.response?.data?.message || err.response?.data?.error || err.message
-        : err instanceof Error
-        ? err.message
-        : "";
-      toast.error(msg || (isEdit ? t("update_failed") : t("product.toast.error")));
+      toast.error(saveErrorText(err, t, isEdit, phase));
     } finally {
       savingRef.current = false;
       setSaving(false);
@@ -245,61 +276,89 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
       await axios.delete(`${API_BASE_URL}/products/${String(product!.id)}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast.success(t("deleted"));
+      toast.success(t("editor.toast.deleted", { name: product?.productName ?? "" }));
+      setConfirm(null);
       onSaved();
       onOpenChange(false);
     } catch (error) {
-      const message = axios.isAxiosError(error) ? error.response?.data?.message || error.response?.data?.error : null;
-      toast.error(message || t("editor.delete_failed"));
+      const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+      toast.error(status === 409 ? t("editor.errors.delete_ordered") : t("editor.errors.delete_failed"));
+      setConfirm(null);
     } finally {
       savingRef.current = false;
       setSaving(false);
-      setConfirm(null);
     }
   };
 
-  const label = "mb-[8px] block text-[13px] font-medium text-ink";
-  const field =
-    "h-[44px] w-full border bg-white px-[12px] text-[14px] text-ink outline-none transition-colors placeholder:text-ink/60 focus:border-ink";
-  const border = (key: keyof Errors) => (errors[key] ? "border-terracotta" : "border-ink/20");
+  const label = "admin-label";
   const err = (key: keyof Errors) =>
-    errors[key] ? <p className="mt-[6px] text-[12px] text-terracotta">{errors[key]}</p> : null;
+    errors[key] ? <p id={`${ERROR_TARGET[key]}-error`} className="admin-error">{errors[key]}</p> : null;
+  const invalid = (key: keyof Errors) => ({
+    "aria-invalid": Boolean(errors[key]),
+    "aria-describedby": errors[key] ? `${ERROR_TARGET[key]}-error` : undefined,
+  });
+  const errorList = (Object.keys(errors) as ErrorKey[]).filter((key) => errors[key]);
 
   return (
     <Sheet open={open} onOpenChange={requestClose}>
       <SheetContent
         side="right"
-        className="flex w-full flex-col gap-0 border-l border-ink/10 bg-paper p-0 sm:max-w-[min(980px,calc(100vw-48px))] [&>button]:hidden"
+        hideClose
+        className="flex w-full flex-col gap-0 border-l border-ink/10 bg-paper p-0 sm:max-w-[min(980px,calc(100vw-48px))]"
         onPointerDownOutside={(e) => saving && e.preventDefault()}
       >
         {/* Header */}
-        <div className="flex shrink-0 items-start justify-between gap-[16px] border-b border-ink/10 bg-white px-[24px] py-[20px]">
+        <div className="flex shrink-0 items-start justify-between gap-[16px] border-b border-ink/10 bg-white px-[16px] py-[14px] sm:px-[24px]">
           <div className="min-w-0">
-            <SheetTitle className="text-[24px] font-semibold tracking-tight">
-              {isEdit ? t("edit_product") : t("product.add_modal.title")}
+            <SheetTitle className="text-[20px] font-semibold tracking-tight">
+              {isEdit ? t("editor.title_edit") : t("editor.title_new")}
             </SheetTitle>
-            <SheetDescription className="mt-[4px] truncate text-[13px] text-taupe">
+            <SheetDescription className="mt-[2px] truncate text-[13px] text-taupe">
               {isEdit ? form.productName || "—" : t("editor.new_hint")}
             </SheetDescription>
           </div>
-          <button
-            type="button"
-            onClick={() => requestClose(false)}
-            aria-label={t("close")}
-            className="-mr-[8px] flex h-[40px] w-[40px] shrink-0 items-center justify-center text-ink/60 hover:bg-sand hover:text-ink"
-          >
-            <X className="h-[18px] w-[18px]" />
-          </button>
+          <div className="flex shrink-0 items-center gap-[4px]">
+            {isEdit && (
+              <a href={`/${locale}/products/${String(product!.id)}`} target="_blank" rel="noreferrer" className="btn-ghost btn-sm">
+                <span className="hidden sm:inline">{t("editor.view_in_shop")}</span>
+                <ArrowUpRight aria-hidden className="h-[14px] w-[14px]" />
+                <span className="sr-only sm:hidden">{t("editor.view_in_shop")}</span>
+                <span className="sr-only">({t("common.opens_new_tab")})</span>
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={() => requestClose(false)}
+              aria-label={t("common.close")}
+              className="flex h-[44px] w-[44px] shrink-0 items-center justify-center text-taupe hover:bg-sand hover:text-ink"
+            >
+              <X aria-hidden className="h-[18px] w-[18px]" />
+            </button>
+          </div>
         </div>
 
         {/* Body */}
-        <div className="min-h-0 flex-1 overflow-y-auto px-[16px] py-[24px] sm:px-[24px]">
-          <fieldset disabled={saving} className="grid min-w-0 gap-[24px] disabled:opacity-70 md:grid-cols-2">
+        <div className="min-h-0 flex-1 overflow-y-auto px-[16px] py-[20px] sm:px-[24px]">
+          {showSummary && errorList.length > 0 && (
+            <Notice tone="warning" role="alert" className="mb-[16px]" title={t("editor.errors.summary", { count: errorList.length })}>
+              <ul className="mt-[4px] list-disc pl-[18px]">
+                {errorList.map((key) => (
+                  <li key={key}>
+                    <button type="button" className="text-left underline underline-offset-2" onClick={() => document.getElementById(ERROR_TARGET[key])?.focus()}>
+                      {errors[key]}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </Notice>
+          )}
+          <fieldset disabled={saving} className="grid min-w-0 gap-[20px] disabled:opacity-70 md:grid-cols-2">
             <section className="admin-surface min-w-0 p-[18px]">
-              <h3 className="admin-section-title">01 / {t("editor.section_photos")}</h3>
+              <h3 className="admin-section-title">{t("editor.section_photos")}</h3>
               <PhotosField
                 disabled={saving}
                 items={photos}
+                inputId="pe-photos"
                 onChange={(p) => {
                   setPhotos(p);
                   if (errors.photos) setErrors((e) => ({ ...e, photos: undefined }));
@@ -309,27 +368,30 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
             </section>
 
             <section className="admin-surface min-w-0 space-y-[18px] p-[18px]">
-              <h3 className="admin-section-title">02 / {t("editor.section_details")}</h3>
+              <h3 className="admin-section-title">{t("editor.section_details")}</h3>
               <div>
                 <label className={label} htmlFor="pe-name">{t("editor.name")}</label>
                 <input
                   id="pe-name"
                   value={form.productName}
+                  maxLength={200}
                   onChange={(e) => set("productName", e.target.value)}
-                  placeholder={t("product.fields.name")}
-                  className={`${field} ${border("productName")}`}
+                  placeholder={t("editor.name_placeholder")}
+                  className="field"
+                  {...invalid("productName")}
                 />
                 {err("productName")}
               </div>
               <div>
-                <label className={label} htmlFor="pe-cat">{t("category.title")}</label>
+                <label className={label} htmlFor="pe-cat">{t("editor.category")}</label>
                 <select
                   id="pe-cat"
                   value={form.categoryId}
                   onChange={(e) => set("categoryId", e.target.value)}
-                  className={`${field} ${border("categoryId")} cursor-pointer`}
+                  className="field"
+                  {...invalid("categoryId")}
                 >
-                  <option value="" disabled>{t("select_category")}</option>
+                  <option value="" disabled>{t("editor.category_placeholder")}</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>
                       {"   ".repeat(c.depth)}{c.name}
@@ -339,20 +401,22 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
                 {err("categoryId")}
               </div>
               <div>
-                <label className={label} htmlFor="pe-desc">{t("editor.description")}</label>
+                <label className={label} htmlFor="pe-desc">
+                  {t("editor.description")} <span className="font-normal text-taupe">({t("common.optional")})</span>
+                </label>
                 <textarea
                   id="pe-desc"
                   value={form.ingredients}
                   onChange={(e) => set("ingredients", e.target.value)}
                   placeholder={t("editor.description_placeholder")}
                   rows={5}
-                  className="w-full resize-y border border-ink/20 bg-white px-[12px] py-[10px] text-[14px] leading-[1.6] text-ink outline-none placeholder:text-ink/60 focus:border-ink"
+                  className="field resize-y"
                 />
               </div>
             </section>
 
             <section className="admin-surface min-w-0 space-y-[18px] p-[18px]">
-              <h3 className="admin-section-title">03 / {t("editor.section_price")}</h3>
+              <h3 className="admin-section-title">{t("editor.section_price")}</h3>
               <div className="grid grid-cols-1 gap-[16px] min-[900px]:grid-cols-2">
                 <div>
                   <label className={label} htmlFor="pe-price">{t("editor.price")}</label>
@@ -363,15 +427,16 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
                       value={form.price}
                       onChange={(e) => set("price", digits(e.target.value))}
                       placeholder="0"
-                      className={`${field} ${border("price")} pr-[32px] tabular-nums`}
+                      className="field pr-[32px] tabular-nums"
+                      {...invalid("price")}
                     />
-                    <span className="pointer-events-none absolute right-[12px] top-1/2 -translate-y-1/2 text-[14px] text-taupe">₮</span>
+                    <span aria-hidden className="pointer-events-none absolute right-[12px] top-1/2 -translate-y-1/2 text-[14px] text-taupe">₮</span>
                   </div>
                   {err("price")}
                 </div>
                 <div>
                   <label className={label} htmlFor="pe-old">
-                    {t("editor.old_price")} <span className="font-normal text-taupe">({t("editor.optional")})</span>
+                    {t("editor.old_price")} <span className="font-normal text-taupe">({t("common.optional")})</span>
                   </label>
                   <div className="relative">
                     <input
@@ -380,12 +445,13 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
                       value={form.oldPrice}
                       onChange={(e) => set("oldPrice", digits(e.target.value))}
                       placeholder="—"
-                      className={`${field} ${border("oldPrice")} pr-[32px] tabular-nums`}
+                      className="field pr-[32px] tabular-nums"
+                      {...invalid("oldPrice")}
                     />
-                    <span className="pointer-events-none absolute right-[12px] top-1/2 -translate-y-1/2 text-[14px] text-taupe">₮</span>
+                    <span aria-hidden className="pointer-events-none absolute right-[12px] top-1/2 -translate-y-1/2 text-[14px] text-taupe">₮</span>
                   </div>
                   {err("oldPrice") ?? (
-                    <p className="mt-[6px] text-[12px] text-taupe">
+                    <p className="admin-hint">
                       {discount > 0 ? t("editor.sale_preview", { pct: discount }) : t("editor.old_price_hint")}
                     </p>
                   )}
@@ -394,12 +460,12 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
             </section>
 
             <section className="admin-surface min-w-0 space-y-[14px] p-[18px] md:row-span-2">
-              <h3 className="admin-section-title">04 / {t("editor.section_options")}</h3>
+              <h3 className="admin-section-title">{t("editor.section_options")}</h3>
               <div>
-                <span className={label}>{t("editor.sizes")}</span>
+                <label className={label} htmlFor="pe-sizes">{t("editor.sizes")}</label>
                 <div className="flex gap-[8px]">
                   <input
-                    aria-label={t("editor.sizes")}
+                    id="pe-sizes"
                     maxLength={60}
                     value={sizeDraft}
                     onChange={(e) => setSizeDraft(e.target.value)}
@@ -410,15 +476,12 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
                       }
                     }}
                     placeholder={t("editor.sizes_placeholder")}
-                    className={`${field} border-ink/20`}
+                    className="field"
+                    {...invalid("sizes")}
                   />
-                  <button
-                    type="button"
-                    onClick={addSize}
-                    className="btn-secondary !min-h-[44px] shrink-0 !px-[16px]"
-                  >
-                    <Plus className="h-[16px] w-[16px]" />
-                    {t("common.add")}
+                  <button type="button" onClick={addSize} disabled={!sizeDraft.trim()} className="btn-secondary shrink-0 !px-[14px]">
+                    <Plus aria-hidden className="h-[16px] w-[16px]" />
+                    {t("editor.add_option")}
                   </button>
                 </div>
                 {form.sizes.length > 0 ? (
@@ -426,7 +489,7 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
                     <div className="mt-[12px] divide-y divide-ink/10 border border-ink/15 bg-white">
                       {form.sizes.map((size, index) => (
                         <div key={size.label} className="flex min-w-0 flex-wrap items-end gap-[10px] px-[12px] py-[8px]">
-                          <span className="min-w-[96px] flex-1 self-center break-words text-[14px] text-ink">{size.label}</span>
+                          <span className="min-w-[96px] flex-1 self-center break-words text-[14px] font-medium text-ink">{size.label}</span>
                           <div className="w-[116px] shrink-0">
                             <label htmlFor={`pe-price-${index}`} className="mb-[4px] block text-[12px] text-taupe">{t("editor.price")}</label>
                             <input
@@ -435,7 +498,7 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
                               value={size.price}
                               placeholder={form.price || "0"}
                               aria-label={t("editor.size_price", { size: size.label })}
-                              className={`${field} border-ink/20 !px-[8px] text-right tabular-nums`}
+                              className="field !px-[8px] text-right tabular-nums"
                               onChange={(event) => set("sizes", form.sizes.map((option, at) => at === index ? { ...option, price: digits(event.target.value) } : option))}
                             />
                           </div>
@@ -446,60 +509,44 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
                               inputMode="numeric"
                               value={size.stock}
                               placeholder={t("editor.untracked")}
-                              aria-label={`${size.label}: ${t("editor.stock")}`}
-                              className={`${field} border-ink/20 !px-[8px] tabular-nums`}
+                              aria-label={t("editor.size_stock", { size: size.label })}
+                              className="field !px-[8px] tabular-nums"
                               onChange={(event) => set("sizes", form.sizes.map((option, at) => at === index ? { ...option, stock: digits(event.target.value) } : option))}
                             />
                           </div>
                           <button
                             type="button"
                             onClick={() => set("sizes", form.sizes.filter((_, at) => at !== index))}
-                            aria-label={`${t("editor.remove")}: ${size.label}`}
-                            className="flex h-[44px] w-[44px] shrink-0 items-center justify-center text-taupe hover:text-terracotta"
+                            aria-label={t("editor.remove_option", { size: size.label })}
+                            title={t("editor.remove_option", { size: size.label })}
+                            className="flex h-[44px] w-[44px] shrink-0 items-center justify-center text-taupe hover:bg-terracotta/10 hover:text-terracotta"
                           >
-                            <X className="h-[13px] w-[13px]" />
+                            <Trash2 aria-hidden className="h-[15px] w-[15px]" strokeWidth={1.6} />
                           </button>
                         </div>
                       ))}
                     </div>
-                    <p className="mt-[6px] text-[12px] text-taupe">{t("editor.size_price_hint")}</p>
+                    <p className="admin-hint">{t("editor.size_price_hint")}</p>
                   </>
                 ) : (
-                  <p className="mt-[6px] text-[12px] text-taupe">{t("editor.sizes_hint")}</p>
+                  <p className="admin-hint">{t("editor.sizes_hint")}</p>
                 )}
-                <p className="mt-[8px] text-[12px] leading-relaxed text-taupe">{t("editor.stock_hint")}</p>
+                <p className="admin-hint">{t("editor.stock_hint")}</p>
                 {err("sizes")}
               </div>
 
-              <label className="flex cursor-pointer items-start justify-between gap-[16px] border border-ink/15 bg-white px-[16px] py-[14px]">
-                <span>
-                  <span className="block text-[14px] font-medium text-ink">{t("product.fields.featured")}</span>
-                  <span className="mt-[2px] block text-[12px] text-taupe">{t("editor.featured_hint")}</span>
-                </span>
-                <input
-                  type="checkbox"
-                  checked={form.isFeatured}
-                  onChange={(e) => set("isFeatured", e.target.checked)}
-                  className="peer sr-only"
-                />
-                <span
-                  aria-hidden
-                  className={`relative mt-[2px] h-[24px] w-[42px] shrink-0 rounded-full transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-ink/40 ${
-                    form.isFeatured ? "bg-ink" : "bg-ink/20"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-[3px] h-[18px] w-[18px] rounded-full bg-paper transition-[left] ${
-                      form.isFeatured ? "left-[21px]" : "left-[3px]"
-                    }`}
-                  />
-                </span>
-              </label>
+              <Switch
+                className="border-t border-ink/10 pt-[14px]"
+                checked={form.isFeatured}
+                onChange={(on) => set("isFeatured", on)}
+                label={t("editor.featured")}
+                description={t("editor.featured_hint")}
+              />
             </section>
 
             <section className="admin-surface min-w-0 p-[18px]">
               <h3 className="admin-section-title">
-                05 / {t("editor.section_video")} <span className="font-normal text-taupe">({t("editor.optional")})</span>
+                {t("editor.section_video")} <span className="font-normal text-taupe">({t("common.optional")})</span>
               </h3>
               <VideoField video={video} onChange={setVideo} />
             </section>
@@ -507,66 +554,63 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
         </div>
 
         {/* Footer */}
-        <div className="shrink-0 border-t border-ink/10 bg-white px-[16px] py-[16px] sm:px-[24px]">
-          {confirm === "discard" ? (
-            <div className="flex flex-col gap-[12px] sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-[13px] text-ink">{t("editor.discard_question")}</p>
-              <div className="flex gap-[8px]">
-                <button type="button" onClick={() => setConfirm(null)} className="btn-secondary flex-1 sm:flex-none">
-                  {t("editor.keep_editing")}
-                </button>
-                <button type="button" onClick={() => onOpenChange(false)} className="btn flex-1 !bg-terracotta sm:flex-none">
-                  {t("editor.discard")}
-                </button>
-              </div>
-            </div>
-          ) : confirm === "delete" ? (
-            <div className="flex flex-col gap-[12px] sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-[13px] text-ink">{t("delete_product_title")}</p>
-              <div className="flex gap-[8px]">
-                <button type="button" onClick={() => setConfirm(null)} disabled={saving} className="btn-secondary flex-1 sm:flex-none">
-                  {t("common.cancel")}
-                </button>
-                <button type="button" onClick={remove} disabled={saving} className="btn flex-1 !bg-terracotta sm:flex-none">
-                  {saving && <Loader2 className="h-[16px] w-[16px] animate-spin" />}
-                  {t("confirm_delete")}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-[8px]">
-              {isEdit && (
-                <button
-                  type="button"
-                  onClick={() => setConfirm("delete")}
-                  disabled={saving}
-                  className="mr-auto flex h-[44px] items-center gap-[8px] px-[10px] text-[13px] text-terracotta hover:bg-terracotta/10 disabled:opacity-40"
-                >
-                  <Trash2 className="h-[16px] w-[16px]" strokeWidth={1.5} />
-                  <span className="hidden sm:inline">{t("confirm_delete")}</span>
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => requestClose(false)}
-                disabled={saving}
-                className={`btn-secondary ${isEdit ? "" : "ml-auto"}`}
-              >
-                {t("common.cancel")}
-              </button>
-              <button type="button" onClick={save} disabled={saving} className="btn min-w-[140px]">
-                {saving && <Loader2 className="h-[16px] w-[16px] animate-spin" />}
-                {saving
-                  ? progress !== null && progress < 100
-                    ? t("editor.uploading", { pct: progress })
-                    : t("editor.saving")
-                  : isEdit
-                  ? t("common.save")
-                  : t("editor.create")}
-              </button>
-            </div>
+        <div className="flex shrink-0 items-center gap-[8px] border-t border-ink/10 bg-white px-[16px] py-[12px] sm:px-[24px]">
+          {isEdit && (
+            <button
+              type="button"
+              onClick={() => setConfirm("delete")}
+              disabled={saving}
+              className="btn-ghost btn-danger-text mr-auto"
+            >
+              <Trash2 aria-hidden className="h-[16px] w-[16px]" strokeWidth={1.5} />
+              <span className="hidden sm:inline">{t("editor.delete")}</span>
+              <span className="sr-only sm:hidden">{t("editor.delete")}</span>
+            </button>
           )}
+          {dirty && !saving && <span className="hidden text-[13px] text-taupe md:inline">{t("editor.unsaved")}</span>}
+          <button
+            type="button"
+            onClick={() => requestClose(false)}
+            disabled={saving}
+            className={`btn-secondary ${isEdit ? "" : "ml-auto"}`}
+          >
+            {t("common.cancel")}
+          </button>
+          <button type="button" onClick={save} disabled={saving} className="btn min-w-[140px]">
+            {saving && <Loader2 aria-hidden className="h-[16px] w-[16px] animate-spin" />}
+            {saving
+              ? progress !== null && progress < 100
+                ? t("editor.uploading", { pct: progress })
+                : t("editor.saving")
+              : isEdit
+              ? t("editor.save")
+              : t("editor.create")}
+          </button>
         </div>
+
+        <ConfirmDialog
+          open={confirm === "discard"}
+          onOpenChange={(next) => !next && setConfirm(null)}
+          title={t("editor.discard.title")}
+          description={t("editor.discard.body")}
+          confirmLabel={t("editor.discard.confirm")}
+          cancelLabel={t("editor.discard.keep")}
+          tone="danger"
+          onConfirm={() => {
+            setConfirm(null);
+            onOpenChange(false);
+          }}
+        />
+        <ConfirmDialog
+          open={confirm === "delete"}
+          onOpenChange={(next) => !next && setConfirm(null)}
+          title={t("editor.delete_confirm.title", { name: product?.productName ?? "" })}
+          description={t("editor.delete_confirm.body")}
+          confirmLabel={t("editor.delete_confirm.confirm")}
+          tone="danger"
+          busy={saving}
+          onConfirm={() => void remove()}
+        />
       </SheetContent>
     </Sheet>
   );

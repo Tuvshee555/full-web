@@ -146,21 +146,94 @@
     @apply inline-block text-[11px] font-medium uppercase text-taupe;
     letter-spacing: 0.18em;
   }
+  /* One button family for every admin screen: primary, secondary, quiet, danger. */
+  .btn,
+  .btn-secondary,
+  .btn-ghost,
+  .btn-danger {
+    @apply inline-flex min-h-[44px] items-center justify-center gap-[8px] whitespace-nowrap px-[18px] text-[14px] font-medium
+      transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40;
+  }
   .btn {
-    @apply inline-flex items-center justify-center gap-[10px] min-h-[44px] px-[22px] text-[14px] font-medium
-      bg-ink text-paper transition-[background-color,transform] duration-500 ease-silk active:scale-[0.985]
-      disabled:opacity-40 disabled:cursor-not-allowed;
+    @apply bg-ink text-paper;
   }
   .btn:not(:disabled):hover {
     background: #3a2f28;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-[10px] min-h-[44px] px-[22px] text-[14px] font-medium
-      bg-transparent text-ink transition-colors duration-500 ease-silk disabled:opacity-40;
-    box-shadow: inset 0 0 0 1px rgba(28, 23, 20, 0.3);
+    @apply bg-white text-ink;
+    box-shadow: inset 0 0 0 1px rgba(28, 23, 20, 0.25);
   }
   .btn-secondary:not(:disabled):hover {
-    @apply bg-ink text-paper;
+    @apply bg-sand;
+    box-shadow: inset 0 0 0 1px rgba(28, 23, 20, 0.5);
+  }
+  .btn-ghost {
+    @apply bg-transparent px-[12px] text-ink;
+  }
+  .btn-ghost:not(:disabled):hover {
+    @apply bg-sand;
+  }
+  .btn-danger {
+    @apply bg-terracotta text-paper;
+  }
+  .btn-danger:not(:disabled):hover {
+    background: #8f3a27;
+  }
+  .btn-sm {
+    @apply min-h-[36px] px-[12px] text-[13px];
+  }
+  .btn-danger-text {
+    @apply text-terracotta;
+  }
+  .btn-danger-text:not(:disabled):hover {
+    @apply bg-terracotta/10;
+  }
+  /* Touch screens keep every control at least 44px tall. */
+  @media (pointer: coarse) {
+    .btn-sm {
+      min-height: 44px;
+    }
+  }
+
+  /* Form controls */
+  .field {
+    @apply h-[44px] w-full min-w-0 border border-ink/20 bg-white px-[12px] text-[14px] text-ink outline-none transition-colors
+      placeholder:text-ink/50 focus:border-ink focus:ring-1 focus:ring-ink disabled:cursor-not-allowed disabled:bg-paper disabled:text-taupe;
+  }
+  .field[aria-invalid="true"] {
+    @apply border-terracotta focus:ring-terracotta;
+  }
+  textarea.field {
+    @apply h-auto py-[10px] leading-relaxed;
+  }
+  select.field {
+    @apply cursor-pointer pr-[32px];
+  }
+  .admin-label {
+    @apply mb-[6px] block text-[13px] font-medium text-ink;
+  }
+  .admin-hint {
+    @apply mt-[6px] text-[12px] leading-relaxed text-taupe;
+  }
+  .admin-error {
+    @apply mt-[6px] text-[12px] font-medium text-terracotta;
+  }
+  .admin-th {
+    @apply px-[12px] py-[10px] text-left text-[12px] font-medium text-taupe;
+  }
+  .admin-td {
+    @apply px-[12px] py-[12px] align-middle;
+  }
+}
+
+/* Phones: leave room for the bottom tab bar under fixed or sticky bars. */
+.admin-body {
+  --admin-tabbar: 0px;
+}
+@media (max-width: 1023px) {
+  .admin-body {
+    --admin-tabbar: calc(60px + env(safe-area-inset-bottom));
   }
 }
 

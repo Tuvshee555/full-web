@@ -34,7 +34,9 @@ export async function sendTelegramMessage(text) {
 }
 
 const tg = (n) => `${Math.round(Number(n || 0)).toLocaleString("en-US")}₮`;
-const adminOrdersUrl = () => `${siteUrl().replace(/\/$/, "")}/admin/mn/home-page?view=orders`;
+// Opens the admin straight on this order (the orders page shows it in its details panel).
+const adminOrdersUrl = (order) =>
+  `${siteUrl().replace(/\/$/, "")}/admin/mn/home-page?view=orders${order?.id ? `&order=${encodeURIComponent(order.id)}` : ""}`;
 const unitPriceOf = (it) => Number(it.unitPrice ?? it.product?.price ?? 0);
 
 /** Owner alert for a new order: what to pack, what was paid, where it goes. */
@@ -67,7 +69,7 @@ export function formatOrderMessage(order) {
     `📍 ${address || "-"}`,
     ...(order.notes ? [`📝 ${order.notes}`] : []),
     "",
-    adminOrdersUrl(),
+    adminOrdersUrl(order),
   ].join("\n");
 }
 
@@ -81,7 +83,7 @@ export function formatBankTransferNotice(order) {
     `👤 ${name || "-"} · 📞 ${order.phone || "-"}`,
     "",
     "Банкаа шалгаад төлбөр орсон бол захиалгыг «Төлөгдсөн» болгоно уу:",
-    adminOrdersUrl(),
+    adminOrdersUrl(order),
   ].join("\n");
 }
 
@@ -96,6 +98,6 @@ export function formatOrderStatusMessage(order, oldStatus, newStatus) {
     `Нийт: ${tg(order.totalPrice)} · ${PAYMENT_MN[order.paymentMethod] ?? order.paymentMethod ?? "-"}`,
     `👤 ${name || "-"} · 📞 ${order.phone || "-"}`,
     "",
-    adminOrdersUrl(),
+    adminOrdersUrl(order),
   ].join("\n");
 }

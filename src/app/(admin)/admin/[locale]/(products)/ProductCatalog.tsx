@@ -1,22 +1,32 @@
 "use client";
 
-import { API_BASE_URL } from "@admin/lib/api";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import axios from "axios";
 import { toast } from "sonner";
-import { FolderTree, Plus, Search, X } from "lucide-react";
+import { FolderTree, PackagePlus, PackageSearch, Plus, Star, StarOff, Trash2 } from "lucide-react";
 
-import { ALL, CategoryTree } from "./_components/categoryTree/CategoryTree";
-import { ProductList } from "./_components/ProductList";
-import { CategoryOption, ProductEditor } from "./_components/editor/ProductEditor";
-import CategoryMobileSheet from "./_components/components/CategoryMobileSheet";
+import { api } from "@admin/lib/api";
+import { useAdminNav } from "@admin/lib/adminNav";
 import { ProductType } from "@admin/type/type";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
-import { useAuth } from "@admin/provider/AuthProvider";
 import { CategoryNode } from "@admin/utils/categoryUtils";
-import { Skeleton } from "@admin/components/ui/skeleton";
+import { StockState, needsRestock, stockSummary } from "@admin/utils/inventory";
+import { PageHeader } from "@admin/components/ui/page";
+import { BulkBar, Pagination, SearchInput, bulkButton } from "@admin/components/ui/controls";
+import { EmptyState, ErrorState, LoadingRows } from "@admin/components/ui/feedback";
+import { ConfirmDialog } from "@admin/components/ui/confirm-dialog";
+import { ProductList } from "./_components/ProductList";
+import { CategoryManager } from "./_components/CategoryManager";
+import { CategoryOption, ProductEditor } from "./_components/editor/ProductEditor";
 
-type Sort = "newest" | "name" | "price_low" | "price_high";
+type Sort = "newest" | "name" | "price_low" | "price_high" | "stock";
+type StockFilter = "all" | "restock" | "soldout" | "in_stock" | "untracked";
+const STOCK_FILTERS: StockFilter[] = ["all", "restock", "soldout", "in_stock", "untracked"];
+const ALL = "all";
+/** Products whose category was deleted. */
+const NONE = "none";
+const PAGE_SIZE = 25;
 
 /** Category ids under (and including) each node, for "parent shows children's products". */
 function descendantsMap(tree: CategoryNode[]) {
@@ -38,72 +48,95 @@ function flattenWithDepth(tree: CategoryNode[], depth = 0): CategoryOption[] {
 }
 
 const time = (f: ProductType & { createdAt?: string }) => new Date(f.createdAt ?? 0).getTime();
+const matchesStock = (state: StockState, filter: StockFilter) =>
+  filter === "all" ||
+  (filter === "restock" && (state === "low" || state === "partial" || state === "soldout")) ||
+  (filter === "soldout" && state === "soldout") ||
+  (filter === "in_stock" && state === "ok") ||
+  (filter === "untracked" && state === "untracked");
 
 export const ProductCatalog = () => {
   const { t } = useI18n();
-  const { token } = useAuth();
+  const { setParams } = useAdminNav();
+  const searchParams = useSearchParams();
+  const linkedProduct = searchParams?.get("product") ?? null;
+  const stockParam = searchParams?.get("stock") as StockFilter | null;
 
   const [loadingCats, setLoadingCats] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [tree, setTree] = useState<CategoryNode[]>([]);
   const [products, setProducts] = useState<ProductType[]>([]);
-  const [selected, setSelected] = useState<string>(ALL);
-  const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<Sort>("newest");
-  const [availability, setAvailability] = useState("all");
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [editor, setEditor] = useState<{ open: boolean; product: ProductType | null }>({ open: false, product: null });
   const [categoryError, setCategoryError] = useState(false);
   const [productError, setProductError] = useState(false);
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState<string>(ALL);
+  const [stock, setStock] = useState<StockFilter>(stockParam && STOCK_FILTERS.includes(stockParam) ? stockParam : "all");
+  const [sort, setSort] = useState<Sort>("newest");
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [editor, setEditor] = useState<{ open: boolean; product: ProductType | null }>({ open: false, product: null });
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [featuredBusy, setFeaturedBusy] = useState<string[]>([]);
+  const [bulk, setBulk] = useState<"move" | "delete" | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [moveTo, setMoveTo] = useState("");
   const featuredRequests = useRef(new Set<string>());
 
   const reloadCategories = useCallback(async () => {
     try {
       setLoadingCats(true);
-      const res = await axios.get(`${API_BASE_URL}/category/tree`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get("/category/tree");
       setTree(Array.isArray(res.data) ? res.data : []);
       setCategoryError(false);
     } catch {
       setCategoryError(true);
-      toast.error(t("error_loading"));
     } finally {
       setLoadingCats(false);
     }
-  }, [token, t]);
+  }, []);
 
   const reloadProducts = useCallback(async () => {
     try {
       setLoadingProducts(true);
-      const res = await axios.get(`${API_BASE_URL}/products/admin/inventory`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get("/products/admin/inventory");
       setProducts(Array.isArray(res.data) ? res.data : []);
       setProductError(false);
     } catch {
       setProductError(true);
-      toast.error(t("editor.load_failed"));
     } finally {
       setLoadingProducts(false);
     }
-  }, [token, t]);
+  }, []);
 
   useEffect(() => {
-    if (!token) return;
-    reloadCategories();
-    reloadProducts();
-  }, [token, reloadCategories, reloadProducts]);
+    void reloadCategories();
+    void reloadProducts();
+  }, [reloadCategories, reloadProducts]);
+
+  const reloadAll = () => {
+    void reloadProducts();
+    void reloadCategories();
+  };
 
   const options = useMemo(() => flattenWithDepth(tree), [tree]);
   const descendants = useMemo(() => descendantsMap(tree), [tree]);
   const nameById = useMemo(() => new Map(options.map((o) => [o.id, o.name])), [options]);
+  const known = useCallback((id?: string | null) => Boolean(id && nameById.has(id)), [nameById]);
+  const uncategorized = useMemo(() => (loadingCats ? 0 : products.filter((p) => !known(p.categoryId)).length), [products, known, loadingCats]);
 
   // If the selected category was deleted, fall back to "all"
   useEffect(() => {
-    if (selected !== ALL && !loadingCats && !nameById.has(selected)) setSelected(ALL);
-  }, [selected, loadingCats, nameById]);
+    if (category !== ALL && category !== NONE && !loadingCats && !nameById.has(category)) setCategory(ALL);
+  }, [category, loadingCats, nameById]);
+
+  // A link from elsewhere (overview stock alerts) opens that product's editor once the list is in
+  useEffect(() => {
+    if (!linkedProduct || loadingProducts) return;
+    const product = products.find((p) => String(p.id) === linkedProduct);
+    if (product) setEditor({ open: true, product });
+    else if (!productError) toast.error(t("products.errors.not_found"));
+    setParams({ product: null });
+  }, [linkedProduct, loadingProducts, products, productError, setParams, t]);
 
   const counts = useMemo(() => {
     const direct = new Map<string, number>();
@@ -112,218 +145,273 @@ export const ProductCatalog = () => {
     descendants.forEach((ids, id) => {
       out[id] = ids.reduce((s, x) => s + (direct.get(x) ?? 0), 0);
     });
-    return out;
+    return { all: out, direct: Object.fromEntries(direct) as Record<string, number> };
   }, [products, descendants]);
 
+  const withStock = useMemo(() => products.map((p) => ({ product: p, stock: stockSummary(p.sizes) })), [products]);
+  const restockCount = withStock.filter((x) => needsRestock(x.stock)).length;
+
   const visible = useMemo(() => {
-    const inCat = selected === ALL ? null : new Set(descendants.get(selected) ?? [selected]);
-    const q = query.trim().toLowerCase();
-    const list = products.filter(
-      (f) => (!inCat || inCat.has(f.categoryId)) && (!q || `${f.productName} ${f.ingredients}`.toLowerCase().includes(q)) && (availability === "all" || (availability === "available" ? f.stockLevel !== "soldout" : f.stockLevel === availability))
+    const inCat = category === ALL || category === NONE ? null : new Set(descendants.get(category) ?? [category]);
+    const q = query.trim().toLocaleLowerCase();
+    const list = withStock.filter(({ product: f, stock: s }) =>
+      (category === ALL || (category === NONE ? !known(f.categoryId) : inCat!.has(f.categoryId))) &&
+      (!q || `${f.productName} ${f.ingredients} ${nameById.get(f.categoryId) ?? ""}`.toLocaleLowerCase().includes(q)) &&
+      matchesStock(s.state, stock)
     );
-    const by: Record<Sort, (a: ProductType, b: ProductType) => number> = {
-      newest: (a, b) => time(b) - time(a),
-      name: (a, b) => a.productName.localeCompare(b.productName),
-      price_low: (a, b) => Number(a.price) - Number(b.price),
-      price_high: (a, b) => Number(b.price) - Number(a.price),
+    const stockRank = (x: (typeof list)[number]) => (x.stock.state === "untracked" ? Number.MAX_SAFE_INTEGER : x.stock.total);
+    const by: Record<Sort, (a: (typeof list)[number], b: (typeof list)[number]) => number> = {
+      newest: (a, b) => time(b.product) - time(a.product),
+      name: (a, b) => a.product.productName.localeCompare(b.product.productName),
+      price_low: (a, b) => Number(a.product.price) - Number(b.product.price),
+      price_high: (a, b) => Number(b.product.price) - Number(a.product.price),
+      stock: (a, b) => stockRank(a) - stockRank(b),
     };
-    return [...list].sort(by[sort]);
-  }, [products, selected, descendants, query, sort, availability]);
+    return [...list].sort(by[sort]).map((x) => x.product);
+  }, [withStock, category, descendants, query, sort, stock, known, nameById]);
+
+  // Filters change the list: start again at page 1 with nothing selected
+  useEffect(() => {
+    setPage(1);
+    setSelected(new Set());
+  }, [category, query, stock, sort]);
+  const pageItems = visible.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const filtered = category !== ALL || stock !== "all" || query.trim() !== "";
+
+  const changeStock = (value: StockFilter) => {
+    setStock(value);
+    setParams({ stock: value === "all" ? null : value });
+  };
+  const clearFilters = () => {
+    setQuery("");
+    setCategory(ALL);
+    changeStock("all");
+  };
 
   const toggleFeatured = async (product: ProductType) => {
     const id = String(product.id);
-    if (!token || featuredRequests.current.has(id)) return;
+    if (featuredRequests.current.has(id)) return;
     featuredRequests.current.add(id);
     setFeaturedBusy((items) => [...items, id]);
     const next = !product.isFeatured;
     setProducts((prev) => prev.map((f) => (f.id === product.id ? { ...f, isFeatured: next } : f)));
     try {
-      await axios.put(
-        `${API_BASE_URL}/products/${String(product.id)}`,
-        { isFeatured: next },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      toast.success(next ? t("editor.featured_on") : t("editor.featured_off"));
+      await api.put(`/products/${id}`, { isFeatured: next });
+      toast.success(t(next ? "products.toast.featured" : "products.toast.unfeatured", { name: product.productName }));
     } catch {
       setProducts((prev) => prev.map((f) => (f.id === product.id ? { ...f, isFeatured: !next } : f)));
-      toast.error(t("update_failed"));
+      toast.error(t("products.errors.update_failed"));
     } finally {
       featuredRequests.current.delete(id);
       setFeaturedBusy((items) => items.filter((item) => item !== id));
     }
   };
 
-  const selectedName = selected === ALL ? t("editor.all_products") : nameById.get(selected) ?? "";
-  const loading = loadingProducts || loadingCats;
-
-  const treeProps = {
-    tree,
-    loading: loadingCats,
-    counts,
-    totalCount: products.length,
-    selectedId: selected,
-    onChanged: () => {
-      reloadCategories();
-      reloadProducts();
-    },
+  // ----- Bulk actions: one request per product, then one summary message -----
+  const selectedProducts = products.filter((p) => selected.has(String(p.id)));
+  const runBulk = async (action: (p: ProductType) => Promise<unknown>, done: string, failedKey: string) => {
+    if (bulkBusy || !selectedProducts.length) return;
+    setBulkBusy(true);
+    let ok = 0;
+    const failed: string[] = [];
+    let ordered = 0;
+    for (const product of selectedProducts) {
+      try {
+        await action(product);
+        ok += 1;
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response?.status === 409) ordered += 1;
+        failed.push(product.productName);
+      }
+    }
+    if (ok) toast.success(t(done, { count: ok }));
+    if (failed.length) toast.error(t(ordered ? "products.bulk.failed_ordered" : failedKey, { count: failed.length, names: failed.join(", ") }));
+    setBulkBusy(false);
+    setBulk(null);
+    setSelected(new Set());
+    reloadAll();
   };
+  const setFeaturedMany = (on: boolean) =>
+    void runBulk((p) => api.put(`/products/${String(p.id)}`, { isFeatured: on }), on ? "products.bulk.featured_done" : "products.bulk.unfeatured_done", "products.bulk.failed");
+  const moveMany = () =>
+    moveTo && void runBulk((p) => api.put(`/products/${String(p.id)}`, { categoryId: moveTo }), "products.bulk.moved_done", "products.bulk.failed");
+  const deleteMany = () => void runBulk((p) => api.delete(`/products/${String(p.id)}`), "products.bulk.deleted_done", "products.bulk.failed");
+
+  const loading = loadingProducts || loadingCats;
+  const categoryLabel = (id?: string | null) => (id && nameById.get(id)) || t("products.no_category");
 
   return (
     <div className="w-full">
-      {/* Page header */}
-      <div className="mb-[24px] flex flex-wrap items-end justify-between gap-[16px]">
-        <div>
-          <h1 className="store-heading text-[36px] md:text-[44px]">{t("sidebar.product_catalog")}</h1>
-          <p className="mt-[6px] text-[13px] text-taupe">{t("editor.page_hint", { count: products.length })}</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setEditor({ open: true, product: null })}
-          className="btn w-full sm:w-auto"
-        >
-          <Plus className="h-[16px] w-[16px]" />
-          {t("product.add_modal.title")}
-        </button>
+      <PageHeader
+        title={t("products.title")}
+        description={loading ? t("common.loading") : t("products.description", { count: products.length, categories: options.length })}
+        actions={
+          <>
+            <button type="button" onClick={() => setCategoriesOpen(true)} className="btn-secondary">
+              <FolderTree aria-hidden className="h-[16px] w-[16px]" strokeWidth={1.6} />
+              {t("products.manage_categories")}
+            </button>
+            <button type="button" onClick={() => setEditor({ open: true, product: null })} className="btn">
+              <Plus aria-hidden className="h-[16px] w-[16px]" />
+              {t("products.add")}
+            </button>
+          </>
+        }
+      />
+
+      {/* Filters */}
+      <div className="mb-[12px] grid gap-[8px] sm:grid-cols-2 xl:grid-cols-[minmax(220px,1.4fr)_repeat(3,minmax(150px,1fr))]">
+        <SearchInput value={query} onChange={setQuery} placeholder={t("products.search")} className="sm:col-span-2 xl:col-span-1" />
+        <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label={t("products.filter.category")} className="field">
+          <option value={ALL}>{t("products.filter.all_categories", { count: products.length })}</option>
+          {uncategorized > 0 && <option value={NONE}>{t("products.filter.no_category", { count: uncategorized })}</option>}
+          {options.map((o) => (
+            <option key={o.id} value={o.id}>
+              {"   ".repeat(o.depth)}{o.name} ({counts.all[o.id] ?? 0})
+            </option>
+          ))}
+        </select>
+        <select value={stock} onChange={(e) => changeStock(e.target.value as StockFilter)} aria-label={t("products.filter.stock")} className="field">
+          {STOCK_FILTERS.map((value) => (
+            <option key={value} value={value}>
+              {t(`products.filter.stock_${value}`)}{value === "restock" ? ` (${restockCount})` : ""}
+            </option>
+          ))}
+        </select>
+        <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label={t("products.filter.sort")} className="field">
+          {(["newest", "name", "price_low", "price_high", "stock"] as Sort[]).map((value) => (
+            <option key={value} value={value}>{t(`products.sort.${value}`)}</option>
+          ))}
+        </select>
       </div>
 
-      <div className="xl:grid xl:grid-cols-[216px_minmax(0,1fr)] xl:gap-[24px]">
-        {/* Desktop categories */}
-        <aside className="hidden self-start border border-ink/10 bg-white p-[14px] xl:sticky xl:top-[28px] xl:block">
-          <CategoryTree {...treeProps} onSelect={setSelected} />
-        </aside>
-
-        <section className="min-w-0">
-          {/* Mobile: category picker + manage */}
-          <div className="mb-[12px] flex gap-[8px] xl:hidden">
-            <select
-              value={selected}
-              onChange={(e) => setSelected(e.target.value)}
-              className="h-[44px] min-w-0 flex-1 cursor-pointer border border-ink/20 bg-white px-[12px] text-[14px] text-ink"
-              aria-label={t("category.title")}
-            >
-              <option value={ALL}>
-                {t("editor.all_products")} ({products.length})
-              </option>
-              {options.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {"   ".repeat(o.depth)}
-                  {o.name} ({counts[o.id] ?? 0})
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={() => setSheetOpen(true)}
-              className="btn-secondary !px-[14px]"
-              aria-label={t("editor.manage_categories")}
-              title={t("editor.manage_categories")}
-            >
-              <FolderTree className="h-[17px] w-[17px]" strokeWidth={1.4} />
+      {!loading && (
+        <div className="mb-[10px] flex flex-wrap items-center justify-between gap-[8px]">
+          <p className="text-[13px] text-taupe" aria-live="polite">
+            {filtered ? t("products.showing_filtered", { count: visible.length, total: products.length }) : t("products.count", { count: products.length })}
+          </p>
+          {filtered && (
+            <button type="button" onClick={clearFilters} className="btn-ghost btn-sm">
+              {t("products.clear_filters")}
             </button>
-          </div>
-
-          {/* Toolbar */}
-          <div className="mb-[16px] grid gap-[8px] sm:grid-cols-2 2xl:grid-cols-[minmax(200px,1fr)_160px_180px]">
-            <div className="relative sm:col-span-2 2xl:col-span-1">
-              <Search className="pointer-events-none absolute left-[12px] top-1/2 h-[16px] w-[16px] -translate-y-1/2 text-taupe" strokeWidth={1.5} />
-              <input
-                type="search"
-                aria-label={t("editor.search_placeholder")}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={t("editor.search_placeholder")}
-                className="h-[44px] w-full border border-ink/20 bg-white pl-[38px] pr-[38px] text-[14px] text-ink outline-none placeholder:text-ink/60 focus:border-ink"
-              />
-              {query && (
-                <button
-                  type="button"
-                  onClick={() => setQuery("")}
-                  aria-label={t("clear")}
-                  className="absolute right-[6px] top-1/2 flex h-[32px] w-[32px] -translate-y-1/2 items-center justify-center text-taupe hover:text-ink"
-                >
-                  <X className="h-[15px] w-[15px]" />
-                </button>
-              )}
-            </div>
-            <select value={availability} onChange={(event) => setAvailability(event.target.value)} aria-label={t("editor.availability")} className="h-[44px] min-w-0 border border-ink/20 bg-white px-3 text-sm">
-              <option value="all">{t("editor.all_stock")}</option>
-              <option value="available">{t("editor.in_stock")}</option>
-              <option value="low">{t("overview.low_stock")}</option>
-              <option value="soldout">{t("overview.soldout")}</option>
-            </select>
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as Sort)}
-              className="h-[44px] min-w-0 cursor-pointer border border-ink/20 bg-white px-[12px] text-[14px] text-ink"
-              aria-label={t("editor.sort")}
-            >
-              <option value="newest">{t("editor.sort_newest")}</option>
-              <option value="name">{t("editor.sort_name")}</option>
-              <option value="price_low">{t("editor.sort_price_low")}</option>
-              <option value="price_high">{t("editor.sort_price_high")}</option>
-            </select>
-          </div>
-
-          <div className="mb-[10px] flex items-baseline justify-between gap-[12px]">
-            <h2 className="store-heading truncate text-[24px]">{selectedName}</h2>
-            <span className="shrink-0 text-[13px] text-taupe">{t("product_count", { count: visible.length })}</span>
-          </div>
-
-          {(productError || categoryError) && (
-            <div role="alert" className="mb-[12px] flex flex-wrap items-center justify-between gap-[12px] border border-terracotta/30 bg-white p-[14px]">
-              <p className="text-[13px] text-terracotta">{t(productError ? "editor.load_failed" : "error_loading")}</p>
-              <button type="button" className="btn-secondary !px-[14px]" onClick={() => { void reloadProducts(); void reloadCategories(); }} disabled={loading}>{t("retry")}</button>
-            </div>
           )}
+        </div>
+      )}
 
-          {loading ? (
-            <div className="space-y-[1px] border border-ink/10 bg-white">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="flex items-center gap-[14px] px-[16px] py-[10px]">
-                  <Skeleton className="h-[64px] w-[64px] rounded-none" />
-                  <div className="flex-1 space-y-[8px]">
-                    <Skeleton className="h-[14px] w-1/3 rounded-none" />
-                    <Skeleton className="h-[12px] w-1/2 rounded-none" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : productError && products.length === 0 ? null : (
-            <ProductList
-              products={visible}
-              showCategory={selected === ALL || (descendants.get(selected)?.length ?? 1) > 1}
-              categoryName={(id) => nameById.get(id) ?? "—"}
-              onEdit={(product) => setEditor({ open: true, product })}
-              onToggleFeatured={toggleFeatured}
-              busyFeatured={featuredBusy}
-              emptyText={query ? t("editor.no_search_results") : t("no_category_products")}
+      {(productError || categoryError) && (
+        <ErrorState className="mb-[12px]" message={t(productError ? "products.errors.load_failed" : "categories.load_failed")} onRetry={reloadAll} retrying={loading} />
+      )}
+
+      {loading ? (
+        <div className="admin-surface"><LoadingRows rows={6} rowClassName="h-[64px]" /></div>
+      ) : productError && products.length === 0 ? null : visible.length === 0 ? (
+        <div className="admin-surface">
+          {products.length === 0 ? (
+            <EmptyState
+              icon={PackagePlus}
+              title={t("products.empty.title")}
+              description={t("products.empty.body")}
+              action={<button type="button" className="btn" onClick={() => setEditor({ open: true, product: null })}><Plus aria-hidden className="h-[16px] w-[16px]" />{t("products.add")}</button>}
+            />
+          ) : (
+            <EmptyState
+              icon={PackageSearch}
+              title={t("products.no_match.title")}
+              description={t("products.no_match.body")}
+              action={<button type="button" className="btn-secondary" onClick={clearFilters}>{t("products.clear_filters")}</button>}
             />
           )}
-        </section>
-      </div>
-
-      <CategoryMobileSheet open={sheetOpen} onClose={() => setSheetOpen(false)}>
-        <div className="p-[16px]">
-          <CategoryTree
-            {...treeProps}
-            onSelect={(id) => {
-              setSelected(id);
-              setSheetOpen(false);
-            }}
-          />
         </div>
-      </CategoryMobileSheet>
+      ) : (
+        <div className="admin-surface">
+          <ProductList
+            products={pageItems}
+            categoryName={categoryLabel}
+            onEdit={(product) => setEditor({ open: true, product })}
+            onToggleFeatured={toggleFeatured}
+            busyFeatured={featuredBusy}
+            selected={selected}
+            onSelect={(id, on) => setSelected((prev) => { const next = new Set(prev); if (on) next.add(id); else next.delete(id); return next; })}
+            onSelectAll={(on) => setSelected(on ? new Set(pageItems.map((p) => String(p.id))) : new Set())}
+          />
+          <Pagination page={page} pageSize={PAGE_SIZE} total={visible.length} onPage={(p) => { setPage(p); window.scrollTo({ top: 0 }); }} />
+        </div>
+      )}
+
+      <BulkBar count={selectedProducts.length} onClear={() => setSelected(new Set())}>
+        <button type="button" className={bulkButton} disabled={bulkBusy} onClick={() => setFeaturedMany(true)}>
+          <Star aria-hidden className="h-[14px] w-[14px]" strokeWidth={1.6} />
+          {t("products.bulk.feature")}
+        </button>
+        <button type="button" className={bulkButton} disabled={bulkBusy} onClick={() => setFeaturedMany(false)}>
+          <StarOff aria-hidden className="h-[14px] w-[14px]" strokeWidth={1.6} />
+          {t("products.bulk.unfeature")}
+        </button>
+        <button type="button" className={bulkButton} disabled={bulkBusy || !options.length} onClick={() => { setMoveTo(""); setBulk("move"); }}>
+          <FolderTree aria-hidden className="h-[14px] w-[14px]" strokeWidth={1.6} />
+          {t("products.bulk.move")}
+        </button>
+        <button type="button" className={`${bulkButton} !text-terracotta`} disabled={bulkBusy} onClick={() => setBulk("delete")}>
+          <Trash2 aria-hidden className="h-[14px] w-[14px]" strokeWidth={1.6} />
+          {t("products.bulk.delete")}
+        </button>
+      </BulkBar>
+
+      <ConfirmDialog
+        open={bulk === "move"}
+        onOpenChange={(open) => !open && setBulk(null)}
+        title={t("products.bulk.move_title", { count: selectedProducts.length })}
+        description={t("products.bulk.move_body")}
+        confirmLabel={t("products.bulk.move_confirm")}
+        busy={bulkBusy}
+        confirmDisabled={!moveTo}
+        onConfirm={moveMany}
+      >
+        <div>
+          <label htmlFor="bulk-move" className="admin-label">{t("editor.category")}</label>
+          <select id="bulk-move" value={moveTo} onChange={(e) => setMoveTo(e.target.value)} className="field">
+            <option value="" disabled>{t("editor.category_placeholder")}</option>
+            {options.map((o) => (
+              <option key={o.id} value={o.id}>{"   ".repeat(o.depth)}{o.name}</option>
+            ))}
+          </select>
+          {!moveTo && <p className="admin-hint">{t("products.bulk.move_pick")}</p>}
+        </div>
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={bulk === "delete"}
+        onOpenChange={(open) => !open && setBulk(null)}
+        tone="danger"
+        title={t("products.bulk.delete_title", { count: selectedProducts.length })}
+        description={t("products.bulk.delete_body")}
+        confirmLabel={t("products.bulk.delete_confirm", { count: selectedProducts.length })}
+        busy={bulkBusy}
+        onConfirm={deleteMany}
+      >
+        <ul className="max-h-[160px] list-disc overflow-y-auto pl-[20px] text-[14px] text-ink">
+          {selectedProducts.map((p) => <li key={String(p.id)}>{p.productName}</li>)}
+        </ul>
+      </ConfirmDialog>
+
+      <CategoryManager
+        open={categoriesOpen}
+        onOpenChange={setCategoriesOpen}
+        tree={tree}
+        loading={loadingCats}
+        error={categoryError}
+        onRetry={() => void reloadCategories()}
+        counts={counts.direct}
+        onChanged={reloadAll}
+      />
 
       <ProductEditor
         open={editor.open}
         onOpenChange={(open) => setEditor((e) => ({ ...e, open }))}
         product={editor.product}
         categories={options}
-        defaultCategoryId={selected === ALL ? null : selected}
-        onSaved={() => {
-          reloadProducts();
-          reloadCategories();
-        }}
+        defaultCategoryId={category === ALL || category === NONE ? null : category}
+        onSaved={reloadAll}
       />
     </div>
   );

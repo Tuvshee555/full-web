@@ -1,14 +1,12 @@
 import type { ChatMessage } from "@/components/chatbot/ChatThread";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
-import { formatDateTime } from "@admin/utils/format";
-import { useSupportCopy } from "./supportCopy";
+import { formatWhen } from "@admin/utils/format";
 
 export function ConversationTranscript({
   messages,
 }: {
   messages: ChatMessage[];
 }) {
-  const copy = useSupportCopy();
   const { t } = useI18n();
   return (
     <div
@@ -19,11 +17,12 @@ export function ConversationTranscript({
     >
       {!messages.length && (
         <p className="py-8 text-center text-sm text-taupe">
-          {copy.threadEmpty}
+          {t("chat.thread.empty")}
         </p>
       )}
       {messages.map((message) => {
         const customer = message.role === "customer";
+        const status = message.deliveryStatus;
         return (
           <article
             key={message.id}
@@ -32,11 +31,13 @@ export function ConversationTranscript({
             <p
               className={`mb-1.5 text-xs font-medium text-taupe ${customer ? "" : "text-right"}`}
             >
-              {customer
-                ? copy.customer
-                : message.role === "human"
-                  ? copy.staff
-                  : copy.assistant}
+              {t(
+                customer
+                  ? "chat.role.customer"
+                  : message.role === "human"
+                    ? "chat.role.staff"
+                    : "chat.role.assistant",
+              )}
             </p>
             <div
               className={`whitespace-pre-wrap break-words border px-4 py-3 text-sm leading-relaxed ${customer ? "border-ink/15 bg-white" : message.role === "human" ? "border-espresso bg-espresso text-paper" : "border-ink/10 bg-sand"}`}
@@ -62,22 +63,20 @@ export function ConversationTranscript({
             >
               {message.createdAt && (
                 <time dateTime={message.createdAt}>
-                  {formatDateTime(message.createdAt)}
+                  {formatWhen(message.createdAt, { today: t("common.today"), yesterday: t("common.yesterday") })}
                 </time>
               )}
-              {!customer &&
-                message.deliveryStatus &&
-                message.deliveryStatus !== "local" && (
-                  <span
-                    className={
-                      message.deliveryStatus === "failed"
-                        ? "text-terracotta"
-                        : ""
-                    }
-                  >
-                    {t(`chatbot.delivery_${message.deliveryStatus}`)}
-                  </span>
-                )}
+              {!customer && status && status !== "local" && (
+                <span
+                  className={
+                    status === "failed" || status === "suppressed" || status === "uncertain"
+                      ? "font-medium text-terracotta"
+                      : ""
+                  }
+                >
+                  · {t(`chat.delivery.${status}`)}
+                </span>
+              )}
             </div>
           </article>
         );

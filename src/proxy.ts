@@ -39,7 +39,8 @@ function adminProxy(request: NextRequest, pathname: string) {
   if (!token) {
     const locale = rest.match(LOCALE_RE)?.[1] ?? DEFAULT_LOCALE;
     const loginUrl = new URL(`/admin/${locale}/log-in`, request.url);
-    loginUrl.searchParams.set("from", pathname);
+    // Keep the query too, so a link to one order still opens that order after signing in.
+    loginUrl.searchParams.set("from", `${pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(loginUrl);
   }
 

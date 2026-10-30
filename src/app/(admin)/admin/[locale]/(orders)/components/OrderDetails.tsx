@@ -2,255 +2,343 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Loader2, Phone } from "lucide-react";
+import { Check, Copy, Loader2, MapPin, Phone, StickyNote, X } from "lucide-react";
 import { normalizeDelivery } from "@admin/utils/normalizeDelivery";
-import { formatDateTime, formatMNT } from "@admin/utils/format";
-import { OrderStatus, PLACEHOLDER, RawOrder, STATUS_BADGE, STATUS_FLOW, primaryNext } from "./type";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@admin/components/ui/dialog";
+import { formatDateTime, formatMNT, isGuestEmail } from "@admin/utils/format";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@admin/components/ui/sheet";
+import { StatusPill } from "@admin/components/ui/status";
+import { ConfirmDialog } from "@admin/components/ui/confirm-dialog";
+import { ErrorState, LoadingRows, Notice } from "@admin/components/ui/feedback";
+import { cn } from "@admin/lib/utils";
+import {
+  OrderStatus,
+  PLACEHOLDER,
+  RawOrder,
+  STATUS_FLOW,
+  nextStepKey,
+  orderNumber,
+  orderSteps,
+  orderTone,
+  paymentDisplay,
+  primaryNext,
+} from "./type";
 
 type T = (key: string, params?: Record<string, string | number>) => string;
 
-export function StatusBadge({ status, t }: { status: OrderStatus; t: T }) {
-  return (
-    <span className={`inline-flex whitespace-nowrap px-[10px] py-[3px] text-[12px] font-medium ${STATUS_BADGE[status]}`}>
-      {t(`order_status.${status}`)}
-    </span>
-  );
+export function OrderStatusPill({ order, t }: { order: RawOrder; t: T }) {
+  const status = (order.status ?? "PENDING") as OrderStatus;
+  return <StatusPill tone={orderTone(order)}>{t(`order_status.${status}`)}</StatusPill>;
 }
 
-export function PaymentBadge({ status, t }: { status?: RawOrder["paymentStatus"]; t: T }) {
-  return <span className={`inline-flex whitespace-nowrap px-[9px] py-[3px] text-[12px] font-medium ${status === "PAID" ? "bg-[#5b6b4b]/15 text-[#44523a]" : status === "REVIEW" || status === "REFUNDED" ? "bg-terracotta/10 text-terracotta" : "bg-sand text-taupe"}`}>{t(`payment_state.${status ?? "UNKNOWN"}`)}</span>;
+export function PaymentPill({ order, t }: { order: RawOrder; t: T }) {
+  const { tone, key } = paymentDisplay(order);
+  return <StatusPill tone={tone} icon={null}>{t(`payment_state.${key}`)}</StatusPill>;
 }
 
-/** Primary "next step" button for an order, e.g. "Хүргэлтэнд гаргах". */
+export const customerName = (order: RawOrder, t: T) => {
+  const d = normalizeDelivery(order);
+  const name = [d?.lastName, d?.firstName].filter(Boolean).join(" ");
+  if (name) return name;
+  return isGuestEmail(order.user?.email) ? t("orders.guest") : order.user?.email ?? t("orders.guest");
+};
+
+export const addressLine = (order: RawOrder, t: T) => {
+  const d = normalizeDelivery(order);
+  return [d?.city, d?.district, d?.khoroo && t("orders.khoroo_n", { n: d.khoroo }), d?.address].filter(Boolean).join(", ");
+};
+
+/** Everything a courier needs, ready to paste into a chat. */
+export const courierText = (order: RawOrder, t: T) => {
+  const d = normalizeDelivery(order);
+  const collect = order.paymentMethod === "COD" && order.paymentStatus !== "PAID";
+  return [
+    `#${orderNumber(order)}`,
+    customerName(order, t),
+    d?.phone,
+    addressLine(order, t),
+    d?.notes,
+    collect ? t("orders.courier_collect", { amount: formatMNT(order.totalPrice) }) : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+};
+
+/** The order's main next step as one button. Bank payments ask for confirmation first. */
 export function NextStepButton({
   order,
   t,
   busy,
   onChange,
   className = "",
+  size = "sm",
 }: {
   order: RawOrder;
   t: T;
   busy: boolean;
   onChange: (next: OrderStatus) => void;
   className?: string;
+  size?: "sm" | "md";
 }) {
   const [confirmPayment, setConfirmPayment] = useState(false);
   const status = (order.status ?? "PENDING") as OrderStatus;
   const next = primaryNext(status, order.paymentMethod);
   if (!next) return null;
   return (
-    <><button
-      type="button"
-      disabled={busy}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (next === "PAID") { setConfirmPayment(true); return; }
-        onChange(next);
-      }}
-      className={`inline-flex min-h-[44px] items-center justify-center gap-[6px] whitespace-nowrap bg-ink px-[14px] text-[13px] font-medium text-paper transition-colors hover:bg-[#3a2f28] disabled:opacity-50 ${className}`}
-    >
-      {busy && <Loader2 className="h-[14px] w-[14px] animate-spin" />}
-      {t(`order_action.${next}`)}
-    </button>
-    <Dialog open={confirmPayment} onOpenChange={(open) => { if (!busy) setConfirmPayment(open); }}>
-      <DialogContent className="max-w-[calc(100vw-32px)] sm:max-w-[460px]">
-        <DialogHeader><DialogTitle>{t("orders_ui.confirm_bank_title")}</DialogTitle><DialogDescription>{t("orders_ui.confirm_bank_body", { order: order.orderNumber ?? order.id.slice(0, 8), amount: formatMNT(order.totalPrice) })}</DialogDescription></DialogHeader>
-        <DialogFooter><button type="button" className="btn-secondary" disabled={busy} onClick={() => setConfirmPayment(false)}>{t("common.cancel")}</button><button type="button" className="btn" disabled={busy} onClick={() => { onChange(next); setConfirmPayment(false); }}>{t("order_action.PAID")}</button></DialogFooter>
-      </DialogContent>
-    </Dialog></>
+    <>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (next === "PAID") {
+            setConfirmPayment(true);
+            return;
+          }
+          onChange(next);
+        }}
+        className={cn("btn", size === "sm" && "btn-sm", className)}
+      >
+        {busy && <Loader2 aria-hidden className="h-[14px] w-[14px] animate-spin" />}
+        {t(`order_action.${next}`)}
+      </button>
+      <ConfirmDialog
+        open={confirmPayment}
+        onOpenChange={setConfirmPayment}
+        title={t("orders.confirm_bank.title")}
+        description={t("orders.confirm_bank.body", { order: orderNumber(order), amount: formatMNT(order.totalPrice) })}
+        confirmLabel={t("orders.confirm_bank.confirm")}
+        busy={busy}
+        onConfirm={() => {
+          onChange(next);
+          setConfirmPayment(false);
+        }}
+      />
+    </>
   );
 }
 
-type Props = {
-  order: RawOrder;
+function Steps({ order, t }: { order: RawOrder; t: T }) {
+  const steps = orderSteps(order);
+  return (
+    <ol className="grid grid-cols-4 gap-[6px]" aria-label={t("orders.drawer.progress")}>
+      {steps.map((step) => (
+        <li key={step.key} className="min-w-0" aria-current={step.state === "current" ? "step" : undefined}>
+          <span className={cn("block h-[3px]", step.state === "done" ? "bg-ink" : step.state === "current" ? "bg-ink/40" : "bg-ink/10")} />
+          <span className={cn("mt-[6px] flex items-center gap-[4px] text-[12px] leading-tight", step.state === "todo" ? "text-taupe" : "text-ink", step.state === "current" && "font-medium")}>
+            {step.state === "done" && <Check aria-hidden className="h-[12px] w-[12px] shrink-0" strokeWidth={2.5} />}
+            <span className="min-w-0">{t(`orders.steps.${step.key}`)}</span>
+            <span className="sr-only">({t(`orders.steps.state_${step.state}`)})</span>
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+const sectionTitle = "mb-[10px] text-[13px] font-semibold text-ink";
+
+type DrawerProps = {
+  open: boolean;
+  onClose: () => void;
+  order: RawOrder | null;
+  loading: boolean;
+  error: boolean;
+  onRetry: () => void;
   t: T;
   busy: boolean;
-  copy: (value: string) => void;
-  onChange: (next: OrderStatus) => void;
+  copy: (value: string, done?: string) => void;
+  onChange: (order: RawOrder, next: OrderStatus) => void;
 };
 
-export function OrderDetails({ order, t, busy, copy, onChange }: Props) {
+/** All details of one order, and what to do with it next. Full screen on a phone. */
+export function OrderDrawer({ open, onClose, order, loading, error, onRetry, t, busy, copy, onChange }: DrawerProps) {
   const [confirmCancel, setConfirmCancel] = useState(false);
-  const status = (order.status ?? "PENDING") as OrderStatus;
-  const items = order.orderItems ?? order.items ?? [];
-  const d = normalizeDelivery(order);
-  const name = [d?.lastName, d?.firstName].filter(Boolean).join(" ") || order.user?.email || "—";
-  const addressLine = [d?.city, d?.district, d?.khoroo && t("orders_ui.khoroo_n", { n: d.khoroo }), d?.address].filter(Boolean).join(", ");
-  const deliveryFee = Number(order.deliveryFee ?? 0);
+  const status = (order?.status ?? "PENDING") as OrderStatus;
+  const items = order ? order.orderItems ?? order.items ?? [] : [];
+  const d = order ? normalizeDelivery(order) : null;
+  const deliveryFee = Number(order?.deliveryFee ?? 0);
   // Product prices can change after purchase. The saved order total is authoritative.
-  const subtotal = Math.max(0, Number(order.totalPrice ?? 0) - deliveryFee);
-  const next = primaryNext(status, order.paymentMethod);
-  const others = STATUS_FLOW[status].filter((s) => s !== next && s !== "CANCELLED" && (s !== "PAID" || order.paymentMethod === "BANK") && (status !== "PENDING" || s === primaryNext(status, order.paymentMethod)));
-  const canCancel = STATUS_FLOW[status].includes("CANCELLED");
-
-  const courierText = [`#${order.orderNumber ?? order.id}`, name, d?.phone, addressLine, d?.notes].filter(Boolean).join("\n");
-
-  const section = "eyebrow mb-[12px]";
-  const row = "flex items-start justify-between gap-[16px] py-[7px] text-[13px]";
+  const subtotal = Math.max(0, Number(order?.totalPrice ?? 0) - deliveryFee);
+  const canCancel = STATUS_FLOW[status]?.includes("CANCELLED");
+  const nextKey = order ? nextStepKey(order) : "";
+  const tone = order ? orderTone(order) : "neutral";
 
   return (
-    <div className="grid gap-[28px] bg-paper px-[16px] py-[20px] md:px-[24px] xl:grid-cols-2 2xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.9fr)]">
-      {/* Items */}
-      <div>
-        <h4 className={section}>{t("orders_ui.items")}</h4>
-        <ul className="divide-y divide-ink/10 border-y border-ink/10">
-          {items.map((it, i) => (
-            <li key={`${order.id}-${i}`} className="flex items-center gap-[12px] py-[10px]">
-              <img
-                src={it.product?.image || PLACEHOLDER}
-                alt=""
-                onError={(e) => (e.currentTarget.src = PLACEHOLDER)}
-                className="h-[48px] w-[48px] shrink-0 object-cover"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium text-ink">{it.product?.productName ?? "—"}</p>
-                <p className="text-[12px] text-taupe tabular-nums">
-                  {t("quantity")}: {it.quantity}
-                  {"size" in it && (it as { size?: string }).size ? ` · ${(it as { size?: string }).size}` : ""}
+    <Sheet open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <SheetContent side="right" hideClose className="flex w-full flex-col gap-0 border-l border-ink/10 bg-paper p-0 sm:max-w-[560px]">
+        <div className="flex shrink-0 items-start justify-between gap-[12px] border-b border-ink/10 bg-white px-[16px] py-[14px] sm:px-[20px]">
+          <div className="min-w-0">
+            <SheetTitle className="text-[18px] font-semibold text-ink">
+              {order ? t("orders.drawer.title", { order: orderNumber(order) }) : t("orders.drawer.loading")}
+            </SheetTitle>
+            <SheetDescription className="mt-[2px] text-[13px] text-taupe">
+              {order ? t("orders.drawer.placed_at", { date: formatDateTime(order.createdAt) }) : " "}
+            </SheetDescription>
+          </div>
+          <div className="flex shrink-0 items-center gap-[4px]">
+            {order && (
+              <button type="button" onClick={() => copy(orderNumber(order), t("orders.drawer.number_copied"))} className="btn-ghost btn-sm" title={t("orders.drawer.copy_number")}>
+                <Copy aria-hidden className="h-[14px] w-[14px]" />
+                <span className="hidden sm:inline">{t("orders.drawer.copy_number")}</span>
+                <span className="sr-only sm:hidden">{t("orders.drawer.copy_number")}</span>
+              </button>
+            )}
+            <button type="button" onClick={onClose} aria-label={t("common.close")} className="flex h-[44px] w-[44px] items-center justify-center text-taupe hover:bg-sand hover:text-ink">
+              <X aria-hidden className="h-[18px] w-[18px]" />
+            </button>
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {!order ? (
+            error ? <ErrorState className="m-[16px]" message={t("orders.errors.detail_failed")} onRetry={onRetry} retrying={loading} /> : <LoadingRows rows={5} />
+          ) : (
+            <div className="space-y-[14px] p-[16px] sm:p-[20px]">
+              {/* Where the order is and what happens next */}
+              <section className="admin-surface space-y-[14px] p-[16px]">
+                <div className="flex flex-wrap items-center gap-[6px]">
+                  <OrderStatusPill order={order} t={t} />
+                  <PaymentPill order={order} t={t} />
+                  <span className="text-[13px] text-taupe">· {t(`payment_method.${order.paymentMethod ?? "UNKNOWN"}`)}</span>
+                </div>
+                {status !== "CANCELLED" && <Steps order={order} t={t} />}
+                <div className={cn("border-l-[3px] py-[2px] pl-[12px]", tone === "attention" ? "border-terracotta" : order.paymentStatus === "REVIEW" ? "border-terracotta" : "border-ink/20")}>
+                  <p className="text-[13px] font-medium text-taupe">{t("orders.drawer.next_step")}</p>
+                  <p className="mt-[2px] text-[14px] leading-relaxed text-ink">
+                    {t(`orders.next.${nextKey}`, { amount: formatMNT(order.totalPrice) })}
+                  </p>
+                </div>
+                {primaryNext(status, order.paymentMethod) && (
+                  <NextStepButton order={order} t={t} busy={busy} size="md" className="w-full" onChange={(next) => onChange(order, next)} />
+                )}
+              </section>
+
+              {order.paymentStatus === "REVIEW" && (
+                <Notice tone="warning" role="status" title={t("orders.review.title")}>{t("orders.review.body")}</Notice>
+              )}
+
+              {/* Customer and delivery */}
+              <section className="admin-surface p-[16px]">
+                <h3 className={sectionTitle}>{t("orders.drawer.delivery")}</h3>
+                <p className="text-[15px] font-medium text-ink">{customerName(order, t)}</p>
+                {d?.phone && (
+                  <div className="mt-[8px] flex flex-wrap gap-[8px]">
+                    <a href={`tel:${d.phone}`} className="btn-secondary btn-sm">
+                      <Phone aria-hidden className="h-[14px] w-[14px]" />
+                      {t("orders.drawer.call", { phone: d.phone })}
+                    </a>
+                    <button type="button" onClick={() => copy(d.phone!, t("orders.drawer.phone_copied"))} className="btn-ghost btn-sm">
+                      <Copy aria-hidden className="h-[14px] w-[14px]" />
+                      {t("orders.drawer.copy_phone")}
+                    </button>
+                  </div>
+                )}
+                <p className="mt-[12px] flex items-start gap-[8px] text-[14px] leading-relaxed text-ink">
+                  <MapPin aria-hidden className="mt-[3px] h-[15px] w-[15px] shrink-0 text-taupe" />
+                  <span>{addressLine(order, t) || t("orders.drawer.no_address")}</span>
                 </p>
-              </div>
-              {"unitPrice" in it && it.unitPrice != null && <div className="shrink-0 text-right tabular-nums"><p className="text-sm font-medium">{formatMNT(Number(it.unitPrice) * it.quantity)}</p><p className="text-xs text-taupe">{formatMNT(Number(it.unitPrice))} × {it.quantity}</p></div>}
-            </li>
-          ))}
-        </ul>
-        <div className="mt-[8px] space-y-[2px] text-[13px]">
-          <div className="flex justify-between text-taupe">
-            <span>{t("orders_ui.subtotal")}</span>
-            <span className="tabular-nums">{formatMNT(subtotal)}</span>
-          </div>
-          <div className="flex justify-between text-taupe">
-            <span>{t("orders_ui.delivery_fee")}</span>
-            <span className="tabular-nums">{formatMNT(deliveryFee)}</span>
-          </div>
-          <div className="flex justify-between pt-[4px] text-[14px] font-medium text-ink">
-            <span>{t("orders_ui.total")}</span>
-            <span className="tabular-nums">{formatMNT(order.totalPrice)}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Customer + delivery */}
-      <div>
-        <h4 className={section}>{t("delivery")}</h4>
-        <p className="text-[15px] font-medium text-ink">{name}</p>
-        {d?.phone && (
-          <div className="mt-[6px] flex items-center gap-[8px]">
-            <a href={`tel:${d.phone}`} className="inline-flex items-center gap-[6px] text-[14px] text-ink underline-offset-4 hover:underline">
-              <Phone className="h-[14px] w-[14px]" strokeWidth={1.5} />
-              {d.phone}
-            </a>
-            <button
-              type="button"
-              onClick={() => copy(d.phone!)}
-              className="flex h-[44px] w-[44px] items-center justify-center text-taupe hover:bg-sand hover:text-ink"
-              aria-label={t("copy")}
-              title={t("copy")}
-            >
-              <Copy className="h-[13px] w-[13px]" />
-            </button>
-          </div>
-        )}
-        <p className="mt-[10px] text-[13px] leading-[1.6] text-ink">{addressLine || "—"}</p>
-        {d?.notes && (
-          <p className="mt-[10px] border border-terracotta/30 bg-white px-[12px] py-[8px] text-[13px] text-ink">
-            {d.notes}
-          </p>
-        )}
-        <button
-          type="button"
-          onClick={() => copy(courierText)}
-          className="mt-[12px] inline-flex min-h-[44px] items-center gap-[6px] border border-ink/20 px-[10px] text-[12px] text-ink hover:border-ink"
-        >
-          <Copy className="h-[12px] w-[12px]" />
-          {t("orders_ui.copy_for_courier")}
-        </button>
-      </div>
-
-      {/* Payment + actions */}
-      <div>
-        <h4 className={section}>{t("orders_ui.payment")}</h4>
-        <div className="divide-y divide-ink/10 border-y border-ink/10">
-          <div className={row}>
-            <span className="text-taupe">{t("payment_method")}</span>
-            <span className="text-right text-ink">{t(`payment_method.${order.paymentMethod ?? "UNKNOWN"}`)}</span>
-          </div>
-          <div className={row}>
-            <span className="text-taupe">{t("orders_ui.payment_state")}</span>
-            <PaymentBadge status={order.paymentStatus} t={t} />
-          </div>
-          <div className={row}>
-            <span className="text-taupe">{t("orders_ui.fulfillment_state")}</span>
-            <StatusBadge status={status} t={t} />
-          </div>
-          <div className={row}>
-            <span className="text-taupe">{t("created_at")}</span>
-            <span className="tabular-nums text-ink">{formatDateTime(order.createdAt)}</span>
-          </div>
-          <div className={row}>
-            <span className="text-taupe">{t("order_number")}</span>
-            <button type="button" onClick={() => copy(order.orderNumber ?? order.id)} className="inline-flex items-center gap-[6px] font-mono text-[12px] text-ink hover:underline">
-              #{order.orderNumber ?? order.id.slice(0, 8)}
-              <Copy className="h-[11px] w-[11px] text-taupe" />
-            </button>
-          </div>
-        </div>
-
-        {order.paymentStatus === "REVIEW" && <p role="status" className="mt-3 border border-terracotta/30 bg-white p-3 text-sm text-terracotta">{t("orders_ui.payment_review")}</p>}
-
-        {status === "WAITING_PAYMENT" && order.paymentMethod === "QPAY" && <p className="mt-[12px] text-[13px] leading-relaxed text-taupe">{t("orders_ui.qpay_verification")}</p>}
-
-        {confirmCancel ? (
-          <div className="mt-[16px] border border-terracotta/40 bg-white p-[14px]">
-            <p className="text-[13px] font-medium text-ink">{t("orders_ui.cancel_title")}</p>
-            <p className="mt-[4px] text-[12px] text-taupe">{t("orders_ui.cancel_body")}</p>
-            <div className="mt-[12px] flex gap-[8px]">
-              <button type="button" onClick={() => setConfirmCancel(false)} className="min-h-[44px] flex-1 border border-ink/20 text-[13px] hover:border-ink">
-                {t("orders_ui.keep_order")}
-              </button>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => {
-                  onChange("CANCELLED");
-                  setConfirmCancel(false);
-                }}
-                className="min-h-[44px] flex-1 bg-terracotta text-[13px] font-medium text-paper disabled:opacity-50"
-              >
-                {t("orders_ui.cancel_confirm")}
-              </button>
-            </div>
-          </div>
-        ) : (
-          (next || others.length > 0 || canCancel) && (
-            <div className="mt-[16px] flex flex-col gap-[8px]">
-              <NextStepButton order={order} t={t} busy={busy} onChange={onChange} className="h-[44px] w-full" />
-              {others.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  disabled={busy}
-                  onClick={() => onChange(s)}
-                  className="min-h-[44px] w-full border border-ink/25 text-[13px] text-ink hover:border-ink disabled:opacity-50"
-                >
-                  {t(`order_action.${s}`)}
+                {d?.notes && (
+                  <p className="mt-[10px] flex items-start gap-[8px] border border-terracotta/30 bg-terracotta/[0.04] px-[12px] py-[8px] text-[14px] text-ink">
+                    <StickyNote aria-hidden className="mt-[3px] h-[15px] w-[15px] shrink-0 text-terracotta" />
+                    <span><span className="sr-only">{t("orders.drawer.customer_note")}: </span>{d.notes}</span>
+                  </p>
+                )}
+                <button type="button" onClick={() => copy(courierText(order, t), t("orders.drawer.courier_copied"))} className="btn-secondary btn-sm mt-[12px]">
+                  <Copy aria-hidden className="h-[14px] w-[14px]" />
+                  {t("orders.drawer.copy_courier")}
                 </button>
-              ))}
+              </section>
+
+              {/* Items */}
+              <section className="admin-surface p-[16px]">
+                <h3 className={sectionTitle}>{t("orders.drawer.items", { count: items.reduce((s, it) => s + it.quantity, 0) })}</h3>
+                <ul className="divide-y divide-ink/10 border-y border-ink/10">
+                  {items.map((it, i) => (
+                    <li key={it.id ?? `${order.id}-${i}`} className="flex items-center gap-[12px] py-[10px]">
+                      <img
+                        src={it.product?.image || PLACEHOLDER}
+                        alt=""
+                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = PLACEHOLDER; }}
+                        className="h-[48px] w-[48px] shrink-0 bg-sand object-cover"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[14px] font-medium leading-snug text-ink">{it.product?.productName ?? "—"}</p>
+                        <p className="text-[13px] text-taupe">
+                          {it.size ? `${it.size} · ` : ""}
+                          {t("orders.drawer.qty", { count: it.quantity })}
+                        </p>
+                      </div>
+                      {it.unitPrice != null && (
+                        <div className="shrink-0 text-right tabular-nums">
+                          <p className="text-[14px] font-medium">{formatMNT(Number(it.unitPrice) * it.quantity)}</p>
+                          {it.quantity > 1 && <p className="text-[12px] text-taupe">{formatMNT(Number(it.unitPrice))} × {it.quantity}</p>}
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <dl className="mt-[10px] space-y-[4px] text-[14px]">
+                  <div className="flex justify-between text-taupe">
+                    <dt>{t("orders.drawer.subtotal")}</dt>
+                    <dd className="tabular-nums">{formatMNT(subtotal)}</dd>
+                  </div>
+                  <div className="flex justify-between text-taupe">
+                    <dt>{t("orders.drawer.delivery_fee")}</dt>
+                    <dd className="tabular-nums">{deliveryFee ? formatMNT(deliveryFee) : t("orders.drawer.free")}</dd>
+                  </div>
+                  <div className="flex justify-between pt-[4px] text-[15px] font-semibold text-ink">
+                    <dt>{t("orders.drawer.total")}</dt>
+                    <dd className="tabular-nums">{formatMNT(order.totalPrice)}</dd>
+                  </div>
+                </dl>
+              </section>
+
+              {/* Payment */}
+              <section className="admin-surface p-[16px]">
+                <h3 className={sectionTitle}>{t("orders.drawer.payment")}</h3>
+                <dl className="divide-y divide-ink/10 text-[14px]">
+                  <div className="flex items-center justify-between gap-[16px] py-[8px]">
+                    <dt className="text-taupe">{t("orders.drawer.method")}</dt>
+                    <dd className="text-right text-ink">{t(`payment_method.${order.paymentMethod ?? "UNKNOWN"}`)}</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-[16px] py-[8px]">
+                    <dt className="text-taupe">{t("orders.drawer.payment_state")}</dt>
+                    <dd><PaymentPill order={order} t={t} /></dd>
+                  </div>
+                </dl>
+                <p className="mt-[8px] text-[13px] leading-relaxed text-taupe">{t(`orders.payment_help.${order.paymentMethod ?? "UNKNOWN"}`)}</p>
+              </section>
+
               {canCancel && (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => setConfirmCancel(true)}
-                  className="min-h-[44px] text-[13px] text-terracotta hover:underline disabled:opacity-50"
-                >
-                  {t("orders_ui.cancel_order")}
-                </button>
+                <section className="border border-terracotta/25 bg-white p-[16px]">
+                  <h3 className={sectionTitle}>{t("orders.cancel.section")}</h3>
+                  <p className="text-[13px] leading-relaxed text-taupe">{t("orders.cancel.hint")}</p>
+                  <button type="button" disabled={busy} onClick={() => setConfirmCancel(true)} className="btn-secondary btn-sm btn-danger-text mt-[10px]">
+                    {t("orders.cancel.button")}
+                  </button>
+                </section>
               )}
             </div>
-          )
+          )}
+        </div>
+
+        {order && (
+          <ConfirmDialog
+            open={confirmCancel}
+            onOpenChange={setConfirmCancel}
+            tone="danger"
+            title={t("orders.cancel.title", { order: orderNumber(order) })}
+            description={t("orders.cancel.body")}
+            confirmLabel={t("orders.cancel.confirm")}
+            cancelLabel={t("orders.cancel.keep")}
+            busy={busy}
+            onConfirm={() => {
+              onChange(order, "CANCELLED");
+              setConfirmCancel(false);
+            }}
+          />
         )}
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }

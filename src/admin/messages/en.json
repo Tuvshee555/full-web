@@ -1,436 +1,1047 @@
 {
-  "sidebar": {
-    "product_catalog": "Product catalog",
-    "orders": "Orders",
-    "revenue": "Revenue dashboard",
-    "home": "Home",
-    "logout": "Log out",
-    "title": "Menu"
-  },
-  "category": {
-    "title": "Category",
-    "add_title": "Add category",
-    "add_description": "Enter the category details and save.",
-    "name": "Name",
-    "add": "Add category",
-    "placeholder": "e.g. Brow care, Tools",
-    "child_note": "This will be created under the selected category.",
-    "empty": "No categories found"
-  },
   "common": {
-    "save": "Save",
+    "add": "Add",
     "cancel": "Cancel",
-    "add": "Add item",
-    "adding": "Adding...",
-    "loading": "Loading..."
-  },
-  "product": {
-    "add_to_category": "Add new product to {category}",
-    "validation": {
-      "name": "Please provide product name.",
-      "price": "Please provide a valid final price.",
-      "old_price": "Old price must be a valid positive number."
-    },
-    "toast": {
-      "success": "Successfully added item!",
-      "error": "Failed to add item."
-    },
-    "add_title": "Add new item to {category}",
-    "add_modal": {
-      "title": "Add new product"
-    },
-    "fields": {
-      "name": "Product name",
-      "price": "Final price",
-      "old_price": "Original price (optional)",
-      "featured": "Featured",
-      "description": "Description / ingredients",
-      "size": "Size"
-    }
-  },
-  "categories": "Categories",
-  "add_main": "Add main",
-  "loading": "Loading categories…",
-  "no_categories": "No categories yet. Create one to start.",
-  "rename_prompt": "Rename category:",
-  "delete_confirm": "Delete category \"{name}\"? Its products will lose this category.",
-  "add_sub": "Add subcategory",
-  "no_description": "No description",
-  "category_with_count": "{name} ({count})",
-  "error_loading": "Error loading categories",
-  "select_category": "Select category",
-  "product_count": "{count} products",
-  "close": "Close",
-  "select_category_hint": "Please create a category and select it to manage products.",
-  "orders": "Orders",
-  "items": "{count} items",
-  "previous": "Previous",
-  "next": "Next",
-  "page_of": "Page {page} of {total}",
-  "send_reset_link": "Send reset link",
-  "reset_email_sent": "Check your email for the reset link",
-  "reset_email_error": "Error sending reset link",
-  "login": "Log in",
-  "login_subtitle": "Log in to enjoy your favorite products.",
-  "email_placeholder": "Enter your email address",
-  "password": "Password",
-  "show_password": "Show password",
-  "forgot_password": "Forgot your password?",
-  "logging_in": "Logging in…",
-  "or": "or",
-  "google_error": "Google login error",
-  "reset_password": "Reset password",
-  "new_password_placeholder": "Enter new password",
-  "password_reset_success": "Password reset successful",
-  "password_reset_error": "Invalid or expired link",
-  "create_account": "Create your account",
-  "create_account_sub": "Sign up to explore your favorite products.",
-  "lets_go": "Let’s go",
-  "signup_success": "Signed up successfully",
-  "create_password": "Create a password",
-  "password_hint": "Use a 6-digit numeric password for your account.",
-  "password_placeholder": "Enter your password",
-  "confirm_password_placeholder": "Confirm your password",
-  "password_required": "Password is required",
-  "password_rule": "Password must be exactly 6 numbers",
-  "password_mismatch": "Passwords do not match",
-  "continue": "Continue",
-  "have_account": "Already have an account?",
-  "login_image_alt": "Delivery illustration",
-  "dashboard": "Business dashboard",
-  "refresh": "Refresh",
-  "total_revenue": "Total revenue",
-  "this_month": "This month",
-  "this_week": "This week",
-  "last_7_days": "Last 7 days revenue",
-  "recent_payments": "Recent payments",
-  "order_id": "Order ID",
-  "amount": "Amount",
-  "status": "Status",
-  "date": "Date",
-  "no_payments": "No recent payments",
-  "unauthorized": "Unauthorized access",
-  "fetch_failed": "Failed to fetch orders",
-  "orders_empty": "No orders found",
-  "copied": "Copied",
-  "copy_failed": "Copy failed",
-  "copy": "Copy",
-  "invalid_status_transition": "Invalid status transition",
-  "status_updated": "Status updated",
-  "status_update_failed": "Failed to update status",
-  "change_status": "Change status",
-  "items_short": "items",
-  "no_items": "No items",
-  "delivery": "Delivery information",
-  "name": "Name",
-  "phone": "Phone",
-  "city": "City",
-  "district": "District",
-  "khoroo": "Khoroo",
-  "address": "Address",
-  "notes": "Notes",
-  "order_number": "Order number",
-  "created_at": "Created at",
-  "payment_method": "Payment method",
-  "view_details": "View details",
-  "copy_summary": "Copy summary",
-  "no_email": "No email",
-  "unit_price": "Unit price",
-  "quantity": "Quantity",
-  "subtotal": "Subtotal",
-  "order_status": {
-    "PENDING": "Pending",
-    "WAITING_PAYMENT": "Waiting payment",
-    "COD_PENDING": "Cash on delivery",
-    "PAID": "Paid",
-    "DELIVERING": "Delivering",
-    "DELIVERED": "Delivered",
-    "CANCELLED": "Cancelled"
-  },
-  "no_revenue_last_7_days": "No revenue in the last 7 days",
-  "payment_method.QPAY": "QPay",
-  "payment_method.BANK": "Bank transfer",
-  "payment_method.COD": "Cash",
-  "payment_method.LEMON": "Card (Visa/Mastercard)",
-  "payment_method.UNKNOWN": "Unknown",
-  "payment_status": "Payment status",
-  "payment_status.PENDING": "Pending",
-  "payment_status.PAID": "Paid",
-  "payment_status.REFUNDED": "Refunded",
-  "payment_status.CANCELLED": "Cancelled",
-  "payment_status.UNKNOWN": "Unknown",
-  "search_order_placeholder": "Search order ID (ex: #AGP9T1QK)",
-  "clear": "Clear",
-  "retry": "Try again",
-  "found_count": "{count} found",
-  "total_count": "{count} total",
-  "no_orders_found": "No matching order found",
-  "updated": "Updated successfully",
-  "update_failed": "Update failed",
-  "deleted": "Deleted successfully",
-  "edit_product": "Edit product item",
-  "update_item_details": "Update item details below",
-  "delete_product_title": "Delete product item?",
-  "delete_product_description": "This action cannot be undone. The item will be permanently removed.",
-  "confirm_delete": "Delete",
-  "vs_last_period": "vs last period",
-  "sidebar.title": "Admin navigation",
-  "sidebar.logout": "Log out",
-  "no_category_products": "No items in this category yet.",
-  "add_first_product": "Add the first item",
-  "nav": {
-    "open_orders": "{count} orders need attention"
-  },
-  "editor": {
-    "cover": "Cover",
-    "make_cover": "Make cover",
-    "remove": "Remove",
-    "add_photos": "Add photos",
-    "drop_hint": "or drag them here",
-    "photos_hint": "The first photo is the cover shown in the shop.",
-    "add_video": "Add video",
-    "video_hint": "MP4, up to 4MB. Shown on the product page.",
-    "old_price_rule": "Compare-at price must be higher than the price.",
-    "category_required": "Choose a category.",
-    "photo_required": "Add at least one photo.",
-    "fix_errors": "Please fix the highlighted fields.",
-    "delete_failed": "Couldn’t delete the product.",
-    "new_hint": "Fill in the details and save.",
-    "section_photos": "Photos",
-    "section_details": "Details",
-    "name": "Name",
-    "description": "Description",
-    "description_placeholder": "What it is and how to use it…",
-    "section_price": "Pricing",
-    "price": "Price",
-    "old_price": "Compare-at price",
-    "optional": "optional",
-    "sale_preview": "Shows in the shop as −{pct}% off.",
-    "old_price_hint": "Fill in to show the product as on sale.",
-    "section_options": "Options",
-    "sizes": "Sizes / variants",
-    "sizes_placeholder": "e.g. 5 ml, Brown",
-    "sizes_hint": "Leave empty if the product has no options.",
-    "size_price": "Price of {size}",
-    "size_price_hint": "If a size costs something else, type it in its Price box. Leave it empty to sell it at the main price.",
-    "stock": "Available stock",
-    "untracked": "Untracked",
-    "stock_hint": "Enter 0 for sold out. Leave blank for untracked stock. Counts are available units after order reservations. To track a product without options, add a single option such as Standard.",
-    "stock_rule": "Stock must be a whole number between 0 and 2,147,483,647, or blank.",
-    "variant_draft_hint": "The new option has been added. Review its stock and save again.",
-    "featured_hint": "Shown first on the home page and in the shop.",
-    "section_video": "Video",
-    "discard_question": "You have unsaved changes. Close anyway?",
-    "keep_editing": "Keep editing",
-    "discard": "Discard",
-    "uploading": "Uploading {pct}%",
-    "saving": "Saving…",
-    "create": "Add product",
-    "edit": "Edit",
-    "unfeature": "Remove from featured",
-    "feature": "Mark as featured",
-    "new_category": "New",
-    "all_products": "All products",
-    "rename_category": "Rename",
-    "delete_category": "Delete category",
-    "load_failed": "Couldn’t load products.",
-    "featured_on": "Marked as featured",
-    "featured_off": "Removed from featured",
-    "page_hint": "{count} products. Click a row to edit.",
-    "manage_categories": "Manage categories",
-    "search_placeholder": "Search products",
-    "sort": "Sort",
-    "sort_newest": "Newest first",
-    "sort_name": "Name (A–Z)",
-    "sort_price_low": "Price: low to high",
-    "sort_price_high": "Price: high to low",
-    "no_search_results": "No products match your search.",
-    "availability": "Stock availability",
-    "all_stock": "All availability",
-    "in_stock": "Available"
-  },
-  "order_action": {
-    "WAITING_PAYMENT": "Await payment",
-    "COD_PENDING": "Confirm cash on delivery",
-    "PAID": "Mark as paid",
-    "DELIVERING": "Send for delivery",
-    "DELIVERED": "Mark delivered",
-    "CANCELLED": "Cancel"
-  },
-  "orders_ui": {
-    "items": "Items",
-    "subtotal": "Subtotal",
-    "delivery_fee": "Delivery",
-    "total": "Total",
-    "copy_for_courier": "Copy for courier",
-    "payment": "Payment & status",
-    "cancel_title": "Cancel this order?",
-    "cancel_body": "Stock is returned and the customer is emailed. This can’t be undone.",
-    "keep_order": "Keep order",
-    "cancel_confirm": "Yes, cancel",
-    "cancel_order": "Cancel order",
-    "khoroo_n": "Khoroo {n}",
-    "page_hint": "Click an order to see details.",
-    "tab_all": "All",
-    "tab_awaiting_payment": "Awaiting payment",
-    "tab_to_ship": "To ship",
-    "tab_delivering": "Out for delivery",
-    "tab_delivered": "Delivered",
-    "tab_cancelled": "Cancelled",
-    "search_placeholder": "Search by number, name or phone",
-    "order": "Order",
-    "customer": "Customer",
-    "qpay_verification": "QPay payments are confirmed automatically by the payment provider. Check the payment before arranging delivery.",
-    "payment_state": "Payment",
-    "fulfillment_state": "Order workflow",
-    "payment_review": "A payment exists for a cancelled order. Verify the receipt and follow up with the customer before any further action.",
-    "confirm_bank_title": "Confirm the bank transfer",
-    "confirm_bank_body": "Verify that {amount} has arrived in the bank account for order #{order}. This records the payment as paid; delivery status is managed separately."
-  },
-  "revenue_ui": {
-    "orders_short": "orders",
-    "revenue_7": "Revenue, last 7 days",
-    "revenue_30": "Revenue, last 30 days",
-    "same_as_before": "Same as previous period",
-    "orders": "Paid orders",
-    "paid_only": "In selected period",
-    "avg_order": "Average order",
-    "per_order": "Per order",
-    "page_hint": "Confirmed bank/QPay payments and delivered cash orders. Unpaid cash deliveries are excluded.",
-    "load_failed": "Couldn’t load revenue. Try refreshing.",
-    "range": "Range",
-    "days_7": "7 days",
-    "days_30": "30 days",
-    "daily_7": "Daily revenue · 7 days",
-    "daily_30": "Daily revenue · 30 days",
-    "no_revenue_range": "No revenue in this period.",
-    "no_revenue_hint": "Paid orders will show up here day by day.",
-    "no_payments_hint": "Orders that have been paid are listed here.",
-    "no_qualifying_orders": "No qualifying orders in this period",
-    "no_comparison": "No prior revenue to compare",
-    "pending_summary": "All-time orders: {pending} awaiting payment or cash collection · {cancelled} cancelled.",
-    "counts_unavailable": "Order-status counts are currently unavailable.",
-    "date_rule": "Reports use the order creation date in Ulaanbaatar time. Confirmed bank/QPay payments and delivered cash orders qualify; unpaid, cancelled and refunded orders are excluded."
-  },
-  "chatbot": {
-    "title": "Chatbot",
-    "inbox": "Inbox",
-    "leads": "Leads",
-    "settings": "Settings",
-    "test": "Test chat",
-    "errors": "Error logs",
-    "saved": "Saved",
-    "settings_error": "Could not save. Edit prices in the catalogue and inventory on products. Avoid unverified result claims.",
-    "enabled": "Bot enabled",
-    "metaOutbound": "Send to Messenger / Instagram",
-    "showExactStock": "Show exact stock",
-    "lowStockThreshold": "Low stock threshold",
-    "greetingMn": "Greeting (MN)",
-    "greetingEn": "Greeting (EN)",
-    "handoffMn": "Handoff message (MN)",
-    "handoffEn": "Handoff message (EN)",
-    "extraKnowledgeMn": "Extra knowledge (MN)",
-    "extraKnowledgeEn": "Extra knowledge (EN)",
-    "knowledge_hint": "Do not add prices, stock or medical promises. Edit product facts in the catalogue.",
     "save": "Save",
-    "test_paused": "Chat is paused for a human or the bot is off. You can start a new test.",
-    "test_hint": "Uses the same handler as the shop. Test leads do not send Telegram alerts.",
-    "test_empty": "Enter a test question.",
-    "message": "Message",
-    "send": "Send",
-    "reset": "Clear test",
-    "error": "Could not load data. Please try again.",
-    "no_conversations": "No conversations yet.",
-    "no_matches": "No conversations match on this page.",
-    "search_page": "Search this page of conversations",
-    "back_to_inbox": "Back to inbox",
-    "unread": "unread",
-    "needs_human": "Needs a human",
-    "choose_conversation": "Choose a conversation on the left.",
-    "give_back": "Give back to bot",
-    "take_over": "Take over",
-    "human_reply": "Reply as a human",
-    "name": "Name",
-    "phone": "Phone",
-    "question": "Question",
-    "status": "Status",
-    "conversation": "Conversation",
-    "new": "New",
-    "contacted": "Contacted",
-    "done": "Done",
-    "open": "Open",
-    "no_leads": "No leads yet.",
-    "no_errors": "No errors recorded.",
-    "delivery_sent": "Sent",
-    "delivery_sending": "Sending",
-    "delivery_failed": "Send failed",
-    "delivery_suppressed": "Sending disabled",
-    "delivery_uncertain": "Delivery uncertain",
-    "greeting": "Greeting",
-    "analytics": "Analytics",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "refresh": "Refresh",
+    "retry": "Try again",
     "search": "Search",
-    "total_contacts": "Conversations",
-    "total_leads": "Leads",
-    "leads_by_day": "Leads by day",
-    "status_on": "Bot is on",
-    "status_off": "Bot is off",
-    "turn_off": "Turn off",
-    "turn_on": "Turn on",
-    "page_hint": "Incoming messages, requests and bot settings.",
-    "contact_shown": "Contact details the bot gives customers when it cannot answer",
-    "off_notice": "The bot is off. It won't auto-reply on the website or Messenger/Instagram. Incoming messages are kept in the Inbox.",
-    "error_logs": {
-      "description": "Bot errors and warnings are kept for {days} days, then automatically removed. Use these logs to investigate failed replies.",
-      "load_failed": "Couldn’t load error logs. Please try again.",
-      "not_configured": "Error logs cannot be saved because the database is not connected.",
-      "range_24": "24 hours",
-      "range_72": "3 days",
-      "range_168": "7 days",
-      "level_error": "Errors",
-      "level_warn": "Warnings",
-      "level_info": "Information",
-      "all_levels": "All levels",
-      "search_placeholder": "Search events, messages or request IDs…",
-      "event_types": "Event types",
-      "by_event": "By event",
-      "by_event_hint": "See which events happen most often. Select one to filter the logs.",
-      "empty_title": "No log entries",
-      "empty_description": "No entries match the selected period and filters.",
-      "recent_title": "Recent entries",
-      "recent_description": "The latest {count} entries. Select an entry to see its details.",
-      "request": "Request ID",
-      "sender": "Sender hash"
+    "loading": "Loading…",
+    "optional": "optional",
+    "copied": "Copied",
+    "copy_failed": "Couldn’t copy. Select the text and copy it by hand.",
+    "clear_search": "Clear search",
+    "what_is_this": "What does this mean?",
+    "opens_new_tab": "opens in a new tab",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "just_now": "Just now",
+    "minutes_ago": {
+      "one": "1 min ago",
+      "other": "{count} min ago"
+    },
+    "hours_ago": {
+      "one": "1 hour ago",
+      "other": "{count} hours ago"
+    },
+    "previous": "Previous",
+    "next": "Next",
+    "pages": "Pages",
+    "page_of": "Page {page} of {total}",
+    "showing": "Showing {from}–{to} of {total}",
+    "timezone_note": "All times are Ulaanbaatar time (UTC+8).",
+    "timezone_short": "Ulaanbaatar time",
+    "errors": {
+      "offline": "No internet connection. Check your connection and try again.",
+      "signed_out": "Your sign-in has expired. Please sign in again."
     }
+  },
+  "nav": {
+    "label": "Admin sections",
+    "workspace": "Store admin",
+    "overview": "Overview",
+    "overview_short": "Home",
+    "orders": "Orders",
+    "orders_short": "Orders",
+    "orders_badge": {
+      "one": "1 order needs you",
+      "other": "{count} orders need you"
+    },
+    "messages": "Chat",
+    "messages_short": "Chat",
+    "messages_badge": {
+      "one": "1 chat or request needs you",
+      "other": "{count} chats or requests need you"
+    },
+    "products": "Products",
+    "products_short": "Products",
+    "revenue": "Sales",
+    "assistant": "Chat assistant",
+    "assistant_off": "Off",
+    "settings_group": "Settings",
+    "visit_store": "View your shop",
+    "language": "Language",
+    "signed_in_as": "Signed in as {email}",
+    "logout": "Sign out",
+    "more": "More",
+    "menu": "Menu",
+    "menu_hint": "All sections of the admin",
+    "skip": "Skip to content"
+  },
+  "bulk": {
+    "region": "Actions for selected items",
+    "selected": {
+      "one": "1 selected",
+      "other": "{count} selected"
+    },
+    "clear": "Clear selection",
+    "select_page": "Select everything on this page",
+    "select_order": "Select order #{order}",
+    "select_product": "Select {name}"
   },
   "overview": {
     "title": "Overview",
-    "workspace": "Store workspace",
-    "visit_store": "View storefront",
-    "description": "Orders, stock and recognized revenue in one place.",
-    "operations": "Order operations",
-    "attention": "Orders needing attention",
-    "awaiting_payment": "Awaiting payment",
-    "to_fulfill": "Awaiting fulfillment",
-    "completed": "Delivered orders",
-    "all_time": "All time · current status",
-    "recent_orders": "Recent orders",
-    "view_all": "View all",
-    "orders_hint": "New customer orders will appear here with payment and delivery details.",
-    "revenue": "Recognized revenue",
-    "revenue_rule": "Confirmed bank/QPay orders and delivered cash orders. Unpaid, cancelled and refunded orders are excluded. Grouped by order creation date.",
-    "view_analytics": "View revenue details",
-    "inventory": "Catalog & stock",
-    "low_stock": "Low stock",
-    "soldout": "Out of stock",
-    "no_stock_alerts": "No tracked stock needs attention. Products with untracked stock are not included in alerts.",
-    "timezone": "Ulaanbaatar time (UTC+8)",
-    "load_failed": "Some data could not be loaded. Unavailable figures are shown as a dash; refresh to try again."
+    "subtitle": "{date}. Here is what needs you and how sales are going.",
+    "load_failed": "Some numbers could not be loaded. They are shown as a dash. Try again in a moment.",
+    "sales_label": "Sales summary",
+    "todo": {
+      "title": "Needs your attention",
+      "subtitle": "Most urgent first. Each button takes you to the right place.",
+      "clear_title": "You’re all caught up",
+      "clear_body": "No orders, chats or stock need you right now.",
+      "review": {
+        "one": "1 cancelled order received a payment. Check it and contact the customer.",
+        "other": "{count} cancelled orders received a payment. Check them and contact the customers."
+      },
+      "review_action": "Check payments",
+      "bank": {
+        "one": "1 bank transfer to check in your bank account",
+        "other": "{count} bank transfers to check in your bank account"
+      },
+      "bank_action": "Check transfers",
+      "confirm": {
+        "one": "1 order to confirm",
+        "other": "{count} orders to confirm"
+      },
+      "confirm_action": "Confirm orders",
+      "ship": {
+        "one": "1 order is ready to ship",
+        "other": "{count} orders are ready to ship"
+      },
+      "ship_action": "Ship orders",
+      "chats": {
+        "one": "1 chat needs your reply",
+        "other": "{count} chats need your reply"
+      },
+      "chats_action": "Open chats",
+      "requests": {
+        "one": "1 new callback request",
+        "other": "{count} new callback requests"
+      },
+      "requests_action": "See requests",
+      "bot_off": "The chat assistant is off, so customers get no automatic replies.",
+      "bot_off_action": "Turn it on",
+      "soldout": {
+        "one": "1 product is sold out",
+        "other": "{count} products are sold out"
+      },
+      "low": {
+        "one": "1 product is running low",
+        "other": "{count} products are running low"
+      },
+      "stock_action": "See products"
+    },
+    "stats": {
+      "today": "Sales today",
+      "paid_orders": {
+        "one": "1 paid order",
+        "other": "{count} paid orders"
+      },
+      "week": "Sales, last 7 days",
+      "up": "{pct}% more than the 7 days before",
+      "down": "{pct}% less than the 7 days before",
+      "same": "Same as the 7 days before",
+      "no_compare": "No sales the 7 days before to compare",
+      "month": "Sales this month",
+      "month_hint": "Since the 1st of the month",
+      "delivering": "Out for delivery",
+      "delivering_hint": "Orders on their way to customers",
+      "delivering_action": "See them"
+    },
+    "recent": {
+      "title": "Latest orders",
+      "all": "All orders",
+      "empty_title": "No orders yet",
+      "empty_body": "New orders will appear here with their payment and delivery details.",
+      "empty_action": "Check your products"
+    },
+    "chart": {
+      "title": "Sales, last 14 days",
+      "rule": "Counts paid orders by the day they were placed. Cash-on-delivery orders count once delivered. Cancelled and refunded orders are not counted.",
+      "orders": {
+        "one": "from 1 paid order",
+        "other": "from {count} paid orders"
+      },
+      "bars_label": "Sales for each of the last 14 days",
+      "open": "Details"
+    },
+    "stock": {
+      "title": "Stock to watch",
+      "open": "All products",
+      "none": "All counted stock looks fine. Products whose stock you don’t count are not checked.",
+      "option_soldout": "{option}: sold out",
+      "option_low": {
+        "one": "{option}: 1 left",
+        "other": "{option}: {count} left"
+      }
+    }
+  },
+  "order_status": {
+    "PENDING": "Needs confirmation",
+    "WAITING_PAYMENT": "Waiting for payment",
+    "COD_PENDING": "Ready to ship",
+    "PAID": "Ready to ship",
+    "DELIVERING": "Out for delivery",
+    "DELIVERED": "Delivered",
+    "CANCELLED": "Cancelled"
   },
   "payment_state": {
     "PAID": "Paid",
-    "UNPAID": "Unpaid",
-    "REVIEW": "Payment review",
+    "UNPAID": "Not paid",
+    "COD": "Pays on delivery",
+    "REVIEW": "Check payment",
     "REFUNDED": "Refunded",
-    "UNKNOWN": "Not verified"
+    "UNKNOWN": "Not confirmed"
+  },
+  "payment_method": {
+    "QPAY": "QPay",
+    "BANK": "Bank transfer",
+    "COD": "Cash on delivery",
+    "LEMON": "Card",
+    "UNKNOWN": "Unknown"
+  },
+  "order_action": {
+    "WAITING_PAYMENT": "Confirm order",
+    "COD_PENDING": "Confirm order",
+    "PAID": "Mark as paid",
+    "DELIVERING": "Send for delivery",
+    "DELIVERED": "Mark as delivered",
+    "CANCELLED": "Cancel order"
+  },
+  "orders": {
+    "title": "Orders",
+    "description": "Newest first. Select an order to see its details and what to do next.",
+    "tabs_label": "Filter orders by stage",
+    "tabs": {
+      "all": "All",
+      "awaiting_payment": "Waiting for payment",
+      "to_ship": "Ready to ship",
+      "delivering": "Out for delivery",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled"
+    },
+    "search": "Search by order number, name or phone",
+    "total": {
+      "one": "1 order",
+      "other": "{count} orders"
+    },
+    "found": {
+      "one": "1 order found",
+      "other": "{count} orders found"
+    },
+    "show_all": "Show all orders",
+    "open_details": "open details",
+    "guest": "Guest checkout",
+    "khoroo_n": "khoroo {n}",
+    "items_count": {
+      "one": "1 item",
+      "other": "{count} items"
+    },
+    "col": {
+      "order": "Order",
+      "customer": "Customer",
+      "items": "Items",
+      "total": "Total",
+      "status": "Status and payment",
+      "next": "Next step"
+    },
+    "empty": {
+      "search": {
+        "title": "No order matches your search",
+        "body": "Check the order number or phone, or clear the search."
+      },
+      "all": {
+        "title": "No orders yet",
+        "body": "When customers order, their orders appear here."
+      },
+      "awaiting_payment": {
+        "title": "No orders waiting for payment",
+        "body": "Orders appear here until the customer has paid."
+      },
+      "to_ship": {
+        "title": "Nothing to ship",
+        "body": "Paid and cash-on-delivery orders appear here when they are ready to send."
+      },
+      "delivering": {
+        "title": "Nothing out for delivery",
+        "body": "Orders you send for delivery appear here until they are delivered."
+      },
+      "delivered": {
+        "title": "No delivered orders yet",
+        "body": "Finished orders appear here."
+      },
+      "cancelled": {
+        "title": "No cancelled orders",
+        "body": "Orders that were cancelled, or not paid in time, appear here."
+      }
+    },
+    "next": {
+      "PENDING": "Check the order and confirm it to start.",
+      "WAITING_BANK": "The customer pays by bank transfer. When {amount} is in your bank account, press “Mark as paid”. Unpaid bank-transfer orders are cancelled after 24 hours.",
+      "WAITING_QPAY": "Waiting for the customer to pay with QPay. This updates by itself; nothing to do. Unpaid QPay orders are cancelled after 15 minutes.",
+      "WAITING_OTHER": "Waiting for the card payment to be confirmed.",
+      "COD_PENDING": "Pack the items and send them. The customer pays {amount} in cash on delivery.",
+      "PAID": "Paid. Pack the items and send them.",
+      "DELIVERING": "On the way. When the customer has it, mark it as delivered.",
+      "DELIVERING_COD": "On the way. Collect {amount} in cash, then mark it as delivered.",
+      "DELIVERED": "Delivered. Nothing more to do.",
+      "CANCELLED": "Cancelled. Nothing more to do.",
+      "REVIEW": "Money arrived for this cancelled order. Check the payment and contact the customer about a refund or a new order."
+    },
+    "next_short": {
+      "PENDING": "Confirm the order",
+      "WAITING_BANK": "Check your bank",
+      "WAITING_QPAY": "Waiting for QPay",
+      "WAITING_OTHER": "Waiting for card payment",
+      "COD_PENDING": "Send it",
+      "PAID": "Send it",
+      "DELIVERING": "On the way",
+      "DELIVERING_COD": "Collect cash on delivery",
+      "DELIVERED": "Done",
+      "CANCELLED": "Nothing to do",
+      "REVIEW": "Check the payment"
+    },
+    "payment_help": {
+      "QPAY": "QPay confirms payments by itself. A QPay order can’t be marked as paid by hand.",
+      "BANK": "The customer transfers the money to your bank account. Check your bank app before marking the order as paid.",
+      "COD": "The customer pays the courier in cash. It counts as a sale once it is delivered.",
+      "LEMON": "Card payment from an older order, confirmed by the card provider.",
+      "UNKNOWN": "No payment method was recorded for this order."
+    },
+    "steps": {
+      "placed": "Ordered",
+      "paid": "Paid",
+      "confirmed": "Confirmed",
+      "shipped": "Sent",
+      "delivered": "Delivered",
+      "state_done": "done",
+      "state_current": "now",
+      "state_todo": "later"
+    },
+    "drawer": {
+      "title": "Order #{order}",
+      "loading": "Opening order…",
+      "placed_at": "Placed {date}",
+      "progress": "Order progress",
+      "next_step": "What to do",
+      "copy_number": "Copy number",
+      "number_copied": "Order number copied",
+      "delivery": "Customer and delivery",
+      "call": "Call {phone}",
+      "copy_phone": "Copy phone",
+      "phone_copied": "Phone number copied",
+      "no_address": "No address given",
+      "customer_note": "Customer’s note",
+      "copy_courier": "Copy details for the courier",
+      "courier_copied": "Delivery details copied. Paste them to your courier.",
+      "items": {
+        "one": "1 item",
+        "other": "{count} items"
+      },
+      "qty": {
+        "one": "1 piece",
+        "other": "{count} pieces"
+      },
+      "subtotal": "Items",
+      "delivery_fee": "Delivery",
+      "free": "Free",
+      "total": "Total",
+      "payment": "Payment",
+      "method": "Method",
+      "payment_state": "Payment"
+    },
+    "review": {
+      "title": "Check this payment",
+      "body": "This order was cancelled, but the customer’s payment arrived. Confirm the receipt, then contact the customer to refund it or place the order again."
+    },
+    "confirm_bank": {
+      "title": "Has the money arrived?",
+      "body": "Check your bank account for {amount} for order #{order}. Only mark it as paid when the money is there.",
+      "confirm": "Yes, mark as paid"
+    },
+    "cancel": {
+      "section": "Cancel this order",
+      "hint": "Use this if the customer changed their mind or won’t pay. The items go back into stock.",
+      "button": "Cancel order…",
+      "title": "Cancel order #{order}?",
+      "body": "The items go back into stock, and customers with an account are emailed. You can’t undo this.",
+      "confirm": "Yes, cancel the order",
+      "keep": "Keep the order"
+    },
+    "courier_collect": "Collect in cash: {amount}",
+    "done": {
+      "WAITING_PAYMENT": "Order #{order} confirmed.",
+      "COD_PENDING": "Order #{order} confirmed.",
+      "PAID": "Payment recorded for #{order}. It is ready to ship.",
+      "DELIVERING": "#{order} sent for delivery.",
+      "DELIVERED": "#{order} marked as delivered.",
+      "CANCELLED": "#{order} cancelled. The items went back into stock."
+    },
+    "bulk": {
+      "DELIVERING": {
+        "one": "Send 1 for delivery",
+        "other": "Send {count} for delivery"
+      },
+      "DELIVERED": {
+        "one": "Mark 1 as delivered",
+        "other": "Mark {count} as delivered"
+      },
+      "copy_courier": "Copy details for courier",
+      "courier_copied": {
+        "one": "Delivery details for 1 order copied",
+        "other": "Delivery details for {count} orders copied"
+      }
+    },
+    "bulk_confirm": {
+      "DELIVERING": {
+        "title": {
+          "one": "Send 1 order for delivery?",
+          "other": "Send {count} orders for delivery?"
+        },
+        "body": "{orders} will move to “Out for delivery”, and customers with an account are emailed. Selected orders that aren’t ready to ship are left as they are."
+      },
+      "DELIVERED": {
+        "title": {
+          "one": "Mark 1 order as delivered?",
+          "other": "Mark {count} orders as delivered?"
+        },
+        "body": "{orders} will move to “Delivered”, and customers with an account are emailed. Cash-on-delivery orders then count as paid."
+      }
+    },
+    "bulk_done": {
+      "DELIVERING": {
+        "one": "1 order sent for delivery.",
+        "other": "{count} orders sent for delivery."
+      },
+      "DELIVERED": {
+        "one": "1 order marked as delivered.",
+        "other": "{count} orders marked as delivered."
+      }
+    },
+    "bulk_failed": {
+      "one": "1 order couldn’t be updated: {orders}. Refresh and try again.",
+      "other": "{count} orders couldn’t be updated: {orders}. Refresh and try again."
+    },
+    "errors": {
+      "load_failed": "Couldn’t load orders.",
+      "detail_failed": "Couldn’t open this order.",
+      "changed": "This order changed in the meantime. It has been refreshed; check it and try again.",
+      "not_allowed": "This step isn’t possible for this order any more. Refresh to see its current status.",
+      "update_failed": "Couldn’t update the order. Try again."
+    }
+  },
+  "products": {
+    "title": "Products",
+    "description": {
+      "one": "{count} product in {categories} categories.",
+      "other": "{count} products in {categories} categories."
+    },
+    "add": "Add product",
+    "manage_categories": "Categories",
+    "search": "Search products",
+    "count": {
+      "one": "1 product",
+      "other": "{count} products"
+    },
+    "showing_filtered": "Showing {count} of {total} products",
+    "clear_filters": "Clear filters",
+    "no_category": "No category",
+    "featured_on": "Featured",
+    "featured_off": "Feature",
+    "featured_hint": "Featured products are shown first on the home page.",
+    "filter": {
+      "category": "Category",
+      "all_categories": "All categories ({count})",
+      "no_category": "No category ({count})",
+      "stock": "Stock",
+      "stock_all": "Any stock",
+      "stock_restock": "Needs restocking",
+      "stock_soldout": "Sold out",
+      "stock_in_stock": "In stock",
+      "stock_untracked": "Stock not counted",
+      "sort": "Sort"
+    },
+    "sort": {
+      "newest": "Newest first",
+      "name": "Name, A–Z",
+      "price_low": "Price, low to high",
+      "price_high": "Price, high to low",
+      "stock": "Least stock first"
+    },
+    "col": {
+      "product": "Product",
+      "price": "Price",
+      "stock": "Stock",
+      "home": "Home page",
+      "actions": "Actions"
+    },
+    "empty": {
+      "title": "No products yet",
+      "body": "Add your first product with a photo, price and stock. It appears in the shop as soon as you save."
+    },
+    "no_match": {
+      "title": "No products match",
+      "body": "Try another search, or clear the filters."
+    },
+    "toast": {
+      "featured": "{name} is now featured on the home page.",
+      "unfeatured": "{name} is no longer featured."
+    },
+    "bulk": {
+      "feature": "Feature",
+      "unfeature": "Unfeature",
+      "move": "Move to category",
+      "delete": "Delete",
+      "move_title": {
+        "one": "Move 1 product",
+        "other": "Move {count} products"
+      },
+      "move_body": "Choose the category they should belong to.",
+      "move_pick": "Choose a category first.",
+      "move_confirm": "Move",
+      "delete_title": {
+        "one": "Delete 1 product?",
+        "other": "Delete {count} products?"
+      },
+      "delete_body": "They are removed from the shop for good. Products that customers have already ordered can’t be deleted; set their stock to 0 instead.",
+      "delete_confirm": {
+        "one": "Delete 1 product",
+        "other": "Delete {count} products"
+      },
+      "featured_done": {
+        "one": "1 product featured.",
+        "other": "{count} products featured."
+      },
+      "unfeatured_done": {
+        "one": "1 product unfeatured.",
+        "other": "{count} products unfeatured."
+      },
+      "moved_done": {
+        "one": "1 product moved.",
+        "other": "{count} products moved."
+      },
+      "deleted_done": {
+        "one": "1 product deleted.",
+        "other": "{count} products deleted."
+      },
+      "failed": {
+        "one": "1 product couldn’t be changed: {names}.",
+        "other": "{count} products couldn’t be changed: {names}."
+      },
+      "failed_ordered": {
+        "one": "1 product wasn’t deleted because it has been ordered before: {names}. Set its stock to 0 instead.",
+        "other": "{count} products weren’t deleted because they have been ordered before: {names}. Set their stock to 0 instead."
+      }
+    },
+    "errors": {
+      "load_failed": "Couldn’t load products.",
+      "update_failed": "Couldn’t save that change. Try again.",
+      "not_found": "That product no longer exists."
+    }
+  },
+  "stock": {
+    "in_stock": "{count} in stock",
+    "state": {
+      "ok": "In stock",
+      "low": "Running low",
+      "partial": "Some options sold out",
+      "soldout": "Sold out",
+      "untracked": "Not counted"
+    }
+  },
+  "categories": {
+    "title": "Categories",
+    "description": "Group products so customers can find them. Changes show in the shop straight away.",
+    "add_title": "Add a category",
+    "add": "Add category",
+    "name": "Category name",
+    "placeholder": "e.g. Brow care",
+    "add_child": "Add subcategory",
+    "child_of": "New subcategory inside “{name}”",
+    "rename": "Rename",
+    "load_failed": "Couldn’t load categories.",
+    "empty_title": "No categories yet",
+    "empty_body": "Add one above, for example “Pencils” or “Brow care”.",
+    "delete_title": "Delete “{name}”?",
+    "delete_products": {
+      "one": "Its 1 product stays in the shop but will have no category.",
+      "other": "Its {count} products stay in the shop but will have no category."
+    },
+    "delete_empty": "No products are in this category.",
+    "delete_children": {
+      "one": "Its subcategory moves up to the top level.",
+      "other": "Its {count} subcategories move up to the top level."
+    },
+    "delete_confirm": "Delete category",
+    "toast": {
+      "added": "Category “{name}” added.",
+      "renamed": "Renamed to “{name}”.",
+      "deleted": "Category “{name}” deleted.",
+      "add_failed": "Couldn’t add the category. Try again.",
+      "rename_failed": "Couldn’t rename the category. Try again.",
+      "delete_failed": "Couldn’t delete the category. Try again."
+    }
+  },
+  "editor": {
+    "title_new": "New product",
+    "title_edit": "Edit product",
+    "new_hint": "Fill in the details and save. It appears in the shop straight away.",
+    "view_in_shop": "View in shop",
+    "unsaved": "Unsaved changes",
+    "section_photos": "Photos",
+    "section_details": "Details",
+    "section_price": "Price",
+    "section_options": "Options and stock",
+    "section_video": "Video",
+    "cover": "Cover",
+    "make_cover": "Make cover",
+    "remove_photo": "Remove photo {n}",
+    "add_photos": "Add photos",
+    "drop_hint": "or drag them here",
+    "photos_hint": "The first photo is the cover shown in the shop.",
+    "add_video": "Add a video",
+    "video_hint": "MP4, up to 4 MB. Shown on the product page.",
+    "remove_video": "Remove video",
+    "name": "Name",
+    "name_placeholder": "e.g. Brow serum 5 ml",
+    "category": "Category",
+    "category_placeholder": "Choose a category",
+    "description": "Description",
+    "description_placeholder": "What it is and how to use it…",
+    "price": "Price",
+    "old_price": "Price before the sale",
+    "old_price_hint": "Fill this in to show the product as on sale.",
+    "sale_preview": "Shown in the shop as −{pct}% off.",
+    "sizes": "Options (size, colour…)",
+    "sizes_placeholder": "e.g. 5 ml, Brown",
+    "add_option": "Add",
+    "sizes_hint": "Leave this empty if the product comes in one version only.",
+    "size_price": "Price of {size}",
+    "size_stock": "Stock of {size}",
+    "size_price_hint": "If an option costs something else, type its price. Leave it empty to use the main price.",
+    "stock": "In stock",
+    "untracked": "Not counted",
+    "stock_hint": "Stock: 0 means sold out; leave it empty if you don’t count it. To count stock for a product without options, add one option such as “Standard”.",
+    "option_added": "Option added. Check its stock, then save again.",
+    "remove_option": "Remove option {size}",
+    "featured": "Feature on the home page",
+    "featured_hint": "Featured products are shown first on the home page and in the shop.",
+    "save": "Save changes",
+    "create": "Add product",
+    "saving": "Saving…",
+    "uploading": "Uploading photos… {pct}%",
+    "delete": "Delete product",
+    "discard": {
+      "title": "Discard your changes?",
+      "body": "You have changes that aren’t saved. If you close now, they are lost.",
+      "confirm": "Discard changes",
+      "keep": "Keep editing"
+    },
+    "delete_confirm": {
+      "title": "Delete “{name}”?",
+      "body": "It is removed from the shop for good. If customers have ordered it before, it can’t be deleted; set its stock to 0 instead.",
+      "confirm": "Delete product"
+    },
+    "toast": {
+      "created": "{name} added to the shop.",
+      "saved": "Changes to {name} saved.",
+      "deleted": "{name} deleted."
+    },
+    "errors": {
+      "summary": {
+        "one": "Fix 1 thing before saving:",
+        "other": "Fix {count} things before saving:"
+      },
+      "name": "Write the product name.",
+      "price": "Enter a price above 0.",
+      "old_price": "The price before the sale must be higher than the price.",
+      "category": "Choose a category.",
+      "photo": "Add at least one photo.",
+      "stock": "Stock must be a whole number (0 or more), or empty.",
+      "upload": "A photo or video couldn’t be uploaded. Check your connection and try again. Files over 4 MB are too big.",
+      "stock_changed": "Stock changed while you were editing; a customer may have just ordered. Close, open the product again and re-enter the stock.",
+      "in_orders": "Some options are in unfinished orders. Finish or cancel those orders before renaming or removing options, or switching stock counting on or off. Stock numbers can still be changed.",
+      "category_missing": "That category no longer exists. Choose another one.",
+      "save_failed": "Couldn’t save the product. Try again.",
+      "create_failed": "Couldn’t add the product. Try again.",
+      "delete_ordered": "This product has been ordered before, so it can’t be deleted. Set its stock to 0 to stop selling it.",
+      "delete_failed": "Couldn’t delete the product. Try again."
+    }
+  },
+  "revenue": {
+    "title": "Sales",
+    "description": "Money from paid orders. Cash-on-delivery orders count once they are delivered.",
+    "range": "Period",
+    "days_7": "Last 7 days",
+    "days_30": "Last 30 days",
+    "summary_label": "Sales numbers",
+    "stats": {
+      "sales_7": "Sales, last 7 days",
+      "sales_30": "Sales, last 30 days",
+      "orders": "Paid orders",
+      "orders_hint": "In the period",
+      "average": "Average order",
+      "average_hint": "Sales divided by paid orders",
+      "month": "This month",
+      "all_time": "{amount} since the shop opened"
+    },
+    "trend": {
+      "up": "{pct}% more than the {days} days before",
+      "down": "{pct}% less than the {days} days before",
+      "same": "Same as the {days} days before",
+      "no_compare": "No sales the period before to compare",
+      "none": "No sales in this period"
+    },
+    "orders_count": {
+      "one": "1 paid order",
+      "other": "{count} paid orders"
+    },
+    "chart": {
+      "title_7": "Sales each day, last 7 days",
+      "title_30": "Sales each day, last 30 days",
+      "series": "Sales"
+    },
+    "empty": {
+      "title": "No sales in this period",
+      "body": "Sales appear here day by day once orders are paid.",
+      "action": "Open orders"
+    },
+    "rule": {
+      "title": "What counts as a sale?",
+      "body": "Orders paid by QPay or bank transfer, and cash-on-delivery orders once delivered. Unpaid, cancelled and refunded orders are not counted. Each sale belongs to the day the order was placed, in Ulaanbaatar time."
+    },
+    "recent": {
+      "title": "Latest paid orders",
+      "description": "Select one to open the order.",
+      "empty_title": "No paid orders yet",
+      "empty_body": "Paid orders are listed here."
+    },
+    "errors": {
+      "load_failed": "Couldn’t load sales. Try again."
+    }
+  },
+  "chat": {
+    "title": "Chat",
+    "description": "Customer messages from your website, Messenger and Instagram, and requests to call back.",
+    "assistant_settings": "Assistant settings",
+    "tabs": {
+      "chats": "Chats",
+      "requests": "Callback requests"
+    },
+    "bot_off": {
+      "title": "The chat assistant is off",
+      "body": "Customers’ messages still arrive here, but nobody replies until you do.",
+      "action": "Turn the assistant on"
+    },
+    "filter_label": "Show",
+    "filter": {
+      "all": "All",
+      "attention": "Needs you"
+    },
+    "needs_you": "Needs you",
+    "search": "Search these chats",
+    "search_label": "Search the chats on this page",
+    "page_note": "Filters and search cover the chats on this page.",
+    "refresh": "Refresh chats",
+    "updated_at": "Updated {time}",
+    "unread": {
+      "one": "1 new message",
+      "other": "{count} new messages"
+    },
+    "state": {
+      "wants_person": "Asked for a person",
+      "you": "You’re replying"
+    },
+    "preview": {
+      "you": "You:",
+      "assistant": "Assistant:"
+    },
+    "channel": {
+      "website": "Website",
+      "messenger": "Messenger",
+      "instagram": "Instagram",
+      "test": "Test"
+    },
+    "empty": {
+      "none": "No chats yet",
+      "none_hint": "Chats from your website, Messenger and Instagram appear here.",
+      "no_match": "No chats match",
+      "no_match_hint": "Try another search or show all chats.",
+      "all_done": "Nobody is waiting for you right now."
+    },
+    "back": "Back to chats",
+    "thread": {
+      "choose": "Choose a chat",
+      "choose_hint": "Select a chat on the left to read it and reply.",
+      "loading": "Opening chat…",
+      "empty": "No messages in this chat yet.",
+      "bot_handles": "The assistant is replying in this chat",
+      "bot_off": "The assistant is off; only you can reply",
+      "you_handle": "You are replying; the assistant is paused in this chat",
+      "messages": "Messages in this chat"
+    },
+    "take_over": "Reply myself",
+    "give_back": "Let the assistant reply",
+    "reply_label": "Your reply",
+    "reply_placeholder": "Write your reply…",
+    "send": "Send",
+    "sending": "Sending…",
+    "composer_hint": "Sending a reply pauses the assistant in this chat, so you can talk to the customer yourself. Ctrl + Enter also sends.",
+    "composer_hint_paused": "The assistant stays quiet here until you press “Let the assistant reply”. Ctrl + Enter also sends.",
+    "meta_off": {
+      "title": "Replies to {channel} are switched off",
+      "body": "Your reply is saved here, but the customer won’t receive it until you turn on sending to Messenger and Instagram.",
+      "action": "Open settings"
+    },
+    "offline": "You are offline. Reconnect to receive and send messages.",
+    "role": {
+      "customer": "Customer",
+      "assistant": "Assistant",
+      "staff": "You"
+    },
+    "delivery": {
+      "sent": "Delivered",
+      "sending": "Sending…",
+      "failed": "Couldn’t send",
+      "suppressed": "Not sent: sending is off",
+      "uncertain": "May not have arrived"
+    },
+    "toast": {
+      "sent": "Reply sent.",
+      "saved_not_sent": "Reply saved, but not sent: sending to Messenger and Instagram is off.",
+      "taken_over": "You’re replying now. The assistant won’t answer in this chat.",
+      "given_back": "The assistant will answer this chat again."
+    },
+    "errors": {
+      "load_failed": "Couldn’t update the chats.",
+      "draft_kept": "Your reply is kept.",
+      "reply_failed": "Couldn’t send your reply. It is kept; try sending it again.",
+      "takeover_failed": "Couldn’t change who replies in this chat. Try again."
+    }
+  },
+  "requests": {
+    "filter_label": "Show requests",
+    "filter_all": "All",
+    "status": {
+      "new": "New",
+      "contacted": "Contacted",
+      "done": "Done"
+    },
+    "mark": {
+      "new": "New",
+      "contacted": "Contacted",
+      "done": "Done"
+    },
+    "set_status": "Status of {name}’s request",
+    "someone": "the customer",
+    "no_name": "Name not given",
+    "no_phone": "No phone number given",
+    "call": "Call {phone}",
+    "open_chat": "Open chat",
+    "page_note": "Filters cover the requests on this page.",
+    "toast": {
+      "new": "{name}’s request is marked as new.",
+      "contacted": "{name}’s request is marked as contacted.",
+      "done": "{name}’s request is done."
+    },
+    "empty": {
+      "none": "No requests yet",
+      "none_hint": "When a customer leaves a name or phone with the assistant, the request appears here with a link to the chat.",
+      "new": "No new requests",
+      "contacted": "No requests marked as contacted",
+      "done": "No finished requests",
+      "all": "No requests",
+      "filtered_hint": "Choose another filter above."
+    },
+    "errors": {
+      "load_failed": "Couldn’t load requests.",
+      "update_failed": "Couldn’t change the request. Try again."
+    }
+  },
+  "assistant": {
+    "title": "Chat assistant",
+    "description": "The assistant answers customers on your website, Messenger and Instagram. Choose what it says and how it behaves.",
+    "status_on": "Assistant is on",
+    "status_off": "Assistant is off",
+    "turn_on": "Turn on",
+    "turn_off": "Turn off",
+    "tabs": {
+      "settings": "Settings",
+      "test": "Try it",
+      "activity": "Activity",
+      "log": "Problems log"
+    },
+    "contact_shown": "When the assistant can’t help, it gives customers these contact details:",
+    "facts_rule": "Prices, stock and product facts come from your product list, so they are always right. Don’t write prices, percentages or promised results in the texts below; the save is refused if you do.",
+    "sections": {
+      "behaviour": "How it behaves",
+      "behaviour_hint": "These switches take effect when you save.",
+      "greeting": "Greeting",
+      "greeting_hint": "The first message a customer sees in a new chat.",
+      "handoff": "When a person is needed",
+      "handoff_hint": "Sent when a customer asks for a person or the assistant can’t answer.",
+      "knowledge": "Extra information",
+      "knowledge_hint": "Shop facts the assistant may use, such as opening hours or delivery days."
+    },
+    "fields": {
+      "metaOutbound": "Reply on Messenger and Instagram",
+      "metaOutbound_hint": "When off, nothing is sent to Messenger or Instagram, not even your own replies from the Chat page. The website chat keeps working.",
+      "showExactStock": "Show exact stock numbers to customers",
+      "showExactStock_hint": "When off, customers see “In stock” or “Almost gone” instead of a number, in the shop and in chat.",
+      "lowStockThreshold": "“Almost gone” at",
+      "lowStockThreshold_hint": "Products with this many or fewer left are shown as “Almost gone” and appear in your stock alerts.",
+      "greetingMn": "Greeting in Mongolian",
+      "greetingEn": "Greeting in English",
+      "handoffMn": "Message in Mongolian",
+      "handoffEn": "Message in English",
+      "extraKnowledgeMn": "Information in Mongolian",
+      "extraKnowledgeEn": "Information in English"
+    },
+    "chars": "{count} / {max} characters",
+    "unsaved": "You have unsaved changes.",
+    "all_saved": "All changes are saved.",
+    "discard": "Discard changes",
+    "save": "Save settings",
+    "saving": "Saving…",
+    "toast": {
+      "saved": "Assistant settings saved.",
+      "turned_on": "The assistant is on. It replies to customers again.",
+      "turned_off": "The assistant is off. New messages wait for you in Chat.",
+      "switch_failed": "Couldn’t switch the assistant. Try again."
+    },
+    "errors": {
+      "fix": "Fix the highlighted fields, then save.",
+      "required": "This can’t be empty.",
+      "too_long": "Too long: {max} characters at most.",
+      "facts": "Remove prices (₮), percentages and promised results. Product facts come from your product list.",
+      "threshold": "Enter a whole number from 1 to 1000.",
+      "save_failed": "Couldn’t save the settings. Try again.",
+      "load_failed": "Couldn’t load the assistant settings."
+    }
+  },
+  "test": {
+    "title": "Try the assistant",
+    "hint": "Ask a question as a customer would. Test chats aren’t shown to customers, counted in reports or sent as alerts.",
+    "empty_title": "Ask something to start",
+    "empty_body": "For example: “How long does delivery take?” or “Do you have a brown pencil?”",
+    "placeholder": "Type a test question…",
+    "message": "Test message",
+    "reset": "Start over",
+    "paused": "The assistant didn’t reply: it is switched off or this chat was handed to a person. Start over to try again.",
+    "errors": {
+      "send_failed": "Couldn’t get an answer. Try again.",
+      "reset_failed": "Couldn’t start over. Try again."
+    }
+  },
+  "activity": {
+    "hint": "Real customer chats only; test chats aren’t counted. Requests per day cover the last 14 days.",
+    "stats": {
+      "conversations": "Chats",
+      "conversations_hint": "All customer chats",
+      "waiting": "Waiting for a person",
+      "waiting_hint": "Asked for a person, nobody has taken the chat yet",
+      "handled": "Handled by you",
+      "handled_hint": "Chats where the assistant is paused",
+      "requests": "Callback requests",
+      "requests_hint": "Names and phones left with the assistant",
+      "new_requests": "New requests",
+      "new_requests_hint": "Not contacted yet"
+    },
+    "by_day": "Requests per day",
+    "by_day_hint": "Last 14 days",
+    "no_activity": "No requests in the last 14 days",
+    "no_activity_hint": "Requests appear here as customers leave their contact details.",
+    "channels": "Chats by channel",
+    "no_channels": "No customer chats yet.",
+    "errors": {
+      "load_failed": "Couldn’t load the assistant’s activity."
+    }
+  },
+  "log": {
+    "intro_title": "For troubleshooting",
+    "intro": "A technical record of the assistant’s errors and warnings, kept for {days} days. You usually don’t need it; it helps find out why a reply failed.",
+    "period": "Period",
+    "range_24": "24 hours",
+    "range_72": "3 days",
+    "range_168": "7 days",
+    "level": "Type",
+    "levels": {
+      "all": "All types",
+      "error": "Errors",
+      "warn": "Warnings",
+      "info": "Notes"
+    },
+    "search": "Search by event, message or request ID…",
+    "clear": "Clear filters",
+    "errors_hint": "Something failed",
+    "warnings_hint": "Worth a look",
+    "kinds": "Kinds of entries",
+    "kinds_hint": "Different events recorded",
+    "by_kind": "By kind",
+    "by_kind_hint": "The most frequent first. Select one to show only that kind.",
+    "times": {
+      "one": "once",
+      "other": "{count} times"
+    },
+    "empty_title": "Nothing recorded",
+    "empty_body": "No entries for this period and filter.",
+    "recent_title": "Latest entries",
+    "recent_hint": {
+      "one": "The latest entry. Select it for details.",
+      "other": "The latest {count} entries. Select one for details."
+    },
+    "request": "Request ID",
+    "sender": "Sender code",
+    "not_configured": "The log can’t be kept because the database isn’t connected.",
+    "errors": {
+      "load_failed": "Couldn’t load the log. Try again."
+    }
+  },
+  "auth": {
+    "login_title": "Sign in",
+    "login_subtitle": "Sign in to manage your shop.",
+    "email": "Email",
+    "email_placeholder": "you@example.com",
+    "password": "Password",
+    "show_password": "Show password",
+    "forgot": "Forgot your password?",
+    "login": "Sign in",
+    "logging_in": "Signing in…",
+    "or": "or",
+    "welcome": "Welcome back.",
+    "back_to_login": "Back to sign in",
+    "errors": {
+      "wrong": "The email or password is wrong. Check them and try again.",
+      "not_admin": "This account can’t open the admin. Sign in with the shop owner’s account.",
+      "too_many": "Too many attempts. Wait 15 minutes, then try again.",
+      "google": "Google sign-in didn’t work. Try again, or sign in with your email and password.",
+      "generic": "Couldn’t sign in. Try again in a moment."
+    },
+    "forgot_page": {
+      "title": "Reset your password",
+      "body": "Enter your account email. We’ll send you a link to choose a new password.",
+      "submit": "Send the link",
+      "sending": "Sending…",
+      "sent_title": "Check your email",
+      "sent_body": "If {email} has an account, a reset link is on its way. It works for a limited time.",
+      "error": "Couldn’t send the link. Try again."
+    },
+    "reset_page": {
+      "title": "Choose a new password",
+      "body": "Use at least {min} characters.",
+      "new": "New password",
+      "repeat": "Repeat the new password",
+      "hint": "At least {min} characters.",
+      "too_short": "The password must have at least {min} characters.",
+      "mismatch": "The two passwords don’t match.",
+      "submit": "Save new password",
+      "saving": "Saving…",
+      "done": "Password changed. Sign in with your new password.",
+      "expired": "This link is invalid or has expired. Ask for a new one.",
+      "new_link": "Send me a new link"
+    }
   }
 }

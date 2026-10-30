@@ -10,6 +10,24 @@ product assistant and Express/Prisma API in one Next.js application.
 | `/api/*` | Express API and chatbot endpoints |
 | `/api/health`, `/api/ready` | Process health and database readiness |
 
+## Admin dashboard
+
+One page, `/admin/[locale]/home-page`, with the section in the address:
+`?view=overview|orders|messages|products|revenue|assistant` (`?view=chatbot`, used
+by older Telegram alerts, opens Chat). Sections keep their state in the address
+too, so links land on the right thing: `&tab=to_ship` (orders tab),
+`&order=<id>` (opens that order; order alerts in Telegram link here),
+`&chat=<id>`, `&tab=requests`, `&stock=restock` and `&product=<id>` (opens the
+editor). The overview's "needs your attention" list and the menu counts come
+from the same summary (`src/admin/lib/adminNav.tsx`), refreshed every minute.
+
+Shared building blocks live in `src/admin/components/ui/` (page header, panels,
+status pills, confirm dialog, form fields, bulk-action bar); order status rules
+the screens rely on are in `(orders)/components/type.ts` and must keep matching
+`server/controller/orders/update-orders.js`. All admin text is in
+`src/admin/messages/{mn,en}.json`; `tests/commerce/admin-i18n.test.ts` fails if a
+key used in the code, or a placeholder, is missing in either language.
+
 ## Local development
 
 ```powershell

@@ -21,10 +21,12 @@ type PhotosProps = {
   onChange: (items: MediaItem[]) => void;
   error?: string;
   disabled?: boolean;
+  /** id of the "Add photos" button, so a validation summary can move focus to it. */
+  inputId?: string;
 };
 
 /** Photo grid: first photo is the cover. Add by click or drag-and-drop. */
-export function PhotosField({ items, onChange, error, disabled = false }: PhotosProps) {
+export function PhotosField({ items, onChange, error, disabled = false, inputId }: PhotosProps) {
   const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -61,34 +63,36 @@ export function PhotosField({ items, onChange, error, disabled = false }: Photos
           <div key={m.key} className="group relative aspect-square overflow-hidden bg-sand">
             <img src={m.url} alt="" className="h-full w-full object-cover" />
             {i === 0 ? (
-              <span className="absolute left-[6px] top-[6px] bg-ink px-[7px] py-[3px] text-[10px] font-medium uppercase tracking-[0.08em] text-paper">
+              <span className="absolute bottom-[6px] left-[6px] flex items-center gap-[4px] bg-ink px-[7px] py-[3px] text-[11px] font-medium text-paper">
+                <Star aria-hidden className="h-[11px] w-[11px] fill-paper" strokeWidth={1.6} />
                 {t("editor.cover")}
               </span>
             ) : (
               <button
                 type="button"
                 onClick={() => makeCover(m.key)}
-                title={t("editor.make_cover")}
-                aria-label={t("editor.make_cover")}
-                className="absolute left-[6px] top-[6px] flex h-[44px] w-[44px] items-center justify-center bg-paper/90 text-ink transition-opacity hover:bg-paper sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                className="absolute bottom-[6px] left-[6px] min-h-[32px] bg-paper/95 px-[8px] text-[11px] font-medium text-ink transition-opacity hover:bg-paper [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100"
               >
-                <Star className="h-[12px] w-[12px]" strokeWidth={1.6} />
+                {t("editor.make_cover")}
               </button>
             )}
             <button
               type="button"
               onClick={() => remove(m.key)}
-              aria-label={t("editor.remove")}
-              className="absolute right-[6px] top-[6px] flex h-[44px] w-[44px] items-center justify-center bg-paper/90 text-ink transition-colors hover:bg-terracotta hover:text-paper"
+              aria-label={t("editor.remove_photo", { n: i + 1 })}
+              title={t("editor.remove_photo", { n: i + 1 })}
+              className="absolute right-[4px] top-[4px] flex h-[40px] w-[40px] items-center justify-center bg-paper/90 text-ink transition-colors hover:bg-terracotta hover:text-paper"
             >
-              <X className="h-[14px] w-[14px]" />
+              <X aria-hidden className="h-[15px] w-[15px]" />
             </button>
           </div>
         ))}
 
         <button
           type="button"
+          id={inputId}
           onClick={() => inputRef.current?.click()}
+          aria-describedby={inputId ? `${inputId}-message` : undefined}
           className={`flex aspect-square flex-col items-center justify-center gap-[6px] border border-dashed px-[8px] text-center transition-colors hover:border-ink hover:bg-sand/50 ${
             error ? "border-terracotta" : "border-ink/25"
           }`}
@@ -112,9 +116,9 @@ export function PhotosField({ items, onChange, error, disabled = false }: Photos
       />
 
       {error ? (
-        <p className="mt-[8px] text-[12px] text-terracotta">{error}</p>
+        <p id={inputId ? `${inputId}-message` : undefined} className="admin-error">{error}</p>
       ) : (
-        <p className="mt-[8px] text-[12px] text-taupe">{t("editor.photos_hint")}</p>
+        <p id={inputId ? `${inputId}-message` : undefined} className="admin-hint">{t("editor.photos_hint")}</p>
       )}
     </div>
   );
@@ -139,8 +143,8 @@ export function VideoField({ video, onChange }: VideoProps) {
             onClick={() => onChange(null)}
             className="absolute right-[8px] top-[8px] flex min-h-[44px] items-center gap-[6px] bg-paper/90 px-[10px] text-[12px] text-ink hover:bg-terracotta hover:text-paper"
           >
-            <X className="h-[14px] w-[14px]" />
-            {t("editor.remove")}
+            <X aria-hidden className="h-[14px] w-[14px]" />
+            {t("editor.remove_video")}
           </button>
         </div>
       ) : (

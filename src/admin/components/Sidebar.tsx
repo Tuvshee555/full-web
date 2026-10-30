@@ -3,134 +3,162 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowUpRight, BarChart3, ClipboardList, LayoutDashboard, LogOut, Package, MessageCircle } from "lucide-react";
+import { ArrowUpRight, BarChart3, Bot, ClipboardList, LayoutDashboard, LogOut, MessageCircle, Package, type LucideIcon } from "lucide-react";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@admin/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@admin/components/ui/sheet";
 import { adminLogout } from "@admin/utils/logout";
+import { AdminSummary, AdminView, messagesBadge, ordersBadge } from "@admin/lib/adminNav";
 import { STORE } from "@/config/store";
 
-export type AdminView = "overview" | "products" | "orders" | "revenue" | "chatbot";
+export type { AdminView } from "@admin/lib/adminNav";
+
+type NavItem = { id: AdminView; label: string; short: string; icon: LucideIcon; badge?: number; badgeLabel?: string; note?: string };
+
+const LOCALES = [
+  { code: "mn", label: "Монгол" },
+  { code: "en", label: "English" },
+];
+
+/** The sections of the admin, in the order the owner uses them. */
+export function useNavItems(summary: AdminSummary) {
+  const { t } = useI18n();
+  const orders = ordersBadge(summary);
+  const messages = messagesBadge(summary);
+  const main: NavItem[] = [
+    { id: "overview", label: t("nav.overview"), short: t("nav.overview_short"), icon: LayoutDashboard },
+    { id: "orders", label: t("nav.orders"), short: t("nav.orders_short"), icon: ClipboardList, badge: orders, badgeLabel: t("nav.orders_badge", { count: orders }) },
+    { id: "messages", label: t("nav.messages"), short: t("nav.messages_short"), icon: MessageCircle, badge: messages, badgeLabel: t("nav.messages_badge", { count: messages }) },
+    { id: "products", label: t("nav.products"), short: t("nav.products_short"), icon: Package },
+    { id: "revenue", label: t("nav.revenue"), short: t("nav.revenue"), icon: BarChart3 },
+  ];
+  const settings: NavItem[] = [
+    { id: "assistant", label: t("nav.assistant"), short: t("nav.assistant"), icon: Bot, note: summary.bot && !summary.bot.enabled ? t("nav.assistant_off") : undefined },
+  ];
+  return { main, settings };
+}
+
+function Badge({ count, label }: { count?: number; label?: string }) {
+  if (!count) return null;
+  return (
+    <span className="min-w-[22px] bg-terracotta px-[6px] py-[1px] text-center text-[12px] font-medium tabular-nums text-paper">
+      <span aria-hidden>{count > 99 ? "99+" : count}</span>
+      <span className="sr-only">{label}</span>
+    </span>
+  );
+}
 
 type Props = {
   active: AdminView;
   onNavigate: (view: AdminView) => void;
-  /** Orders that still need the admin to do something (shown as a badge). */
-  openOrders?: number;
+  summary: AdminSummary;
+  /** Drawer mode on phones and tablets. */
   isMobile?: boolean;
   open?: boolean;
   onClose?: () => void;
 };
 
-const LOCALES = [
-  { code: "mn", label: "MN" },
-  { code: "en", label: "EN" },
-];
-
 /** Espresso sidebar with the serif wordmark: same identity as the storefront. */
-export const Sidebar = ({ active, onNavigate, openOrders = 0, isMobile, open, onClose }: Props) => {
-  const { t } = useI18n();
+export const Sidebar = ({ active, onNavigate, summary, isMobile, open, onClose }: Props) => {
+  const { t, locale } = useI18n();
   const router = useRouter();
   const pathname = usePathname() ?? "";
   const [email, setEmail] = useState<string | null>(null);
+  const { main, settings } = useNavItems(summary);
 
   useEffect(() => setEmail(localStorage.getItem("adminEmail")), []);
 
-  const locale = pathname.split("/")[2] || "mn";
   const switchLocale = (code: string) => {
-    const rest = pathname.replace(/^\/admin(\/(mn|en|ko))?/, "");
+    const rest = pathname.replace(/^\/admin(\/(mn|en))?/, "");
     const query = typeof window !== "undefined" ? window.location.search : "";
     router.push(`/admin/${code}${rest}${query}`);
   };
-
-  const nav: { id: AdminView; label: string; icon: typeof Package; badge?: number }[] = [
-    { id: "overview", label: t("overview.title"), icon: LayoutDashboard },
-    { id: "products", label: t("sidebar.product_catalog"), icon: Package },
-    { id: "orders", label: t("sidebar.orders"), icon: ClipboardList, badge: openOrders },
-    { id: "revenue", label: t("sidebar.revenue"), icon: BarChart3 },
-    { id: "chatbot", label: t("chatbot.title"), icon: MessageCircle },
-  ];
 
   const go = (id: AdminView) => {
     onNavigate(id);
     onClose?.();
   };
 
+  const item = ({ id, label, icon: Icon, badge, badgeLabel, note }: NavItem) => {
+    const isActive = active === id;
+    return (
+      <button
+        key={id}
+        type="button"
+        onClick={() => go(id)}
+        aria-current={isActive ? "page" : undefined}
+        className={`relative flex min-h-[44px] w-full items-center gap-[12px] px-[12px] text-left text-[14px] transition-colors duration-150 ${
+          isActive ? "bg-paper/[0.12] font-medium text-paper" : "text-paper/75 hover:bg-paper/[0.06] hover:text-paper"
+        }`}
+      >
+        <span className={`absolute bottom-[8px] left-0 top-[8px] w-[2px] bg-paper ${isActive ? "opacity-100" : "opacity-0"}`} />
+        <Icon aria-hidden className="h-[18px] w-[18px] shrink-0" strokeWidth={1.5} />
+        <span className="min-w-0 flex-1 truncate">{label}</span>
+        {note && <span className="border border-paper/40 px-[6px] text-[11px] text-paper/80">{note}</span>}
+        <Badge count={badge} label={badgeLabel} />
+      </button>
+    );
+  };
+
   const content = (
-    <aside className="flex h-full w-[248px] flex-col bg-espresso text-paper">
-      <Link href={`/admin/${locale}/home-page`} className="px-[26px] pb-[30px] pt-[32px]">
-        <span className="store-heading block text-[30px] !text-paper">{STORE.name}</span>
-        <span className="mt-[6px] block text-[12px] text-paper/60">{t("overview.workspace")}</span>
+    <div className="flex h-full w-full flex-col bg-espresso text-paper">
+      <Link href={`/admin/${locale}/home-page`} onClick={onClose} className="px-[24px] pb-[24px] pt-[28px]">
+        <span className="store-heading block text-[28px] !text-paper">{STORE.name}</span>
+        <span className="mt-[4px] block text-[12px] text-paper/65">{t("nav.workspace")}</span>
       </Link>
 
-      <nav className="flex flex-1 flex-col gap-[2px] px-[14px]">
-        {nav.map(({ id, label, icon: Icon, badge }) => {
-          const isActive = active === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => go(id)}
-              aria-current={isActive ? "page" : undefined}
-              className={`group relative flex w-full items-center gap-[12px] px-[12px] min-h-[48px] py-[11px] text-left text-[14px] transition-colors duration-300 ${
-                isActive ? "bg-paper/10 text-paper" : "text-paper/70 hover:bg-paper/5 hover:text-paper"
-              }`}
-            >
-              <span className={`absolute bottom-[8px] left-0 top-[8px] w-[2px] bg-paper transition-opacity ${isActive ? "opacity-100" : "opacity-0"}`} />
-              <Icon className="h-[17px] w-[17px]" strokeWidth={1.3} />
-              <span className="flex-1">{label}</span>
-              {!!badge && (
-                <span
-                  className="min-w-[22px] bg-terracotta px-[7px] py-[1px] text-center text-[11px] font-medium tabular-nums text-paper"
-                  title={t("nav.open_orders", { count: badge })}
-                >
-                  {badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
+      <nav aria-label={t("nav.label")} className="flex flex-1 flex-col overflow-y-auto px-[12px]">
+        <div className="flex flex-col gap-[2px]">{main.map(item)}</div>
+        <p className="mb-[6px] mt-[20px] px-[12px] text-[12px] text-paper/55">{t("nav.settings_group")}</p>
+        <div className="flex flex-col gap-[2px]">{settings.map(item)}</div>
       </nav>
 
-      <div className="space-y-[14px] border-t border-paper/10 px-[26px] py-[20px]">
-        <Link href={`/${locale}`} target="_blank" className="flex min-h-[44px] items-center justify-between gap-2 text-[13px] text-paper/80 hover:text-paper">
-          {t("overview.visit_store")}<ArrowUpRight className="h-4 w-4" />
+      <div className="space-y-[10px] border-t border-paper/10 px-[24px] py-[16px]">
+        <Link href={`/${locale}`} target="_blank" className="flex min-h-[44px] items-center justify-between gap-2 text-[13px] text-paper/85 hover:text-paper">
+          {t("nav.visit_store")}
+          <ArrowUpRight aria-hidden className="h-4 w-4" />
+          <span className="sr-only">({t("common.opens_new_tab")})</span>
         </Link>
-        <div className="flex gap-[2px]" role="group" aria-label="Language">
+        <div className="flex gap-[2px]" role="group" aria-label={t("nav.language")}>
           {LOCALES.map((l) => (
             <button
               key={l.code}
               type="button"
+              lang={l.code}
               onClick={() => switchLocale(l.code)}
               aria-pressed={locale === l.code}
-              className={`h-[44px] min-w-[44px] px-[10px] text-[11px] font-medium tracking-[0.1em] transition-colors ${
-                locale === l.code ? "bg-paper text-ink" : "text-paper/60 hover:text-paper"
+              className={`h-[40px] flex-1 px-[10px] text-[12px] font-medium transition-colors ${
+                locale === l.code ? "bg-paper text-ink" : "text-paper/70 hover:bg-paper/[0.06] hover:text-paper"
               }`}
             >
               {l.label}
             </button>
           ))}
         </div>
-        {email && <p className="truncate text-[12px] text-paper/55">{email}</p>}
+        {email && (
+          <p className="truncate pt-[4px] text-[12px] text-paper/65" title={t("nav.signed_in_as", { email })}>
+            <span className="sr-only">{t("nav.signed_in_as", { email })}</span>
+            <span aria-hidden>{email}</span>
+          </p>
+        )}
         <button
           type="button"
           onClick={() => adminLogout(router.push)}
-          className="flex min-h-[44px] items-center gap-[10px] text-[13px] text-paper/75 transition-colors hover:text-paper"
+          className="flex min-h-[44px] items-center gap-[10px] text-[13px] text-paper/80 transition-colors hover:text-paper"
         >
-          <LogOut className="h-[15px] w-[15px]" strokeWidth={1.3} />
-          {t("sidebar.logout")}
+          <LogOut aria-hidden className="h-[16px] w-[16px]" strokeWidth={1.5} />
+          {t("nav.logout")}
         </button>
       </div>
-    </aside>
+    </div>
   );
 
   if (!isMobile) return content;
 
   return (
     <Sheet open={!!open} onOpenChange={(v) => (!v ? onClose?.() : null)}>
-      <SheetContent side="left" className="w-[248px] border-0 p-0 [&>button]:text-paper">
-        <SheetHeader className="sr-only">
-          <SheetTitle>{t("sidebar.title")}</SheetTitle>
-        </SheetHeader>
+      <SheetContent side="left" className="w-[280px] max-w-[85vw] border-0 p-0 [&>button]:text-paper">
+        <SheetTitle className="sr-only">{t("nav.menu")}</SheetTitle>
+        <SheetDescription className="sr-only">{t("nav.menu_hint")}</SheetDescription>
         {content}
       </SheetContent>
     </Sheet>

@@ -14,7 +14,7 @@ import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 export default function LogIn() {
   const router = useRouter();
   const { setAuthToken } = useAuth();
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const searchParams = useSearchParams();
   const from = searchParams?.get("from");
   const destination = from?.startsWith(`/admin/${locale}/home-page`) && !from.includes("\\")
@@ -25,12 +25,24 @@ export default function LogIn() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const requireAdminAccess = (role?: string) => {
-    if (role === "ADMIN") return true;
-    const message = "This account does not have ADMIN access!";
+  const fail = (message: string) => {
     setError(message);
     toast.error(message);
+  };
+
+  const requireAdminAccess = (role?: string) => {
+    if (role === "ADMIN") return true;
+    fail(t("auth.errors.not_admin"));
     return false;
+  };
+
+  const finish = (token: string, email: string, id: string) => {
+    localStorage.setItem("adminToken", token);
+    localStorage.setItem("adminEmail", email);
+    localStorage.setItem("adminUserId", id);
+    setAuthToken(token);
+    toast.success(t("auth.welcome"));
+    router.replace(destination);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -40,34 +52,23 @@ export default function LogIn() {
 
     try {
       setLoading(true);
-      const res = await axios.post(
-        `${API_BASE_URL}/user/login`,
-        user
-      );
+      const res = await axios.post(`${API_BASE_URL}/user/login`, { ...user, email: user.email.trim() });
 
       if (res.data.success) {
         const { token, user: userData } = res.data;
         // Same ADMIN check as Google login (password login used to skip it)
         if (!requireAdminAccess(userData?.role)) return;
-        localStorage.setItem("adminToken", token);
-        localStorage.setItem("adminEmail", userData.email);
-        localStorage.setItem("adminUserId", userData.userId || userData.id);
-        setAuthToken(token);
-        toast.success("Successfully logged in!");
-        router.replace(destination);
+        finish(token, userData.email, userData.userId || userData.id);
       } else {
-        setError(res.data.message);
-        toast.error(res.data.message);
+        fail(t("auth.errors.generic"));
       }
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        const msg =
-          err.response?.data?.message || "An error occurred while logging in.";
-        setError(msg);
-        toast.error(msg);
-      } else {
-        toast.error("An unexpected error occurred.");
-      }
+      const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+      if (axios.isAxiosError(err) && !err.response) fail(t("common.errors.offline"));
+      else if (status === 401) fail(t("auth.errors.wrong"));
+      else if (status === 403) fail(t("auth.errors.not_admin"));
+      else if (status === 429) fail(t("auth.errors.too_many"));
+      else fail(t("auth.errors.generic"));
     } finally {
       setLoading(false);
     }
@@ -75,34 +76,29 @@ export default function LogIn() {
 
   const handleGoogleLogin = async (res: CredentialResponse) => {
     if (loading) return;
-    if (!res.credential) return toast.error("No Google credentials received!");
+    if (!res.credential) return fail(t("auth.errors.google"));
 
     try {
       setLoading(true);
-      const r = await fetch(
-        `${API_BASE_URL}/user/auth/google`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token: res.credential }),
-        }
-      );
+      setError(null);
+      const r = await fetch(`${API_BASE_URL}/user/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: res.credential }),
+      });
 
       const data = await r.json();
       if (data.token && data.user) {
         if (!requireAdminAccess(data.user.role)) return;
-        localStorage.setItem("adminToken", data.token);
-        localStorage.setItem("adminEmail", data.user.email);
-        localStorage.setItem("adminUserId", data.user.id);
-        setAuthToken(data.token);
-        toast.success("Successfully logged in with Google!");
-        router.replace(destination);
+        finish(data.token, data.user.email, data.user.id);
       } else {
-        toast.error(data.message || "Google login failed!");
+        fail(r.status === 429 ? t("auth.errors.too_many") : t("auth.errors.google"));
       }
     } catch {
-      toast.error("Google login failed!");
-    } finally { setLoading(false); }
+      fail(t("auth.errors.google"));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -111,16 +107,16 @@ export default function LogIn() {
         <LoginImage />
       </div>
       <div className="flex items-center justify-center px-[20px] py-[48px]">
-      <LoginForm
-        user={user}
-        setUser={setUser}
-        showPassword={showPassword}
-        setShowPassword={setShowPassword}
-        error={error}
-        loading={loading}
-        onLogin={handleLogin}
-        onGoogle={handleGoogleLogin}
-      />
+        <LoginForm
+          user={user}
+          setUser={setUser}
+          showPassword={showPassword}
+          setShowPassword={setShowPassword}
+          error={error}
+          loading={loading}
+          onLogin={handleLogin}
+          onGoogle={handleGoogleLogin}
+        />
       </div>
     </div>
   );
