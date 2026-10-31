@@ -10,6 +10,18 @@ product assistant and Express/Prisma API in one Next.js application.
 | `/api/*` | Express API and chatbot endpoints |
 | `/api/health`, `/api/ready` | Process health and database readiness |
 
+## Storefront
+
+The look and the rules behind it (palette, type, no tinted photos, nothing under the
+floating chat button) are in `PRODUCT.md`. Product photos fill their frames
+(`.product-media` in `src/app/(customer)/globals.css`); upload photos with the product
+centred, since cards and tiles crop to 4:5. The home page picks its hero, featured
+products and category tiles from real sales data and avoids showing the same photo
+twice. All storefront text is in `src/messages/{mn,en}.json`;
+`tests/commerce/store-i18n.test.ts` fails if a key used in the code, or a placeholder,
+is missing in either language. Checkout errors from the API are shown to shoppers as
+plain sentences in their language (`useCheckout.ts`), never as the API's own message.
+
 ## Admin dashboard
 
 One page, `/admin/[locale]/home-page`, with the section in the address:

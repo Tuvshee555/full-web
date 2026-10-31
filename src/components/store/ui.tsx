@@ -17,6 +17,7 @@ export function Stars({
   size = 14,
   showAvg = false,
   hideCount = false,
+  label,
   className = "",
 }: {
   avg: number;
@@ -24,13 +25,15 @@ export function Stars({
   size?: number;
   showAvg?: boolean;
   hideCount?: boolean;
+  /** What a screen reader says instead of "4.8 / 5 (120)". */
+  label?: string;
   className?: string;
 }) {
   if (!count) return null;
   const pct = Math.max(0, Math.min(100, (avg / 5) * 100));
   const row = "★★★★★";
   return (
-    <span className={`inline-flex items-center gap-[6px] ${className}`} aria-label={`${avg.toFixed(1)} / 5 (${count})`}>
+    <span role="img" className={`inline-flex items-center gap-[6px] ${className}`} aria-label={label ?? `${avg.toFixed(1)} / 5 (${count})`}>
       <span className="relative inline-block leading-none" style={{ fontSize: size }}>
         <span className="text-[#d9d4cf]">{row}</span>
         <span className="absolute inset-0 overflow-hidden whitespace-nowrap text-[#1c1714]" style={{ width: `${pct}%` }}>

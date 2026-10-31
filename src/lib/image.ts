@@ -8,10 +8,10 @@ const CLOUDINARY_UPLOAD = /^(https:\/\/res\.cloudinary\.com\/[^/]+\/image\/uploa
 const TRANSFORMATION = /^[a-z]{1,3}_[^/,]+(,[a-z]{1,3}_[^/,]+)*$/i;
 
 /** The home hero photo: the server preloads exactly what the page's <img> will ask for. */
-export const HERO_IMAGE = { width: 800, widths: [480, 800, 1200], sizes: "(min-width: 1024px) 50vw, 100vw" } as const;
+export const HERO_IMAGE = { width: 800, widths: [480, 800, 1200], sizes: "(min-width: 768px) 50vw, 100vw" } as const;
 
 /** The product page's main photo: preloaded by the server with exactly what the gallery will ask for. */
-export const PRODUCT_IMAGE = { width: 960, widths: [480, 720, 960, 1280], sizes: "(min-width: 768px) 50vw, 100vw" } as const;
+export const PRODUCT_IMAGE = { width: 960, widths: [480, 720, 960, 1280], sizes: "(min-width: 1024px) 45vw, 100vw" } as const;
 
 /** The photo resized to `width` pixels wide (never enlarged), as small as the format allows. */
 export function imageUrl(url: string, width: number): string {

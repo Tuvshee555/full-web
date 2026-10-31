@@ -123,6 +123,6 @@ export function ShopChatWidget() {
       </form>
       {busy && <p role="status" className="px-4 pb-2 text-xs">{t("chatbot.waiting")}</p>}
     </section>}
-    <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-controls="shop-chat-panel" aria-label={open ? t("chatbot.close") : t("chatbot.open")} className="ml-auto flex h-12 w-12 items-center justify-center gap-2 border border-ink bg-espresso text-paper transition-colors duration-300 hover:bg-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink md:w-auto md:px-4">{open ? <X size={20} strokeWidth={1.5} /> : <MessageCircle size={20} strokeWidth={1.5} />}<span className="hidden text-sm md:inline">{t("chatbot.button")}</span></button>
+    <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-controls="shop-chat-panel" aria-label={`${t("chatbot.button")} (${open ? t("chatbot.close") : t("chatbot.open")})`} className="ml-auto flex h-12 w-12 items-center justify-center gap-2 border border-ink bg-espresso text-paper transition-colors duration-300 hover:bg-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink md:w-auto md:px-4">{open ? <X size={20} strokeWidth={1.5} /> : <MessageCircle size={20} strokeWidth={1.5} />}<span className="hidden text-sm md:inline">{t("chatbot.button")}</span></button>
   </div>;
 }

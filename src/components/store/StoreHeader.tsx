@@ -12,7 +12,7 @@ import { useCategoryTree, type CategoryNode } from "@/hooks/useCategoryTree";
 import { useProducts } from "@/hooks/useProducts";
 import { cartCount } from "./lib/cart";
 import { useStoreCart } from "./lib/useCart";
-import { collectionUrl, productImages, productUrl } from "./lib/product";
+import { collectionUrl, productImages, productUrl, searchText } from "./lib/product";
 import { useStoreT } from "./lib/useStoreT";
 import { Drawer, Price } from "./ui";
 import { imageUrl } from "@/lib/image";
@@ -77,7 +77,7 @@ export function StoreHeader({ onOpenAccount, onOpenCart }: { onOpenAccount: () =
   return (
     <>
       <div className={`sticky top-0 z-header transition-transform duration-200 ease-silk ${hidden && !menuOpen && !searchOpen ? "-translate-y-full" : "translate-y-0"}`}>
-        <header className="border-b border-ink/10 bg-paper/90 backdrop-blur-md">
+        <header className="border-b border-ink/10 bg-paper">
           {/* Luxury-beauty layout: menu left · serif wordmark centred · icons right */}
           <div className="page-width grid h-[68px] grid-cols-[1fr_auto_1fr] items-center lg:h-[84px]">
             <div className="flex items-center -ml-[10px] md:ml-0">
@@ -101,17 +101,21 @@ export function StoreHeader({ onOpenAccount, onOpenCart }: { onOpenAccount: () =
             </Link>
 
             <div className="flex items-center justify-self-end -mr-[10px]">
-              <Link href={pathname?.replace(/^\/(mn|en)(?=\/|$)/, locale === "mn" ? "/en" : "/mn") ?? (locale === "mn" ? "/en" : "/mn")} hrefLang={locale === "mn" ? "en" : "mn"} aria-label={locale === "mn" ? "Switch to English" : "Монгол хэлээр үзэх"} className="hidden min-h-11 items-center px-3 text-xs font-medium text-taupe hover:text-ink sm:inline-flex">{locale === "mn" ? "EN" : "MN"}</Link>
+              {/* The name starts with the visible "EN"/"MN", so voice control users can say what they see. */}
+              <Link href={pathname?.replace(/^\/(mn|en)(?=\/|$)/, locale === "mn" ? "/en" : "/mn") ?? (locale === "mn" ? "/en" : "/mn")} hrefLang={locale === "mn" ? "en" : "mn"} className="hidden min-h-11 items-center px-3 text-xs font-medium text-taupe hover:text-ink sm:inline-flex">
+                {locale === "mn" ? "EN" : "MN"}
+                <span className="sr-only">{locale === "mn" ? " (English)" : " (Монгол)"}</span>
+              </Link>
               <button type="button" className={`${iconBtn} hidden lg:flex`} aria-label={st("search")} onClick={() => setSearchOpen(true)}>
                 <Search className="h-[19px] w-[19px]" strokeWidth={1.1} />
               </button>
               <button type="button" className={iconBtn} aria-label={st("account")} onClick={onOpenAccount}>
                 <User className="h-[20px] w-[20px]" strokeWidth={1.1} />
               </button>
-              <button type="button" className={`${iconBtn} relative`} aria-label={st("cart")} onClick={onOpenCart}>
-                <ShoppingBag className="h-[20px] w-[20px]" strokeWidth={1.1} />
+              <button type="button" className={`${iconBtn} relative`} aria-label={count > 0 ? st("cart_with_count", { n: count > 99 ? "99+" : count }) : st("cart")} onClick={onOpenCart}>
+                <ShoppingBag aria-hidden className="h-[20px] w-[20px]" strokeWidth={1.1} />
                 {count > 0 && (
-                  <span className="absolute right-[4px] top-[6px] flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-terracotta px-[4px] text-[9px] font-medium leading-none text-paper">
+                  <span className="absolute right-[3px] top-[5px] flex h-[17px] min-w-[17px] items-center justify-center bg-terracotta px-[4px] text-[10px] font-medium leading-none text-paper">
                     {count > 99 ? "99+" : count}
                   </span>
                 )}
@@ -268,8 +272,11 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  const term = q.trim().toLowerCase();
-  const results = term ? products.filter((p: any) => String(p.productName ?? "").toLowerCase().includes(term)).slice(0, 6) : [];
+  const term = q.trim().toLocaleLowerCase(locale);
+  // Name matches first, then products that only mention the words in their description, category or shades.
+  const matches = term ? products.filter((p: any) => searchText(p).toLocaleLowerCase(locale).includes(term)) : [];
+  const byName = (p: any) => String(p.productName ?? "").toLocaleLowerCase(locale).includes(term);
+  const results = [...matches.filter(byName), ...matches.filter((p: any) => !byName(p))].slice(0, 6);
 
   const submit = () => {
     if (!term) return;
@@ -297,7 +304,7 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
               <Search className="h-[18px] w-[18px]" strokeWidth={1.4} />
             </button>
           </form>
-          <button type="button" aria-label={st("close")} onClick={onClose} className="p-[10px] text-[#1c1714]">
+          <button type="button" aria-label={st("close")} onClick={onClose} className="flex h-[44px] w-[44px] shrink-0 items-center justify-center text-ink hover:bg-sand">
             <X className="h-[20px] w-[20px]" strokeWidth={1.4} />
           </button>
         </div>
@@ -306,14 +313,17 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
             <div className="mx-auto max-w-[740px] border-t border-[rgba(28,23,20,0.08)]">
               {isLoading ? <p role="status" className="py-5 text-sm text-taupe">{st("loading_products")}</p> : isError ? <div role="alert" className="py-5 text-sm"><p>{st("catalogue_error")}</p><button type="button" onClick={() => void refetch()} className="mt-2 min-h-11 underline">{st("retry")}</button></div> : results.length ? (
                 <>
-                  <p className="pt-[14px] pb-[6px] text-[11px] uppercase tracking-[0.06em]">{st("products")}</p>
+                  <p role="status" className="pb-[6px] pt-[14px] text-[13px] text-taupe">
+                    {matches.length === 1 ? st("product_count_one") : st("products_count", { n: matches.length })}
+                  </p>
                   <ul>
                     {results.map((p: any) => (
                       <li key={p.id}>
-                        <Link href={productUrl(locale, p.id)} onClick={onClose} className="flex items-center gap-[15px] py-[8px] hover:bg-[rgba(28,23,20,0.04)]">
-                          <img src={imageUrl(productImages(p)[0], 120)} alt="" className="h-[50px] w-[50px] object-cover bg-[#efe7dd]" />
-                          <div>
-                            <p className="font-medium text-ink text-[15px]">{p.productName}</p>
+                        <Link href={productUrl(locale, p.id)} onClick={onClose} className="-mx-[8px] flex items-center gap-[15px] px-[8px] py-[8px] hover:bg-sand/60">
+                          <img src={imageUrl(productImages(p)[0], 120)} alt="" className="h-[60px] w-[48px] shrink-0 bg-sand object-cover" />
+                          <div className="min-w-0">
+                            <p className="truncate text-[15px] font-medium text-ink">{p.productName}</p>
+                            {p.category?.categoryName && <p className="truncate text-[12px] text-taupe">{p.category.categoryName}</p>}
                             <Price product={p} className="text-[13px]" />
                           </div>
                         </Link>

@@ -41,11 +41,10 @@ export default function ProfileInner() {
     <div className="page-width pb-[96px] pt-[40px] md:pt-[72px]">
       <div className="flex flex-wrap items-end justify-between gap-[16px]">
         <div>
-          <span className="eyebrow">{st("account")}</span>
-          <h1 className="store-heading mt-[10px] text-[48px] md:text-[72px]">{st("greeting")}</h1>
+          <h1 className="store-heading text-[48px] md:text-[72px]">{st("greeting")}</h1>
           {!isGuest && <p className="mt-[6px] text-[15px] text-ink/60">{email}</p>}
         </div>
-        <button type="button" onClick={logout} className="link-underline text-[14px] text-ink">
+        <button type="button" onClick={logout} className="link-underline inline-flex min-h-[44px] items-center text-[14px] text-ink">
           {st("log_out")}
         </button>
       </div>
@@ -56,9 +55,11 @@ export default function ProfileInner() {
             key={k}
             role="tab"
             type="button"
+            id={`account-tab-${k}`}
+            aria-controls="account-panel"
             aria-selected={tab === k}
             onClick={() => changeTab(k)}
-            className={`-mb-px border-b-2 pb-[14px] text-[15px] transition-colors ${
+            className={`-mb-px min-h-[44px] border-b-2 pb-[12px] text-[15px] transition-colors ${
               tab === k ? "border-ink text-ink" : "border-transparent text-ink/65 hover:text-ink"
             }`}
           >
@@ -67,7 +68,7 @@ export default function ProfileInner() {
         ))}
       </div>
 
-      <div className="pt-[32px]">{tab === "orders" ? <OrdersList /> : <ProfileInfo />}</div>
+      <div id="account-panel" role="tabpanel" aria-labelledby={`account-tab-${tab}`} className="pt-[32px]">{tab === "orders" ? <OrdersList /> : <ProfileInfo />}</div>
     </div>
   );
 }

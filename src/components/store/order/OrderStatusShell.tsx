@@ -76,8 +76,9 @@ export function OrderSummary({ order }: { order: any }) {
         {(order?.items ?? []).map((it: any, i: number) => (
           <li key={it.id ?? i} className="flex items-center gap-[14px]">
             <div className="relative h-[64px] w-[64px] shrink-0 bg-paper">
-              <ProductImage src={imageUrl(it.product?.image ?? "", 200)} alt="" className="h-full w-full object-contain" />
-              <span className="absolute -right-[8px] -top-[8px] flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-ink px-[5px] text-[11px] text-paper">
+              <ProductImage src={imageUrl(it.product?.image ?? "", 200)} alt="" className="h-full w-full object-cover" />
+              <span className="absolute -right-[8px] -top-[8px] flex h-[20px] min-w-[20px] items-center justify-center bg-ink px-[5px] text-[11px] text-paper">
+                <span className="sr-only">{st("quantity")}: </span>
                 {it.quantity}
               </span>
             </div>

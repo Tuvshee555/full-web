@@ -11,7 +11,7 @@ import { useProducts } from "@/hooks/useProducts";
 import { useCategoryTree } from "@/hooks/useCategoryTree";
 import { sanitizeProductList } from "@/utils/catalogSanitizer";
 import { ProductCard, ProductCardSkeleton } from "./ProductCard";
-import { collectionUrl, isSoldOut, money, onSale, priceRange } from "./lib/product";
+import { collectionUrl, isSoldOut, money, onSale, priceRange, searchText } from "./lib/product";
 import { useStoreT } from "./lib/useStoreT";
 import { Drawer } from "./ui";
 import { CatalogState } from "./CatalogState";
@@ -22,7 +22,7 @@ const NO_FILTERS: Filters = { inStock: false, outOfStock: false, sale: false, mi
 const PAGE_SIZE = 24;
 const VIRTUAL = ["all", "featured", "discounted", "bestseller"];
 
-function useCollection(id: string) {
+function useCollection(id: string, knownName?: string) {
   const { st } = useStoreT();
   const virtual = VIRTUAL.includes(id);
   // Home, search and virtual collections share one request and one cache.
@@ -51,7 +51,8 @@ function useCollection(id: string) {
   }, [virtual, id, catalog.data, category.data]);
   const title = virtual
     ? ({ all: st("all_products"), featured: st("sort_featured"), discounted: st("on_sale"), bestseller: st("sort_best") }[id] ?? "")
-    : category.data?.title ?? st("all_products");
+    // While the products load, the name from the menu is shown instead of a wrong "All products".
+    : category.data?.title || knownName || (category.isPending ? "" : st("all_products"));
   const query = virtual ? catalog : category;
   return { products, title, loading: query.isPending, error: query.isError, retry: () => void query.refetch() };
 }
@@ -61,7 +62,8 @@ export function CollectionPage({ id }: { id: string }) {
   const router = useRouter();
   const { data: categories = [] } = useCategoryTree();
   const q = (useSearchParams()?.get("q") ?? "").trim();
-  const { products, title, loading, error, retry } = useCollection(id);
+  const knownName = categories.flatMap((c) => [c, ...(c.children ?? [])]).find((c) => c.id === id)?.categoryName;
+  const { products, title, loading, error, retry } = useCollection(id, knownName);
   const [sort, setSort] = useState<Sort>(id === "bestseller" ? "best" : "featured");
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [page, setPage] = useState(1);
@@ -77,7 +79,7 @@ export function CollectionPage({ id }: { id: string }) {
     const max = filters.max === "" ? Infinity : Number(filters.max);
     const term = q.toLocaleLowerCase(locale);
     const list = products.filter((p) => {
-      if (term && !`${p.productName ?? ""} ${p.ingredients ?? ""}`.toLocaleLowerCase(locale).includes(term)) return false;
+      if (term && !searchText(p).toLocaleLowerCase(locale).includes(term)) return false;
       const sold = isSoldOut(p);
       if (filters.inStock !== filters.outOfStock && (filters.inStock ? sold : !sold)) return false;
       if (filters.sale && !onSale(p)) return false;
@@ -132,9 +134,33 @@ export function CollectionPage({ id }: { id: string }) {
   return (
     <div className="page-width pb-[72px]">
       <div className="grid gap-6 border-b border-line pb-8 pt-8 lg:grid-cols-[1.2fr_1fr] lg:items-end lg:pt-12">
-        <div><Link href={`/${locale}`} className="eyebrow link-underline">Lorentz / {st("shop")}</Link><h1 className="store-heading page-title mt-3">{q ? `“${q}”` : title || st("all_products")}</h1><p className="mt-4 max-w-lg text-sm leading-relaxed text-taupe">{st("collection_intro")}</p></div>
+        <div>
+          <nav aria-label={st("breadcrumb")} className="text-[13px] text-taupe">
+            <ol className="flex flex-wrap items-center gap-x-[10px]">
+              <li><Link href={`/${locale}`} className="inline-flex min-h-[32px] items-center link-underline">{st("home")}</Link></li>
+              <li aria-hidden>/</li>
+              {id === "all" && !q ? (
+                <li aria-current="page" className="inline-flex min-h-[32px] items-center text-ink">{st("all_products")}</li>
+              ) : (
+                <>
+                  <li><Link href={collectionUrl(locale)} className="inline-flex min-h-[32px] items-center link-underline">{st("all_products")}</Link></li>
+                  {id !== "all" && (
+                    <>
+                      <li aria-hidden>/</li>
+                      <li aria-current={q ? undefined : "page"} className="inline-flex min-h-[32px] items-center text-ink">{title}</li>
+                    </>
+                  )}
+                </>
+              )}
+            </ol>
+          </nav>
+          <h1 className="store-heading page-title mt-3">
+            {q ? st("results_for", { q }) : title || <span aria-hidden className="inline-block h-[0.8em] w-[6ch] animate-pulse bg-sand align-middle" />}
+          </h1>
+          <p className="mt-4 max-w-lg text-sm leading-relaxed text-taupe">{st("collection_intro")}</p>
+        </div>
         <form key={q} className="collection-search lg:justify-self-end lg:max-w-sm" role="search" onSubmit={(event) => { event.preventDefault(); const term = String(new FormData(event.currentTarget).get("q") ?? "").trim(); router.push(`${collectionUrl(locale, id)}${term ? `?q=${encodeURIComponent(term)}` : ""}`); }}>
-          <Search size={17} className="shrink-0 text-taupe" strokeWidth={1.4} aria-hidden /><input name="q" defaultValue={q} aria-label={st("search_products")} placeholder={st("search_products")} className="min-w-0 flex-1 bg-transparent py-3 text-ink outline-none" /><button type="submit" className="min-h-11 text-sm text-ink">{st("search")}</button>
+          <Search size={17} className="shrink-0 text-taupe" strokeWidth={1.4} aria-hidden /><input type="search" enterKeyHint="search" name="q" defaultValue={q} aria-label={st("search_products")} placeholder={st("search_products")} className="min-w-0 flex-1 bg-transparent py-3 text-ink outline-none [&::-webkit-search-cancel-button]:hidden" /><button type="submit" className="min-h-11 text-sm text-ink">{st("search")}</button>
         </form>
       </div>
       {categories.length > 0 && <nav aria-label={st("shop_by_category")} className="mt-5 flex gap-2 overflow-x-auto pb-2 text-sm"><Link href={collectionUrl(locale)} aria-current={id === "all" ? "page" : undefined} className={`inline-flex min-h-11 shrink-0 items-center border px-4 ${id === "all" ? "border-ink bg-ink text-paper" : "border-line hover:border-bronze"}`}>{st("all_products")}</Link>{categories.flatMap((category) => [category, ...(category.children ?? [])]).map((category) => <Link key={category.id} href={collectionUrl(locale, category.id)} aria-current={id === category.id ? "page" : undefined} className={`inline-flex min-h-11 shrink-0 items-center border px-4 ${id === category.id ? "border-ink bg-ink text-paper" : "border-line hover:border-bronze"}`}>{category.categoryName}</Link>)}</nav>}
@@ -205,7 +231,7 @@ export function CollectionPage({ id }: { id: string }) {
       {!loading && !error && visible.length === 0 && <CatalogState filtered={filtered} onAction={filtered ? clearFilters : undefined} />}
 
       {pages > 1 && (
-        <nav className="mt-[48px] flex flex-wrap items-center justify-center gap-[4px] text-[15px]">
+        <nav aria-label={st("pagination")} className="mt-[48px] flex flex-wrap items-center justify-center gap-[4px] text-[15px]">
           {pageNumbers.map((number, index) => (
             <span key={number} className="inline-flex items-center gap-[4px]">
             {index > 0 && number - pageNumbers[index - 1] > 1 && <span aria-hidden="true" className="px-[6px]">…</span>}
@@ -272,12 +298,17 @@ function Facet({ label, selected, onReset, children }: { label: string; selected
   useEffect(() => {
     if (!open) return;
     const close = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
+    const escape = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", escape);
+    };
   }, [open]);
   return (
     <div ref={ref} className="relative">
-      <button type="button" onClick={() => setOpen((v) => !v)} className="flex min-h-[44px] items-center gap-[6px] text-[#1c1714] hover:underline underline-offset-[3px]">
+      <button type="button" aria-expanded={open} onClick={() => setOpen((v) => !v)} className="flex min-h-[44px] items-center gap-[6px] text-[#1c1714] hover:underline underline-offset-[3px]">
         {label}
         <ChevronDown className={`h-[12px] w-[12px] transition-transform ${open ? "rotate-180" : ""}`} />
       </button>

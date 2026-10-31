@@ -34,7 +34,8 @@ export default function FAQPage() {
                 <span className="store-heading text-[24px] md:text-[26px]">{it.q}</span>
                 <Plus className={`h-[18px] w-[18px] shrink-0 text-ink transition-transform duration-500 ease-silk ${isOpen ? "rotate-45" : ""}`} strokeWidth={1.2} />
               </button>
-              <div className={`grid transition-[grid-template-rows,opacity] duration-500 ease-silk ${isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+              {/* Closed answers stay in the page for the animation, but out of reach of screen readers and the keyboard. */}
+              <div inert={!isOpen} className={`grid transition-[grid-template-rows,opacity] duration-500 ease-silk ${isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
                 <p className="overflow-hidden pb-[22px] text-[16px] leading-relaxed text-ink/70">{it.a}</p>
               </div>
             </li>

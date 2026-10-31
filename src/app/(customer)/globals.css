@@ -127,10 +127,9 @@
     font-style: italic;
     font-weight: 400;
   }
-  /* Tiny label above headings */
+  /* Small factual label (order number, column titles). Not a decoration above headings. */
   .eyebrow {
-    @apply inline-block text-[12px] font-medium text-bronze;
-    letter-spacing: 0.06em;
+    @apply inline-block text-[13px] font-medium text-taupe;
   }
   .btn {
     @apply relative inline-flex items-center justify-center gap-[12px] min-h-[52px] px-[28px] text-[14px] font-medium
@@ -143,9 +142,9 @@
   .product-media {
     @apply relative overflow-hidden bg-sand;
   }
+  /* Photos fill their frame untouched: no padding, no blend modes (shade accuracy matters). */
   .product-media img {
-    @apply h-full w-full object-contain p-4 sm:p-6;
-    mix-blend-mode: multiply;
+    @apply h-full w-full object-cover;
   }
   .collection-search {
     @apply flex min-h-12 w-full items-center gap-3 border border-line bg-white/60 px-4 text-sm transition-colors focus-within:border-bronze;
@@ -204,7 +203,7 @@
   }
   .field[data-error="true"] > input,
   .field[data-error="true"] > select {
-    box-shadow: 0 0 0 1px #d72c0d;
+    box-shadow: 0 0 0 1.5px #a8452f;
   }
 }
 
@@ -227,24 +226,6 @@
   }
 }
 
-.label {
-  @apply text-sm text-gray-400;
-}
-
-.input {
-  @apply bg-[#1a1a1a] border border-gray-700 text-white mt-1;
-}
-
-.textarea {
-  @apply bg-[#1a1a1a] border border-gray-700 text-white mt-1 h-[120px];
-}
-
-.primary-btn {
-  @apply px-8 py-3 rounded-xl bg-gradient-to-r from-[#facc15] to-[#fbbf24]
-         text-black font-semibold shadow-[0_0_20px_rgba(250,204,21,0.2)]
-         hover:brightness-110 transition-all;
-}
-
 /* Top loading bar */
 #nprogress {
   pointer-events: none;
@@ -263,15 +244,3 @@
 #nprogress .peg {
   box-shadow: none;
 }
-
-.ai-highlight {
-  animation: aiGlow 4s ease forwards;
-  box-shadow: 0 0 0 3px rgba(59,130,246,.6);
-}
-
-@keyframes aiGlow {
-  0% { transform: scale(1); }
-  30% { transform: scale(1.03); }
-  100% { transform: scale(1); }
-}
-

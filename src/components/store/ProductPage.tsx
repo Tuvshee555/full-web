@@ -8,7 +8,7 @@ import Link from "next/link";
 import { ChevronDown, ChevronLeft, ChevronRight, CreditCard, HelpCircle, PackageSearch, Share2, Truck, X } from "lucide-react";
 import { toast } from "sonner";
 import * as Dialog from "@radix-ui/react-dialog";
-import { STORE, productContent, type ProductContent } from "@/config/store";
+import { productContent, type ProductContent } from "@/config/store";
 import { DELIVERY_FEE } from "@/data/mongoliaLocations";
 import { ProductReviews } from "@/components/review/ProductReviews";
 import { addToCart } from "./lib/cart";
@@ -47,6 +47,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
   const unavailable = soldOut || sizeOut;
   const stars = rating(product);
   const content = productContent(product.id);
+  const category = product.category && typeof product.category === "object" && product.category.id ? product.category : null;
 
   // Track whether the main buttons are on screen (drives the mobile sticky bar)
   const ctaRef = useRef<HTMLDivElement>(null);
@@ -82,32 +83,29 @@ export function ProductPage({ product, related }: { product: any; related: any[]
   return (
     <>
       <div className="page-width pb-[72px] pt-[20px] md:pt-[48px]">
-        <nav aria-label={st("shop")} className="mb-5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-taupe"><Link href={`/${locale}`} className="inline-flex min-h-8 items-center link-underline">Lorentz</Link><span aria-hidden className="self-center">/</span><Link href={collectionUrl(locale)} className="inline-flex min-h-8 items-center link-underline">{st("all_products")}</Link><span aria-hidden className="self-center">/</span><span className="inline-flex min-h-8 items-center text-ink">{product.productName}</span></nav>
-        <div className="grid gap-[20px] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-[48px]">
+        <nav aria-label={st("breadcrumb")} className="mb-[20px] text-[13px] text-taupe">
+          <ol className="flex flex-wrap items-center gap-x-[10px] gap-y-1">
+            <li><Link href={`/${locale}`} className="inline-flex min-h-[32px] items-center link-underline">{st("home")}</Link></li>
+            <li aria-hidden>/</li>
+            <li>
+              <Link href={collectionUrl(locale, category?.id)} className="inline-flex min-h-[32px] items-center link-underline">
+                {category?.categoryName ?? st("all_products")}
+              </Link>
+            </li>
+            <li aria-hidden>/</li>
+            <li aria-current="page" className="inline-flex min-h-[32px] min-w-0 items-center text-ink">{product.productName}</li>
+          </ol>
+        </nav>
+        <div className="grid gap-[20px] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-[56px]">
           {/* Media */}
           <div className="min-w-0">
             <MobileSlider media={media} onOpen={setZoom} alt={product.productName} />
-            <div className="hidden lg:grid grid-cols-2 gap-[10px]">
-              {media.map((m, i) => (
-                <button
-                  key={m.src + i}
-                  type="button"
-                  onClick={() => setZoom(i)}
-                  className={`relative block bg-[#efe7dd] cursor-zoom-in ${
-                    // first photo full width; a leftover odd photo at the end too (no half-empty row)
-                    i === 0 || (i === media.length - 1 && (media.length - 1) % 2 === 1) ? "col-span-2" : ""
-                  } aspect-[4/5] overflow-hidden`}
-                >
-                  <MediaView m={m} alt={product.productName} />
-                </button>
-              ))}
-            </div>
+            <DesktopGallery media={media} onOpen={setZoom} alt={product.productName} />
           </div>
 
           {/* Info */}
           <div className="min-w-0 lg:sticky lg:top-[104px] self-start">
-            <span className="eyebrow">{STORE.name}</span>
-            <h1 className="store-heading mt-[10px] text-[36px] sm:text-[44px] xl:text-[52px]">{product.productName}</h1>
+            <h1 className="store-heading text-[36px] sm:text-[44px] xl:text-[52px]">{product.productName}</h1>
 
             {/* Grande / REFY: rating right under the title, jumps to reviews */}
             {stars.count > 0 && (
@@ -123,6 +121,9 @@ export function ProductPage({ product, related }: { product: any; related: any[]
             </div>
             <p className="mt-[6px] text-[13px] text-taupe">{st("delivery_fee_note", { fee: money(DELIVERY_FEE) })}</p>
 
+            {/* What it is and how to use it, before any choice is asked of the shopper. */}
+            {product.ingredients && <p className="mt-[18px] max-w-[560px] whitespace-pre-line text-[15px] leading-relaxed text-[#403831]">{product.ingredients}</p>}
+
             {/* REFY benefit tags */}
             {content.benefits?.length ? (
               <ul className="mt-[16px] flex flex-wrap gap-[6px]">
@@ -136,7 +137,10 @@ export function ProductPage({ product, related }: { product: any; related: any[]
 
             {sizes.length > 0 && (
               <fieldset className="mt-[24px]">
-                <legend className="mb-[8px] text-[14px]">{st("size")}</legend>
+                <legend className="mb-[8px] text-[14px]">
+                  {st("size")}
+                  {size && <span className="text-taupe">: {size}</span>}
+                </legend>
                 <div className="flex flex-wrap gap-[8px]">
                   {sizes.map((s) => {
                     const label = sizeLabel(s);
@@ -155,7 +159,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
                       >
                         {label}
                         <span className="block"><StockBadge level={s.stockLevel} locale={locale} /></span>
-                        {s.stock != null && s.stock > 0 && <span className="block text-xs">{s.stock}</span>}
+                        {s.stock != null && s.stock > 0 && <span className="block text-xs">{st("stock_left", { n: s.stock })}</span>}
                       </button>
                     );
                   })}
@@ -200,9 +204,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
               ))}
             </ul>
 
-            {product.ingredients && <div className="mt-[26px] whitespace-pre-line text-[15px] leading-relaxed">{product.ingredients}</div>}
-
-            <div className="mt-[30px] border-b border-[rgba(28,23,20,0.08)]">
+            <div className="mt-[28px] border-b border-[rgba(28,23,20,0.08)]">
               <Collapsible icon={Truck} title={st("shipping")}>
                 {st("shipping_text", { fee: money(DELIVERY_FEE) })}
               </Collapsible>
@@ -224,11 +226,11 @@ export function ProductPage({ product, related }: { product: any; related: any[]
         </section>
 
         {related.length > 0 && (
-          <section className="mt-[60px]">
-            <h2 className="store-heading text-[24px]">{st("pairs_well")}</h2>
-            <div className="mt-[24px] grid grid-cols-2 gap-x-[14px] gap-y-[32px] sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-[24px]">
+          <section aria-labelledby="related-title" className="mt-[72px]">
+            <h2 id="related-title" className="store-heading text-[30px] sm:text-[38px]">{st("you_may_also_like")}</h2>
+            <div className="mt-[24px] grid grid-cols-2 gap-x-[14px] gap-y-[36px] sm:gap-x-[24px] lg:grid-cols-4">
               {related.slice(0, 4).map((p) => (
-                <ProductCard key={p.id} product={p} quickAdd={false} />
+                <ProductCard key={p.id} product={p} />
               ))}
             </div>
           </section>
@@ -271,7 +273,7 @@ function DetailTabs({ content }: { content: ProductContent }) {
         <ol className="grid gap-[16px] md:grid-cols-4">
           {content.howTo.map((step, i) => (
             <li key={i} className="p-[18px]" style={{ background: CREAM }}>
-              <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[rgba(28,23,20,0.6)]">{st("step", { n: i + 1 })}</p>
+              <p className="text-[13px] font-medium text-taupe">{st("step", { n: i + 1 })}</p>
               <p className="mt-[6px] text-[15px] text-[#1c1714]">{step}</p>
             </li>
           ))}
@@ -343,7 +345,47 @@ function MediaView({ m, alt }: { m: Media; alt: string }) {
   return m.type === "video" ? (
     <video src={m.src} className="absolute inset-0 h-full w-full object-cover" muted playsInline preload="metadata" />
   ) : (
-    <ProductImage src={imageUrl(m.src, PRODUCT_IMAGE.width)} srcSet={imageSrcSet(m.src, [...PRODUCT_IMAGE.widths])} sizes={PRODUCT_IMAGE.sizes} alt={alt} className="absolute inset-0 h-full w-full object-contain p-5 sm:p-8" draggable={false} />
+    <ProductImage src={imageUrl(m.src, PRODUCT_IMAGE.width)} srcSet={imageSrcSet(m.src, [...PRODUCT_IMAGE.widths])} sizes={PRODUCT_IMAGE.sizes} alt={alt} className="absolute inset-0 h-full w-full object-cover" draggable={false} />
+  );
+}
+
+/** Computer: one large photo beside the details, with the other photos as thumbnails to its left. */
+function DesktopGallery({ media, onOpen, alt }: { media: Media[]; onOpen: (i: number) => void; alt: string }) {
+  const { st } = useStoreT();
+  const [current, setCurrent] = useState(0);
+  const index = Math.min(current, media.length - 1);
+  return (
+    <div className="hidden gap-[12px] lg:flex">
+      {media.length > 1 && (
+        <ul className="flex w-[72px] shrink-0 flex-col gap-[10px]">
+          {media.map((m, i) => (
+            <li key={m.src + i}>
+              <button
+                type="button"
+                onClick={() => setCurrent(i)}
+                aria-label={st("image_n", { n: i + 1, total: media.length })}
+                aria-current={i === index}
+                className={`product-media block aspect-[4/5] w-full ${i === index ? "shadow-[0_0_0_1.5px_#1c1714]" : "opacity-75 transition-opacity hover:opacity-100"}`}
+              >
+                {m.type === "video" ? (
+                  <span aria-hidden className="absolute inset-0 flex items-center justify-center text-[12px] text-ink">▶</span>
+                ) : (
+                  <ProductImage src={imageUrl(m.src, 160)} alt="" className="absolute inset-0" loading="lazy" draggable={false} />
+                )}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <button
+        type="button"
+        onClick={() => onOpen(index)}
+        aria-label={st("enlarge_image", { name: alt })}
+        className="product-media block aspect-[4/5] max-h-[calc(100svh-150px)] min-w-0 flex-1 cursor-zoom-in"
+      >
+        <MediaView m={media[index]} alt={alt} />
+      </button>
+    </div>
   );
 }
 
@@ -405,7 +447,7 @@ function Lightbox({ media, start, alt, onClose }: { media: Media[]; start: numbe
   return (
     <Dialog.Root open onOpenChange={(value) => { if (!value) onClose(); }}><Dialog.Portal><Dialog.Content onOpenAutoFocus={() => { returnFocus.current = document.activeElement as HTMLElement; }} onCloseAutoFocus={(event) => { event.preventDefault(); returnFocus.current?.focus(); }} aria-describedby={undefined} className="fixed inset-0 z-overlay overflow-y-auto bg-white outline-none">
       <Dialog.Title className="sr-only">{alt}</Dialog.Title>
-      <button type="button" onClick={onClose} aria-label={st("close")} className="fixed right-[16px] top-[16px] z-10 flex h-[44px] w-[44px] items-center justify-center rounded-full bg-white shadow-[0_0_0_1px_rgba(28,23,20,0.1)]">
+      <button type="button" onClick={onClose} aria-label={st("close")} className="fixed right-[16px] top-[16px] z-10 flex h-[44px] w-[44px] items-center justify-center bg-white shadow-[0_0_0_1px_rgba(28,23,20,0.15)]">
         <X className="h-[18px] w-[18px]" />
       </button>
       <div className="mx-auto max-w-[1000px] space-y-[10px] py-[60px]">

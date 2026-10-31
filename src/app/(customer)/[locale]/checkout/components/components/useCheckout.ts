@@ -5,7 +5,7 @@ import { API_BASE_URL } from "@/lib/api";
 import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { useI18n } from "@/components/i18n/ClientI18nProvider";
+import { useStoreT } from "@/components/store/lib/useStoreT";
 import { useAuth } from "@/app/(customer)/[locale]/provider/AuthProvider";
 import { DELIVERY_FEE, DeliveryZone, ULAANBAATAR_DISTRICTS } from "@/data/mongoliaLocations";
 import { clearCart, refreshCartPrices, type StoreCartItem } from "@/components/store/lib/cart";
@@ -56,8 +56,7 @@ async function createGuestSession(): Promise<string | null> {
 export function useCheckout(cart: StoreCartItem[]) {
   const router = useRouter();
   const { userId, token } = useAuth();
-  const { locale, t } = useI18n();
-  const st = (k: string) => t(`store.${k}`);
+  const { st, locale } = useStoreT();
 
   // No district preselected: a silent default (the first one is Багануур,
   // far outside the city) sends parcels to the wrong place
@@ -173,6 +172,29 @@ export function useCheckout(cart: StoreCartItem[]) {
     );
   };
 
+  /** The server answers in English for developers; the shopper gets a plain sentence in their language. */
+  const orderErrorText = (err: any): string => {
+    if (err?.message === "session") return st("err_session");
+    if (err?.message === "order") return st("err_order");
+    const status = err?.response?.status;
+    const body = err?.response?.data ?? {};
+    const message = typeof body.message === "string" ? body.message : "";
+    if (!err?.response) return st(typeof navigator !== "undefined" && navigator.onLine === false ? "err_offline" : "err_network");
+    if (status === 409 && body.productId) {
+      const line = cart.find((i) => (i.product?.id ?? i.productId) === body.productId && (body.size == null || i.selectedSize === body.size));
+      const name = line?.product?.productName ?? "";
+      return name ? st("err_out_of_stock", { name: line?.selectedSize ? `${name} (${line.selectedSize})` : name }) : st("err_out_of_stock_any");
+    }
+    if (/no longer exist/i.test(message)) return st("err_product_gone");
+    if (/valid product size/i.test(message)) return st("err_size");
+    if (/phone/i.test(message)) return st("phone_invalid");
+    if (/checkout key/i.test(message)) {
+      idempotencyKey.current = newKey();
+      return st("err_try_again");
+    }
+    return st("err_order");
+  };
+
   const placeOrder = async () => {
     if (submissionActive.current || !cart.length) return;
     setSubmitError(null);
@@ -221,7 +243,7 @@ export function useCheckout(cart: StoreCartItem[]) {
         setDeliveryFee(quote.deliveryFee);
         setSubmitError(st("prices_updated"));
       } else {
-        setSubmitError(err?.message === "session" ? st("err_session") : (typeof quote?.message === "string" ? quote.message : st("err_order")));
+        setSubmitError(orderErrorText(err));
       }
       setSubmitting(false);
       submissionActive.current = false;

@@ -46,7 +46,12 @@ export default function ProductRoute({ id }: { id: string }) {
   );
   if (!shown) return <ProductSkeleton />;
 
-  const related = all.filter((p: any) => p.id !== shown.id && p.categoryId && p.categoryId === shown.categoryId);
+  // Same category first, then the shop's best sellers, so the row is never one lonely card.
+  const others = all
+    .filter((p: any) => p.id !== shown.id)
+    .sort((a: any, b: any) => Number(b.salesCount ?? 0) - Number(a.salesCount ?? 0) || Number(Boolean(b.isFeatured)) - Number(Boolean(a.isFeatured)));
+  const sameCategory = (p: any) => Boolean(shown.categoryId) && p.categoryId === shown.categoryId;
+  const related = [...others.filter(sameCategory), ...others.filter((p: any) => !sameCategory(p))].slice(0, 4);
 
   return <ProductPage key={shown.id} product={shown} related={related} />;
 }

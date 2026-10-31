@@ -110,7 +110,7 @@ export default function OrderDetailPage() {
 
   return (
     <div className="page-width pb-[96px] pt-[32px] md:pt-[56px]">
-      <Link href={`/${locale}/profile`} className="group inline-flex items-center gap-[8px] text-[14px] text-ink/70 hover:text-ink">
+      <Link href={`/${locale}/profile`} className="group inline-flex min-h-[44px] items-center gap-[8px] text-[14px] text-ink/70 hover:text-ink">
         <ArrowLeft className="h-[15px] w-[15px] transition-transform duration-500 ease-silk group-hover:-translate-x-[3px]" strokeWidth={1.3} />
         {st("back_to_orders")}
       </Link>
@@ -134,7 +134,7 @@ export default function OrderDetailPage() {
               {steps.map((label, i) => {
                 const done = i <= step;
                 return (
-                  <li key={label}>
+                  <li key={label} aria-current={i === step ? "step" : undefined}>
                     <div className="h-[2px] bg-ink/10">
                       <div className={`h-full bg-ink transition-[width] duration-1000 ease-silk ${done ? "w-full" : "w-0"}`} />
                     </div>

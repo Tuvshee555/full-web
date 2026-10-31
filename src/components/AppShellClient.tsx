@@ -27,6 +27,8 @@ export default function AppShellClient({ children }: { children: ReactNode }) {
 
   // Shopify checkout has its own minimal header and no store chrome
   const isCheckout = /^\/(mn|en)\/checkout(\/|$)/.test(pathname ?? "");
+  // On the cart page the floating chat button would sit on top of the total and the checkout button.
+  const isCart = /^\/(mn|en)\/cart\/?$/.test(pathname ?? "");
 
   return (
     <>
@@ -46,7 +48,7 @@ export default function AppShellClient({ children }: { children: ReactNode }) {
 
       <CartDrawer open={cartOpen} onClose={closeCart} />
       <Email open={accountOpen} onOpenChange={setAccountOpen} />
-      {!isCheckout && <ShopChatWidget />}
+      {!isCheckout && !isCart && <ShopChatWidget />}
     </>
   );
 }

@@ -54,7 +54,7 @@ export default function PaymentPendingInner() {
   if (paid) {
     return (
       <OrderStatusShell order={order}>
-        <div className="flex h-[60px] w-[60px] items-center justify-center rounded-full bg-ink text-paper animate-in zoom-in-50 duration-700">
+        <div className="flex h-[60px] w-[60px] items-center justify-center bg-ink text-paper animate-in zoom-in-50 duration-700">
           <Check className="h-[26px] w-[26px]" strokeWidth={1.5} />
         </div>
         <div className="mt-[24px]">{eyebrow}</div>

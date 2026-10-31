@@ -110,7 +110,6 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
             <h1 className="store-heading mb-[28px] text-[36px] sm:text-[44px]">{st("checkout")}</h1>
 
             <Section
-              n={1}
               title={st("contact_section")}
               aside={
                 !token || isGuest ? (
@@ -124,7 +123,7 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
               {!c.errors.phonenumber && <p className="mt-[8px] text-[12px] text-taupe">{st("phone_hint")}</p>}
             </Section>
 
-            <Section n={2} title={st("delivery")} sub={st("delivery_fee_note", { fee: money(c.deliveryFee) })}>
+            <Section title={st("delivery")} sub={st("delivery_fee_note", { fee: money(c.deliveryFee) })}>
               <div className="space-y-[12px]">
                 {/* Zone: two clear choices instead of a dropdown */}
                 <div className="grid grid-cols-2 gap-[8px]" role="radiogroup" aria-label={st("zone")}>
@@ -182,7 +181,7 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
               </div>
             </Section>
 
-            <Section n={3} title={st("payment")}>
+            <Section title={st("payment")}>
               <div className="grid gap-[8px] sm:grid-cols-2" role="radiogroup" aria-label={st("payment")}>
                 {payments.map(([value, label, desc]) => {
                   const active = c.paymentMethod === value;
@@ -215,7 +214,7 @@ function Checkout({ items }: { items: StoreCartItem[] }) {
             </Section>
 
             {c.submitError && (
-              <p className="mb-[14px] border border-terracotta/40 bg-terracotta/5 px-[14px] py-[12px] text-[14px] text-terracotta">{c.submitError}</p>
+              <p role="alert" className="mb-[14px] border border-terracotta/40 bg-terracotta/5 px-[14px] py-[12px] text-[14px] text-terracotta">{c.submitError}</p>
             )}
 
             <button type="button" onClick={c.placeOrder} disabled={c.submitting} className="btn h-[56px] w-full text-[15px]">
@@ -267,7 +266,8 @@ function Summary({ items, c }: { items: StoreCartItem[]; c: ReturnType<typeof us
           <li key={`${i.productId}-${i.selectedSize ?? ""}`} className="flex items-center gap-[14px]">
             <div className="relative h-[64px] w-[64px] shrink-0 bg-paper">
               {i.product?.image ? <img src={imageUrl(i.product.image, 200)} alt="" className="h-full w-full object-cover" /> : null}
-              <span className="absolute -right-[8px] -top-[8px] flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-ink px-[5px] text-[11px] text-paper">
+              <span className="absolute -right-[8px] -top-[8px] flex h-[20px] min-w-[20px] items-center justify-center bg-ink px-[5px] text-[11px] text-paper">
+                <span className="sr-only">{st("quantity")}: </span>
                 {i.quantity}
               </span>
             </div>
@@ -300,16 +300,11 @@ function Summary({ items, c }: { items: StoreCartItem[]; c: ReturnType<typeof us
   );
 }
 
-function Section({ n, title, sub, aside, children }: { n: number; title: string; sub?: string; aside?: ReactNode; children: ReactNode }) {
+function Section({ title, sub, aside, children }: { title: string; sub?: string; aside?: ReactNode; children: ReactNode }) {
   return (
-    <section className="mb-[36px]">
+    <section className="mb-[36px] border-t border-ink/10 pt-[24px] first-of-type:border-t-0 first-of-type:pt-0">
       <div className="mb-[14px] flex flex-wrap items-center justify-between gap-x-[12px] gap-y-[4px]">
-        <h2 className="flex items-center gap-[12px]">
-          <span className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full text-[12px] text-ink/60 ring-1 ring-ink/25">
-            {n}
-          </span>
-          <span className="text-[20px] font-medium leading-snug text-ink">{title}</span>
-        </h2>
+        <h2 className="text-[20px] font-medium leading-snug text-ink">{title}</h2>
         {aside}
       </div>
       {sub && <p className="-mt-[8px] mb-[14px] text-[13px] text-taupe">{sub}</p>}

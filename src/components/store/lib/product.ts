@@ -65,8 +65,11 @@ export const isBestseller = (p: any) => Number(p?.salesCount ?? 0) >= 10;
 
 export const rating = (p: any) => ({ avg: Number(p?.avgRating ?? 0), count: Number(p?.reviewCount ?? 0) });
 
-/** First line of the admin description, used as a card subtitle fallback. */
-export const firstLine = (text?: string | null) => String(text ?? "").split(/\n|\. /)[0].trim();
+/** What a search looks in: the name, the description, the category and the option names (e.g. a shade). */
+export const searchText = (p: any): string =>
+  [p?.productName, p?.ingredients, p?.category?.categoryName, ...(Array.isArray(p?.sizes) ? p.sizes.map(sizeLabel) : [])]
+    .filter(Boolean)
+    .join(" ");
 
 export function productImages(p: any): string[] {
   const list: string[] = [];

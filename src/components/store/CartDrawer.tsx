@@ -37,10 +37,6 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
         </div>
       ) : (
         <>
-          <div className="mx-[20px] md:mx-[30px] flex justify-between border-b border-[rgba(28,23,20,0.08)] pb-[10px] text-[10px] uppercase tracking-[0.06em] text-[rgba(28,23,20,0.75)]">
-            <span>{st("product")}</span>
-            <span>{st("total")}</span>
-          </div>
           <ul className="flex-1 overflow-y-auto px-[20px] md:px-[30px]">
             {items.map((item) => (
               <CartLine key={`${item.productId}-${item.selectedSize ?? ""}`} item={item} onNavigate={onClose} locale={locale} />
@@ -70,8 +66,8 @@ function CartLine({ item, onNavigate, locale }: { item: StoreCartItem; onNavigat
   const href = productUrl(locale, item.productId);
   return (
     <li className="flex gap-[15px] py-[20px] border-b border-[rgba(28,23,20,0.08)] last:border-0">
-      <Link href={href} onClick={onNavigate} className="h-[76px] w-[64px] sm:h-[96px] sm:w-[80px] shrink-0 bg-[#efe7dd]">
-        <ProductImage src={imageUrl(item.product?.image ?? "", 240)} alt="" className="h-full w-full object-contain" />
+      <Link href={href} onClick={onNavigate} tabIndex={-1} aria-hidden className="product-media h-[90px] w-[72px] shrink-0 sm:h-[110px] sm:w-[88px]">
+        <ProductImage src={imageUrl(item.product?.image ?? "", 240)} alt="" className="absolute inset-0" />
       </Link>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-start justify-between gap-x-[10px] gap-y-[4px]">
@@ -92,11 +88,11 @@ function CartLine({ item, onNavigate, locale }: { item: StoreCartItem; onNavigat
           <QuantityInput small value={item.quantity} onChange={(v) => setQuantity(item.productId, item.selectedSize, v)} />
           <button
             type="button"
-            aria-label={st("remove")}
-            className="flex h-[44px] w-[44px] items-center justify-center text-[#1c1714]"
+            aria-label={`${st("remove")}: ${item.product?.productName ?? ""}`}
+            className="flex h-[44px] w-[44px] items-center justify-center text-[#1c1714] hover:bg-sand"
             onClick={() => setQuantity(item.productId, item.selectedSize, 0)}
           >
-            <Trash2 className="h-[16px] w-[16px]" strokeWidth={1.5} />
+            <Trash2 aria-hidden className="h-[16px] w-[16px]" strokeWidth={1.5} />
           </button>
         </div>
       </div>
