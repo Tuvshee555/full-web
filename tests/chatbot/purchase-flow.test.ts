@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { runCustomerTurn, type TurnOutput } from "../../src/chatbot/turn";
 import { setStateAdapter } from "../../src/chatbot/conversationState";
-import { BUY_INTENT, NO, YES, buyLink, matchVariant, parseDistrict, parseKhoroo, parsePhone, parseQuantity, readDraft } from "../../src/chatbot/commerce/purchase";
+import { BUY_INTENT, NO, PICKUP_QUESTION, YES, buyLink, matchVariant, parseDistrict, parseKhoroo, parsePhone, parseQuantity, readDraft } from "../../src/chatbot/commerce/purchase";
 import { intentProbe } from "../../src/chatbot/textNorm";
 import { context as baseContext, products } from "./helpers/fixtures";
 import type { ChatMessage, ChatOrderRequest, ConversationState } from "../../src/chatbot/types";
@@ -40,6 +40,13 @@ test("purchase intent is read in Cyrillic, Latin and English", () => {
   for (const text of ["Яаж захиалах вэ?", "Захиалга EV00001 хаана явна", "my order hasn't arrived", "үнэ хэд вэ"]) {
     assert.equal(BUY_INTENT.test(intentProbe(text)), false, `must not read purchase intent: ${text}`);
   }
+});
+
+test("asking about picking an order up is not a purchase", async () => {
+  for (const text of ["Очиж авч болох уу?", "ochij avch boloh uu", "Can I pick it up?"]) assert.ok(PICKUP_QUESTION.test(intentProbe(text)), text);
+  assert.equal(PICKUP_QUESTION.test(intentProbe("Нэгийг авъя")), false);
+  const { results } = await conversation(["Test Serum A үнэ хэд вэ", "Очиж авч болох уу?"]);
+  assert.doesNotMatch(results[1].text, /\/buy\//);
 });
 
 test("quantities, phones, districts and khoroos are parsed from free text", () => {

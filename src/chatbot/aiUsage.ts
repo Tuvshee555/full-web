@@ -22,8 +22,12 @@ export const PRICE_PER_MILLION_USD: Record<string, [number, number]> = {
   "gpt-5-nano": [0.05, 0.4],
 };
 
-/** Models the owner may pick in the admin; "" means the deployment's OPENAI_MODEL. */
-export const SELECTABLE_MODELS = ["", "gpt-4.1", "gpt-4.1-mini", "gpt-4o-mini", "gpt-5-mini"] as const;
+/**
+ * Models the owner may pick in the admin; "" means the deployment's OPENAI_MODEL. gpt-5-mini is left
+ * out on purpose: in the 2026-11-01 comparison its reasoning tokens used up the output budget and most
+ * calls came back empty (docs/chatbot/MODEL_EVAL.md).
+ */
+export const SELECTABLE_MODELS = ["", "gpt-4.1", "gpt-4.1-mini", "gpt-4o-mini"] as const;
 
 export function estimateCostUsd(model: string, usage: AiUsage): number | null {
   const price = PRICE_PER_MILLION_USD[model] ?? PRICE_PER_MILLION_USD[model.replace(/-\d{4}-\d{2}-\d{2}$/, "")];

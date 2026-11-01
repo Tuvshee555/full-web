@@ -22,6 +22,8 @@ export const DRAFT_TTL_MS = 30 * 60 * 1000;
 const MAX_QUANTITY = 999;
 
 export const BUY_INTENT = /(?:^|[^\p{L}])(?:авъя|авья|авая|авмаар|авна|авч\s+болох|авах\s+(?:гэсэн|хүсэлтэй|уу|боломж|гэж)|худалдаж\s+ав|худалдан\s+ав|захиалъя|захиалья|захиаля|захиалмаар|захиална|захиалах\s+(?:гэсэн|гэж|хүсэлтэй)|захиалга\s+(?:өгье|өгъе|өгмөөр|өгнө|хийе|хийье|хиймээр|хийх\s+гэсэн|үүсгэ)|нэгийг\s+ав|авч\s+үзье|\bbuy\b|\bpurchase\b|order\s+(?:it|one|this|that|now|the|a\b|two|2|3)|i(?:'ll|\s+will|\s+want\s+to|\s+would\s+like\s+to|'d\s+like\s+to)\s+(?:buy|order|take|get)|want\s+to\s+(?:buy|order)|place\s+(?:an?\s+)?order|take\s+(?:it|one|this))(?=$|[^\p{L}])/iu;
+/** Asking whether an order can be collected in person ("очиж авах", "ирж авах", "pick up"), never a purchase. */
+export const PICKUP_QUESTION = /(?:очиж|ирж|өөрөө)\s+(?:\p{L}+\s+)?ав(?:ч|ах|на|ъя)|(?:ochij|irj|uuruu)\s+av|pick\s*-?\s*(?:\p{L}+\s+){0,2}up|collect\s+(?:it|in\s+person)/iu;
 export const CHAT_ORDER_HERE = /(?:энд\s+захиал|энд\s+авъя|энд\s+үүсг|чатаар\s+(?:захиал|авъя|үүсг|өг)|дансаар\s+(?:захиал|авъя)|энд\s+бичээд|энд\s+хийе|here\s+in\s+(?:the\s+)?chat|order\s+here|in\s+(?:the\s+)?chat|via\s+chat|through\s+chat|by\s+bank\s+transfer\s+here)/iu;
 export const YES = /^\s*(?:тийм|тиймээ|тийм\s*ээ|за|зөв|болно|болноо|баталгаажуул\p{L}*|бататгая|батлая|ok|okay|yes|yep|yeah|sure|confirm|confirmed|👍|✅)(?:[\s,.!]+(?:тийм|баталгаажуул\p{L}*|болно|за|зөв|ok|yes|please))*[\s!.]*$/iu;
 export const NO = /^\s*(?:үгүй|үгүй\s*ээ|болих|болино|болилоо|больё|цуцал\p{L}*|хэрэггүй|болихоо|no|nope|cancel|stop|never\s*mind)(?:[\s,.!]+(?:болих|болино|цуцал\p{L}*|үгүй|хэрэггүй|it|that))*[\s!.]*$/iu;
@@ -417,7 +419,8 @@ export async function purchaseTurn(input: PurchaseInput): Promise<PurchaseOutcom
     const continued = await continueDraft(input, draft);
     if (continued) return continued;
   }
-  const wantsBuy = BUY_INTENT.test(probe) || Boolean(input.modelSaysBuy);
+  // "Очиж авч болох уу?" asks about picking an order up, not to buy now: it goes to the FAQ/policy answers.
+  const wantsBuy = (BUY_INTENT.test(probe) || Boolean(input.modelSaysBuy)) && !PICKUP_QUESTION.test(probe);
   const wantsHere = CHAT_ORDER_HERE.test(probe);
   if (!wantsBuy && !wantsHere) return null;
   const quantity = parseQuantity(text) ?? draft?.quantity ?? 1;

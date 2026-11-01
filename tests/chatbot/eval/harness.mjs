@@ -14,16 +14,21 @@ export function hardChecks({ world, locale, text, reply, expect, orderCalls }) {
   const problems = [];
   if (!reply || !reply.trim()) { problems.push("silent turn"); return problems; }
   if (/^(?:REFER|SILENT)\b/i.test(reply.trim()) || /\b(?:REFER|SILENT)\b/.test(reply)) problems.push("control token leaked");
-  // Order totals the engine may legitimately compute: unit × quantity (1..5), with and without the delivery fee.
-  const derived = [];
+  // Order totals the engine may legitimately compute: unit × quantity (1..5), with and without the
+  // delivery fee. They are accepted only on a line that presents a total or a multiplication
+  // (Нийт / Total / × / ширхэг / =); anywhere else, only a catalogue amount counts as true.
+  const derived = new Set();
   for (const p of world.products()) {
     const units = p.sizes.length ? p.sizes.map((s) => s.price || p.price) : [p.price];
-    for (const unit of new Set(units)) for (let qty = 1; qty <= 5; qty += 1) derived.push(unit * qty, unit * qty + world.fee);
+    for (const unit of new Set(units)) for (let qty = 1; qty <= 5; qty += 1) { derived.add(unit * qty); derived.add(unit * qty + world.fee); }
   }
-  const allowed = new Set([...world.quotable(), ...derived, ...(expect.allowAmounts || [])]);
-  for (const match of reply.matchAll(AMOUNT)) {
-    const amount = Number(match[1].replaceAll(",", ""));
-    if (!allowed.has(amount)) problems.push(`invented amount ${match[0]}`);
+  const allowed = new Set([...world.quotable(), ...(expect.allowAmounts || [])]);
+  for (const line of reply.split("\n")) {
+    const totalLine = /Нийт|Total|×|ширхэг|=/iu.test(line);
+    for (const match of line.matchAll(AMOUNT)) {
+      const amount = Number(match[1].replaceAll(",", ""));
+      if (!allowed.has(amount) && !(totalLine && derived.has(amount))) problems.push(`invented amount ${match[0]}`);
+    }
   }
   const prose = world.products().reduce((value, p) => value.replaceAll(p.productName, ""), reply).replace(/https?:\/\/\S+/g, "");
   if (locale === "en" && CYRILLIC_RUN.test(prose.replace(/Цайвар хүрэн|Хар хүрэн|Хүрэн|мл/g, ""))) problems.push("Mongolian prose in English reply");

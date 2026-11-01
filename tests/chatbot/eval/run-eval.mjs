@@ -5,7 +5,7 @@
  *   node --import tsx tests/chatbot/eval/run-eval.mjs                 deterministic (no model)
  *   node --import tsx tests/chatbot/eval/run-eval.mjs --label before  write docs/chatbot/EVAL_before.md
  *   node --import tsx tests/chatbot/eval/run-eval.mjs --live          real model (EVAL_RUN_APPROVED=1)
- *   --only <category|id prefix>[,…]   --max-calls <n>   --model <name>   --quiet
+ *   --set main|heldout   --only <category|id prefix>[,…]   --max-calls <n>   --model <name>   --quiet
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -20,6 +20,15 @@ const LABEL = flag("--label");
 const ONLY = flag("--only");
 const MAX_CALLS = Number(flag("--max-calls") || process.env.EVAL_MAX_MODEL_CALLS || 150);
 const MODEL = flag("--model");
+
+// The evaluation never needs a database or an alert channel: state lives in memory. Point the
+// database at a dead local address and blank the alert settings, so even a live run started with
+// --env-file=.env.local can never read or write the shop's database or message staff.
+process.env.DATABASE_URL = "postgresql://eval:eval@127.0.0.1:1/eval_no_database";
+process.env.DIRECT_URL = process.env.DATABASE_URL;
+process.env.ERROR_LOG_DB_ENABLED = "false";
+for (const key of Object.keys(process.env)) if (/^(?:TELEGRAM_|META_|SMTP_|QPAY_)/.test(key)) delete process.env[key];
+if (!LIVE) delete process.env.OPENAI_API_KEY;
 
 const { runCustomerTurn } = await import("../../../src/chatbot/turn.ts");
 const { setStateAdapter } = await import("../../../src/chatbot/conversationState.ts");
@@ -46,8 +55,10 @@ if (LIVE) {
   askReply = guard(replyModel(MODEL), "writer");
 }
 
+const SET = flag("--set") || "main";
+const source = SET === "heldout" ? (await import("./heldout.mjs")).heldoutCases : evalCases;
 const onlyList = ONLY ? ONLY.split(",").map((value) => value.trim()).filter(Boolean) : [];
-const selected = evalCases.filter((item) => !onlyList.length || onlyList.some((only) => item.category === only || item.id.startsWith(only)));
+const selected = source.filter((item) => !onlyList.length || onlyList.some((only) => item.category === only || item.id.startsWith(only)));
 const results = [];
 for (const item of selected) {
   try { results.push(await runCase(item, { runCustomerTurn, setStateAdapter, askUnderstanding, askReply })); }

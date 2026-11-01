@@ -21,7 +21,8 @@ export async function placeChatOrder(request: ChatOrderRequest): Promise<ChatOrd
 
   // One guest account per chat order, like a guest checkout; it carries the delivery details.
   const guest = await prisma.user.create({
-    data: { email: `chat-${randomUUID()}@guest.invalid`, role: "USER", firstName, lastName, phonenumber: request.phone, city: request.city, district: request.district, khoroo: request.khoroo, address: request.address },
+    // Same "guest-…@guest.invalid" shape as a guest checkout, so emails skip it and the admin shows it as a guest.
+    data: { email: `guest-chat-${randomUUID()}@guest.invalid`, role: "USER", firstName, lastName, phonenumber: request.phone, city: request.city, district: request.district, khoroo: request.khoroo, address: request.address },
     select: { id: true },
   });
   try {

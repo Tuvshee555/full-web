@@ -24,7 +24,7 @@ const FACT_PATTERN = /₮|\bMNT\b|\d+\s*%|100%|regrow|ургуул|баталг�
 const LIMIT: Record<TextKey, number> = { greetingMn: 1000, greetingEn: 1000, handoffMn: 1000, handoffEn: 1000, extraKnowledgeMn: 8000, extraKnowledgeEn: 8000 };
 const REQUIRED: TextKey[] = ["greetingMn", "greetingEn", "handoffMn", "handoffEn"];
 /** Models the owner may choose; "" = the server's default. Kept in step with SELECTABLE_MODELS in src/chatbot/aiUsage.ts. */
-export const MODEL_OPTIONS = ["", "gpt-4.1", "gpt-4.1-mini", "gpt-4o-mini", "gpt-5-mini"] as const;
+export const MODEL_OPTIONS = ["", "gpt-4.1", "gpt-4.1-mini", "gpt-4o-mini"] as const;
 
 const pick = (settings: Settings): Draft => Object.fromEntries(FORM_KEYS.map((key) => [key, settings[key]])) as Draft;
 
