@@ -1,13 +1,13 @@
 # Chatbot evaluation: heldout
 
-Mode: deterministic (no model). 51 conversations, 59 customer turns. Generated 2026-11-01 12:48 UTC.
+Mode: deterministic (no model). 51 conversations, 59 customer turns. Generated 2026-11-01 14:14 UTC.
 
 | Measure | Result |
 | --- | --- |
 | Turns passing every check | 45/59 (76.3%) |
 | Turns passing the hard rules (reply, no invented amount, language, privacy, no promise, confirmed orders only) | 59/59 (100%) |
 | Conversations fully correct | 37/51 |
-| Average engine time per turn | 3 ms |
+| Average engine time per turn | 4 ms |
 
 ## By category
 

@@ -33,42 +33,59 @@ if (!LIVE) delete process.env.OPENAI_API_KEY;
 const { runCustomerTurn } = await import("../../../src/chatbot/turn.ts");
 const { setStateAdapter } = await import("../../../src/chatbot/conversationState.ts");
 
+const SET = flag("--set") || "main";
+const source = SET === "heldout" ? (await import("./heldout.mjs")).heldoutCases : evalCases;
+// Dollar cap for the whole run (estimated from token prices). Checked BEFORE every call against
+// that call's worst case, so the run stops before it could pass the limit, never after.
+const MAX_USD = Number(flag("--max-usd") || Infinity);
+
 let askUnderstanding = null, askReply = null;
-const calls = { count: 0, ms: 0 };
+const calls = { count: 0, ms: 0, stopped: "" };
+const callCounter = { count: 0 };
+let aiTotals = () => ({ calls: 0, promptTokens: 0, completionTokens: 0, costUsd: 0 });
 if (LIVE) {
   const { requireApprovedEvaluation } = await import("../../../scripts/lib/evalGuard.mjs");
-  const turns = evalCases.flatMap((item) => item.turns.filter((turn) => turn.text)).length;
+  const turns = source.flatMap((item) => item.turns.filter((turn) => turn.text)).length;
   requireApprovedEvaluation({ name: "chatbot eval (live model)", estimatedModelCalls: Math.min(turns * 2, MAX_CALLS) });
   if (MODEL) { process.env.OPENAI_MODEL = MODEL; process.env.PRODUCT_UNDERSTANDING_MODEL = MODEL; process.env.OPENAI_REPLY_MODEL = MODEL; }
   process.env.ERROR_LOG_DB_ENABLED = "false";
   const { understandingModel } = await import("../../../src/chatbot/productUnderstandingModel.ts");
   const { replyModel } = await import("../../../src/chatbot/productWriter.ts");
   const { withChatbotContext } = await import("../../../src/chatbot/runtimeContext.ts");
-  const guard = (fn, name) => async (...fnArgs) => {
-    if (calls.count >= MAX_CALLS) throw new Error(`EVAL_MAX_MODEL_CALLS (${MAX_CALLS}) reached`);
-    calls.count += 1;
+  const { processAiTotals, PRICE_PER_MILLION_USD } = await import("../../../src/chatbot/aiUsage.ts");
+  aiTotals = processAiTotals;
+  const price = PRICE_PER_MILLION_USD[MODEL || process.env.OPENAI_MODEL || "gpt-4.1"];
+  if (Number.isFinite(MAX_USD) && !price) throw new Error(`--max-usd needs a known model price; ${MODEL} is not in PRICE_PER_MILLION_USD`);
+  // Worst case for one call: input estimated generously at 2 characters per token, output at the call's token limit.
+  const worstCase = (system, user, maxOutput) => price ? ((String(system).length + String(user).length) / 2 * price[0] + maxOutput * price[1]) / 1_000_000 : 0;
+  const guard = (fn, name, maxOutput) => async (system, user) => {
+    // The engine swallows model errors and falls back to rules, so a stop is recorded and the run ends after this conversation.
+    if (calls.count >= MAX_CALLS) { calls.stopped ||= `EVAL_MAX_MODEL_CALLS (${MAX_CALLS}) reached`; return null; }
+    if (processAiTotals().costUsd + worstCase(system, user, maxOutput) > MAX_USD) { calls.stopped ||= `--max-usd ${MAX_USD} would be exceeded by the next call`; return null; }
+    calls.count += 1; callCounter.count += 1;
     const started = Date.now();
-    try { return await withChatbotContext({ channel: "test", conversationId: `eval:${name}` }, () => fn(...fnArgs)); }
+    try { return await withChatbotContext({ channel: "test", conversationId: `eval:${name}` }, () => fn(system, user)); }
     finally { calls.ms += Date.now() - started; }
   };
-  askUnderstanding = guard(understandingModel({ correlationId: "eval", model: MODEL }), "understanding");
-  askReply = guard(replyModel(MODEL), "writer");
+  askUnderstanding = guard(understandingModel({ correlationId: "eval", model: MODEL }), "understanding", 650);
+  askReply = guard(replyModel(MODEL), "writer", 500);
 }
 
-const SET = flag("--set") || "main";
-const source = SET === "heldout" ? (await import("./heldout.mjs")).heldoutCases : evalCases;
 const onlyList = ONLY ? ONLY.split(",").map((value) => value.trim()).filter(Boolean) : [];
 const selected = source.filter((item) => !onlyList.length || onlyList.some((only) => item.category === only || item.id.startsWith(only)));
 const results = [];
 for (const item of selected) {
-  try { results.push(await runCase(item, { runCustomerTurn, setStateAdapter, askUnderstanding, askReply })); }
-  catch (error) { if (/EVAL_MAX_MODEL_CALLS/.test(String(error?.message))) { console.error(String(error.message)); break; } throw error; }
+  const result = await runCase(item, { runCustomerTurn, setStateAdapter, askUnderstanding, askReply, callCounter });
+  // A conversation during which a cap was hit is not a fair result for the model: drop it and stop.
+  if (calls.stopped) { console.error(`STOPPED before ${item.id}: ${calls.stopped}`); break; }
+  results.push(result);
 }
 
 const summary = summarize(results);
 const { turns, byCategory } = summary;
 const mode = LIVE ? `live (${MODEL || process.env.OPENAI_MODEL || "default model"})` : "deterministic (no model)";
-console.log(JSON.stringify({ mode, cases: summary.cases, casesPassed: summary.casesPassed, turns: turns.length, passed: summary.passed, passRate: summary.passRate, hardCriteriaPassed: summary.hardOk, hardCriteriaRate: summary.hardCriteriaRate, avgMs: summary.avgMs, modelCalls: calls.count, modelMs: calls.ms }));
+const usage = aiTotals();
+console.log(JSON.stringify({ mode, cases: summary.cases, of: selected.length, casesPassed: summary.casesPassed, turns: turns.length, passed: summary.passed, passRate: summary.passRate, hardCriteriaPassed: summary.hardOk, hardCriteriaRate: summary.hardCriteriaRate, avgMs: summary.avgMs, modelCalls: calls.count, modelMs: calls.ms, promptTokens: usage.promptTokens, completionTokens: usage.completionTokens, costUsd: Number(usage.costUsd.toFixed(5)), stopped: calls.stopped || null }));
 console.table(Object.entries(byCategory).map(([category, bucket]) => ({ category, turns: bucket.turns, passed: bucket.passed, hardOk: bucket.hardOk, rate: `${Math.round((bucket.passed / bucket.turns) * 100)}%` })));
 if (!QUIET) for (const row of turns) if (row.hard.length || row.failures.length) console.log(`✗ ${row.id} | ${row.turn}\n    → ${row.reply.replace(/\n/g, " ⏎ ").slice(0, 220)}\n    ${[...row.hard, ...row.failures].join("; ")}`);
 
@@ -92,7 +109,7 @@ if (LABEL) {
   const target = path.join("docs", "chatbot", `EVAL_${LABEL}.md`);
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(target, lines.join("\n"));
-  fs.writeFileSync(path.join("docs", "chatbot", `EVAL_${LABEL}.json`), JSON.stringify({ summary: { mode, ...summary, turns: undefined, byCategory }, turns }, null, 2) + "\n");
+  fs.writeFileSync(path.join("docs", "chatbot", `EVAL_${LABEL}.json`), JSON.stringify({ summary: { mode, ...summary, turns: undefined, byCategory, modelCalls: calls.count, promptTokens: usage.promptTokens, completionTokens: usage.completionTokens, costUsd: usage.costUsd, stopped: calls.stopped || null }, turns }, null, 2) + "\n");
   console.log(`Wrote ${target}`);
 }
 process.exitCode = 0;

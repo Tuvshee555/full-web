@@ -1,5 +1,81 @@
 # Model comparison (1 November 2026)
 
+## Held-out comparison (approved run, $0.30 limit)
+
+The held-out set (`tests/chatbot/eval/heldout.mjs`, 51 conversations, 59 customer turns, written
+after the engine was frozen, invented catalogue only) was run once per model on engine `788ffe5`
+plus the measurement changes below. The runner stopped before any call whose worst-case cost would
+pass a dollar cap: $0.06 for gpt-4.1-mini, $0.25 for gpt-4.1. A $0 dry run first confirmed the cap
+stops before the first call.
+
+| | No model | gpt-4.1-mini | gpt-4.1 |
+| --- | --- | --- | --- |
+| Turns correct | 45/59 (76.3%) | 56/59 (94.9%) | 56/59 (94.9%) |
+| Hard rules (nothing invented, no silence, no private data) | 59/59 | 59/59 | 59/59 |
+| Turns that used the model | 0 | 47 | 47 |
+| Model calls | 0 | 51 | 50 |
+| Input / output tokens (reported by the API) | 0 | 49,330 / 2,060 | 47,611 / 1,787 |
+| Cost at list price | $0 | $0.0230 | $0.1095 |
+| Average model call time | | 1.08 s | 0.89 s |
+
+Total spent on this stage: $0.1325 (101 calls), under the $0.30 limit. Each model fixed 11 of the
+14 rules-only misses and made no turn worse.
+
+### By how the customer wrote
+
+| Group | Turns | No model | gpt-4.1-mini | gpt-4.1 |
+| --- | --- | --- | --- | --- |
+| Latin-script Mongolian | 50 | 39 | 47 | 47 |
+| English | 9 | 6 | 9 | 9 |
+| Cyrillic Mongolian | 0 | | | |
+
+The held-out set has no Cyrillic turns (it mirrors the live data, which is all Latin script).
+Cyrillic results come from the main-set live subset: 48 turns containing Cyrillic, rules only 48,
+gpt-4.1-mini 46, gpt-4.1 45, the engine on `main` with gpt-4.1 31. Both models miss the same two
+there (an unnumbered product list, and the duration question answered without the owner's FAQ).
+
+### By topic (held-out)
+
+| Topic | Turns | No model | gpt-4.1-mini | gpt-4.1 |
+| --- | --- | --- | --- | --- |
+| Product pricing | 8 | 8 | 8 | 8 |
+| Product availability | 5 | 4 | 5 | 5 |
+| Usage, volume, ingredients | 8 | 4 | 8 | 7 |
+| Conversation context (follow-up turns) | 12 | 11 | 11 | 11 |
+| Purchase intent | 6 | 3 | 6 | 6 |
+| Checkout link for the right product | 4 | 2 | 4 | 4 |
+| Human handover | 3 | 0 | 2 | 3 |
+| Unknown, off-topic, injection | 2 | 2 | 2 | 2 |
+| Delivery, returns, payment | 8 | 6 | 7 | 7 |
+| Safety and claims | 4 | 4 | 4 | 4 |
+| Order status | 2 | 2 | 2 | 2 |
+| Admin edits reach the next answer | 4 | 4 | 4 | 4 |
+| Unsupported claims (invented amount, forbidden claim, promise, private data) | 59 | 0 | 0 | 0 |
+
+### Every incorrect answer with a model
+
+| Turn | gpt-4.1-mini | gpt-4.1 | What went wrong |
+| --- | --- | --- | --- |
+| «hed hongiin dotor irhe ve» (how many days until it arrives) | wrong | wrong | Answered with the serum's price card instead of delivery days. No false fact, but not an answer. |
+| «ymar buteegdehuun zardag ve» (what do you sell) | wrong | wrong | A correct written list without numbers. The check wants a numbered list so "the second one" works; the follow-up still resolved, so customers would see a reasonable answer. |
+| «hun bnu» (is there a person?) | wrong | right | gpt-4.1-mini replied with a greeting and did not hand over to staff. |
+| «serumiig hed sar hereglevel deer ve» (how many months should I use it) | right | wrong | gpt-4.1 gave the "no growth promise" line instead of the published 8-week usage answer. Safe, but it withheld a fact the owner published. |
+
+Rules-only misses (14) are listed in `EVAL_heldout.md`; all are unknown Latin spellings that fall
+back to the generic line or the product card, never a false fact.
+
+### Recommendation
+
+Use gpt-4.1-mini. It matches gpt-4.1 on this set (56/59 each, one different miss each, which is
+within the noise of a single run), costs about 4.8× less (about $0.002 per five-turn conversation
+against $0.009), and breaks nothing the rules handle. Before or with the switch, add rules for the
+two shared misses and for "hun bnu"-style person requests, then move those held-out cases into the
+main set and write new held-out cases, so the held-out score stays honest.
+
+The four findings above are model-independent engine work, not reasons to pay for gpt-4.1.
+
+## Earlier comparison (main-set subset)
+
 ## What was run
 
 - Engine: branch `chatbot-intelligence` at `adcf4c6`.

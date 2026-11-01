@@ -74,6 +74,7 @@ export async function runCase(item, engine) {
         return { orderNumber: `EV-CHAT-${orderSerial}`, totalPrice: subtotal + context.deliveryFee, deliveryFee: context.deliveryFee, status: "WAITING_PAYMENT", paymentMethod: "BANK" };
       };
       const started = Date.now();
+      const callsBefore = engine.callCounter?.count ?? 0;
       let result;
       try {
         result = await engine.runCustomerTurn({
@@ -88,7 +89,7 @@ export async function runCase(item, engine) {
       const reply = result.text || "";
       const hard = hardChecks({ world, locale: item.locale, text: turn.text, reply, expect, orderCalls });
       const failures = expectationChecks({ reply, needsHuman: result.needsHuman, expect });
-      rows.push({ turn: turn.text, reply, hard, failures, ms: Date.now() - started, intent: result.intent, model: result.model });
+      rows.push({ turn: turn.text, reply, hard, failures, ms: Date.now() - started, intent: result.intent, model: result.model, modelCalls: (engine.callCounter?.count ?? 0) - callsBefore, locale: item.locale, expect });
       state = result.state;
       history.push({ role: "user", text: turn.text }, { role: "assistant", text: reply });
     }
