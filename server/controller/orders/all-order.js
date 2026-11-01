@@ -75,12 +75,16 @@ export const getAllOrder = async (req, res) => {
     if (req.query.mode === "revenue") {
       const { monthStart, weekStart, chartStart } = revenueWindows(new Date());
 
+      // Best sellers: the last 30 Ulaanbaatar days, counting only orders that brought money in.
+      const topStart = new Date(weekStart.getTime() - 23 * 24 * 60 * 60 * 1000);
+
       const [
         totalRevenueAgg,
         weeklyRevenueAgg,
         monthlyRevenueAgg,
         recentRevenueOrders,
         recentPayments,
+        soldItems,
       ] = await Promise.all([
         prisma.order.aggregate({
           where: REVENUE_WHERE,
@@ -126,7 +130,35 @@ export const getAllOrder = async (req, res) => {
             createdAt: true,
           },
         }),
+        prisma.orderItem.findMany({
+          where: { order: { ...REVENUE_WHERE, createdAt: { gte: topStart } } },
+          select: {
+            productId: true,
+            quantity: true,
+            unitPrice: true,
+            product: { select: { productName: true, image: true, price: true } },
+          },
+        }),
       ]);
+
+      const sold = new Map();
+      for (const item of soldItems) {
+        const entry = sold.get(item.productId) ?? {
+          productId: item.productId,
+          productName: item.product?.productName ?? "",
+          image: item.product?.image ?? null,
+          quantity: 0,
+          revenue: 0,
+        };
+        entry.quantity += item.quantity;
+        // Lines from before unit prices were stored fall back to today's product price.
+        entry.revenue += (item.unitPrice ?? item.product?.price ?? 0) * item.quantity;
+        sold.set(item.productId, entry);
+      }
+      const topProducts = [...sold.values()]
+        .sort((a, b) => b.quantity - a.quantity || b.revenue - a.revenue)
+        .slice(0, 5)
+        .map((entry) => ({ ...entry, revenue: Number(entry.revenue.toFixed(2)) }));
 
       const chartMap = new Map();
       for (const order of recentRevenueOrders) {
@@ -150,6 +182,7 @@ export const getAllOrder = async (req, res) => {
           monthlyRevenue: monthlyRevenueAgg._sum.totalPrice ?? 0,
         },
         chartData,
+        topProducts,
         payments: recentPayments.map((order) => ({
           id: order.id,
           orderId: order.orderNumber ?? order.id,

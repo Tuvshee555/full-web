@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowUpRight, BarChart3, Bot, ClipboardList, LayoutDashboard, LogOut, MessageCircle, Package, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, BarChart3, Bot, ClipboardList, LayoutDashboard, LogOut, MessageCircle, Package, Search, Users, type LucideIcon } from "lucide-react";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@admin/components/ui/sheet";
 import { adminLogout } from "@admin/utils/logout";
@@ -29,6 +29,7 @@ export function useNavItems(summary: AdminSummary) {
     { id: "orders", label: t("nav.orders"), short: t("nav.orders_short"), icon: ClipboardList, badge: orders, badgeLabel: t("nav.orders_badge", { count: orders }) },
     { id: "messages", label: t("nav.messages"), short: t("nav.messages_short"), icon: MessageCircle, badge: messages, badgeLabel: t("nav.messages_badge", { count: messages }) },
     { id: "products", label: t("nav.products"), short: t("nav.products_short"), icon: Package },
+    { id: "customers", label: t("nav.customers"), short: t("nav.customers_short"), icon: Users },
     { id: "revenue", label: t("nav.revenue"), short: t("nav.revenue"), icon: BarChart3 },
   ];
   const settings: NavItem[] = [
@@ -51,6 +52,8 @@ type Props = {
   active: AdminView;
   onNavigate: (view: AdminView) => void;
   summary: AdminSummary;
+  /** Opens the admin-wide search. */
+  onSearch: () => void;
   /** Drawer mode on phones and tablets. */
   isMobile?: boolean;
   open?: boolean;
@@ -58,7 +61,7 @@ type Props = {
 };
 
 /** Espresso sidebar with the serif wordmark: same identity as the storefront. */
-export const Sidebar = ({ active, onNavigate, summary, isMobile, open, onClose }: Props) => {
+export const Sidebar = ({ active, onNavigate, summary, onSearch, isMobile, open, onClose }: Props) => {
   const { t, locale } = useI18n();
   const router = useRouter();
   const pathname = usePathname() ?? "";
@@ -105,6 +108,18 @@ export const Sidebar = ({ active, onNavigate, summary, isMobile, open, onClose }
         <span className="store-heading block text-[28px] !text-paper">{STORE.name}</span>
         <span className="mt-[4px] block text-[12px] text-paper/65">{t("nav.workspace")}</span>
       </Link>
+
+      <div className="px-[12px] pb-[12px]">
+        <button
+          type="button"
+          onClick={onSearch}
+          className="flex min-h-[44px] w-full items-center gap-[10px] border border-paper/15 px-[12px] text-left text-[13px] text-paper/75 transition-colors hover:border-paper/30 hover:text-paper"
+        >
+          <Search aria-hidden className="h-[16px] w-[16px] shrink-0" strokeWidth={1.6} />
+          <span className="min-w-0 flex-1 truncate">{t("nav.search_hint")}</span>
+          <kbd aria-hidden className="hidden border border-paper/20 px-[5px] font-sans text-[11px] text-paper/60 lg:inline">Ctrl K</kbd>
+        </button>
+      </div>
 
       <nav aria-label={t("nav.label")} className="flex flex-1 flex-col overflow-y-auto px-[12px]">
         <div className="flex flex-col gap-[2px]">{main.map(item)}</div>

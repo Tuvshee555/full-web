@@ -3,7 +3,8 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ClipboardList, Copy, RefreshCw, SearchX } from "lucide-react";
+import { ClipboardList, Copy, Printer, RefreshCw, SearchX } from "lucide-react";
+import { printPackingSlips } from "@admin/lib/packingSlips";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 import { useAuth } from "@admin/provider/AuthProvider";
 import { useAdminNav } from "@admin/lib/adminNav";
@@ -313,6 +314,10 @@ export default function OrdersAdmin() {
         >
           <Copy aria-hidden className="h-[14px] w-[14px]" />
           {t("orders.bulk.copy_courier")}
+        </button>
+        <button type="button" className={bulkButton} onClick={() => printPackingSlips(selectedOrders, t)}>
+          <Printer aria-hidden className="h-[14px] w-[14px]" />
+          {t("orders.print.bulk", { count: selectedOrders.length })}
         </button>
       </BulkBar>
 

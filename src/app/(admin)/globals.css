@@ -264,3 +264,95 @@
 #nprogress .peg {
   box-shadow: none;
 }
+
+/* Packing slips (src/admin/lib/packingSlips.ts): only ever shown on paper, one order per page. */
+#print-slips {
+  display: none;
+}
+
+@media print {
+  html.printing-slips body > *:not(#print-slips) {
+    display: none !important;
+  }
+  html.printing-slips #print-slips {
+    display: block;
+    color: #000;
+    font: 12pt/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @page {
+    margin: 14mm;
+  }
+  .slip {
+    break-after: page;
+  }
+  .slip:last-child {
+    break-after: auto;
+  }
+  .slip p {
+    margin: 0 0 2pt;
+  }
+  .slip-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12pt;
+    margin-bottom: 12pt;
+    padding-bottom: 8pt;
+    border-bottom: 2px solid #000;
+  }
+  .slip-store {
+    font-size: 20pt;
+    font-weight: 600;
+  }
+  .slip-right {
+    text-align: right;
+  }
+  .slip-number {
+    font-size: 18pt;
+    font-weight: 700;
+  }
+  .slip-label,
+  .slip-muted {
+    color: #444;
+    font-size: 9.5pt;
+  }
+  .slip-strong {
+    font-size: 13pt;
+    font-weight: 600;
+  }
+  .slip-note {
+    margin-top: 6pt !important;
+    padding: 6pt;
+    border: 1px solid #000;
+  }
+  .slip-items {
+    width: 100%;
+    margin: 14pt 0;
+    border-collapse: collapse;
+  }
+  .slip-items th {
+    padding: 4pt 0;
+    border-bottom: 1px solid #000;
+    color: #444;
+    font-size: 9.5pt;
+    font-weight: 400;
+    text-align: left;
+  }
+  .slip-items td {
+    padding: 6pt 8pt 6pt 0;
+    border-bottom: 1px solid #bbb;
+    vertical-align: top;
+  }
+  .slip-items .num {
+    text-align: right;
+  }
+  .slip-total {
+    display: flex;
+    justify-content: space-between;
+    gap: 12pt;
+  }
+  .slip-thanks {
+    margin-top: 18pt !important;
+    color: #444;
+  }
+}

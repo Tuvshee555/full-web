@@ -69,6 +69,12 @@ export default function BankTransferPage() {
             <BankDetails orderNumber={order.orderNumber} amount={order.totalPrice} orderId={order.id} />
           </div>
 
+          {/* Guests lose this page with their browser data; the number and phone are enough to find the order again. */}
+          <p className="mt-[20px] text-[14px] leading-relaxed text-ink/70">
+            {st("lookup_hint")}{" "}
+            <Link href={`/${locale}/order-status`} className="link-underline text-ink">{st("lookup_title")}</Link>
+          </p>
+
           <div className="mt-[32px] flex flex-col-reverse gap-[16px] sm:flex-row sm:items-center sm:justify-between">
             <Link href={`/${locale}`} className="link-underline text-[14px] text-ink">
               {st("back_to_store")}

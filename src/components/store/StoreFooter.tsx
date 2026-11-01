@@ -23,6 +23,7 @@ export function StoreFooter() {
         [st("home"), `/${locale}`],
         [st("all_products"), collectionUrl(locale)],
         [st("my_orders"), `/${locale}/profile`],
+        [st("lookup_title"), `/${locale}/order-status`],
       ],
     },
     {

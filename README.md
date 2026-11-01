@@ -25,13 +25,24 @@ plain sentences in their language (`useCheckout.ts`), never as the API's own mes
 ## Admin dashboard
 
 One page, `/admin/[locale]/home-page`, with the section in the address:
-`?view=overview|orders|messages|products|revenue|assistant` (`?view=chatbot`, used
+`?view=overview|orders|messages|products|customers|revenue|assistant` (`?view=chatbot`, used
 by older Telegram alerts, opens Chat). Sections keep their state in the address
 too, so links land on the right thing: `&tab=to_ship` (orders tab),
 `&order=<id>` (opens that order; order alerts in Telegram link here),
-`&chat=<id>`, `&tab=requests`, `&stock=restock` and `&product=<id>` (opens the
-editor). The overview's "needs your attention" list and the menu counts come
+`&chat=<id>`, `&tab=requests`, `&stock=restock`, `&product=<id>` (opens the
+editor) and `&customer=<phone>`. The overview's "needs your attention" list and the menu counts come
 from the same summary (`src/admin/lib/adminNav.tsx`), refreshed every minute.
+
+Customers are the people who ordered, recognised by their delivery phone number, so
+guests count too (`GET /api/order/customers`; "spent" uses the same paid-order rule as
+the sales report). Ctrl K or "/" opens one search over orders, customers and products
+(`src/admin/components/AdminSearch.tsx`). Packing slips print from an order or from a
+selection of orders (`src/admin/lib/packingSlips.ts`, print styles in the admin
+`globals.css`).
+
+Shoppers, guests included, can check an order at `/[locale]/order-status` with the
+order number and phone (`POST /api/order/lookup`, 10 tries per 15 minutes per visitor).
+It shows status, items and totals, never the name, street address or phone.
 
 Shared building blocks live in `src/admin/components/ui/` (page header, panels,
 status pills, confirm dialog, form fields, bulk-action bar); order status rules

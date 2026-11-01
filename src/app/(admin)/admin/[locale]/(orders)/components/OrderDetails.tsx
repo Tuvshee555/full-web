@@ -1,8 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useState } from "react";
-import { Check, Copy, Loader2, MapPin, Phone, StickyNote, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowRight, Check, Copy, Loader2, MapPin, Phone, Printer, StickyNote, X } from "lucide-react";
+import { useAdminNav } from "@admin/lib/adminNav";
+import { type Customer, loadCustomer, phoneDigits } from "@admin/lib/customers";
+import { printPackingSlips } from "@admin/lib/packingSlips";
 import { normalizeDelivery } from "@admin/utils/normalizeDelivery";
 import { formatDateTime, formatMNT, isGuestEmail } from "@admin/utils/format";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@admin/components/ui/sheet";
@@ -137,6 +140,32 @@ function Steps({ order, t }: { order: RawOrder; t: T }) {
 
 const sectionTitle = "mb-[10px] text-[13px] font-semibold text-ink";
 
+/** Is this a returning customer? One line under the name, with a way to see all their orders. */
+function CustomerHistory({ phone, t }: { phone?: string | null; t: T }) {
+  const { go } = useAdminNav();
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const digits = phoneDigits(phone);
+  useEffect(() => {
+    setCustomer(null);
+    if (!digits) return;
+    const controller = new AbortController();
+    loadCustomer(digits, controller.signal).then(setCustomer).catch(() => {});
+    return () => controller.abort();
+  }, [digits]);
+  if (!customer) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-x-[10px] text-[13px] text-taupe">
+      <p>{customer.orders > 1 ? t("orders.drawer.returning", { count: customer.orders, amount: formatMNT(customer.spent) }) : t("orders.drawer.first_order")}</p>
+      {customer.orders > 1 && (
+        <button type="button" onClick={() => go("customers", { customer: customer.phone })} className="inline-flex min-h-[32px] items-center gap-[4px] font-medium text-ink underline-offset-4 hover:underline">
+          {t("orders.drawer.view_customer")}
+          <ArrowRight aria-hidden className="h-[13px] w-[13px]" />
+        </button>
+      )}
+    </div>
+  );
+}
+
 type DrawerProps = {
   open: boolean;
   onClose: () => void;
@@ -176,6 +205,13 @@ export function OrderDrawer({ open, onClose, order, loading, error, onRetry, t, 
             </SheetDescription>
           </div>
           <div className="flex shrink-0 items-center gap-[4px]">
+            {order && (
+              <button type="button" onClick={() => printPackingSlips([order], t)} className="btn-ghost btn-sm" title={t("orders.print.button")}>
+                <Printer aria-hidden className="h-[14px] w-[14px]" />
+                <span className="hidden sm:inline">{t("orders.print.button")}</span>
+                <span className="sr-only sm:hidden">{t("orders.print.button")}</span>
+              </button>
+            )}
             {order && (
               <button type="button" onClick={() => copy(orderNumber(order), t("orders.drawer.number_copied"))} className="btn-ghost btn-sm" title={t("orders.drawer.copy_number")}>
                 <Copy aria-hidden className="h-[14px] w-[14px]" />
@@ -221,6 +257,7 @@ export function OrderDrawer({ open, onClose, order, loading, error, onRetry, t, 
               <section className="admin-surface p-[16px]">
                 <h3 className={sectionTitle}>{t("orders.drawer.delivery")}</h3>
                 <p className="text-[15px] font-medium text-ink">{customerName(order, t)}</p>
+                <CustomerHistory phone={d?.phone} t={t} />
                 {d?.phone && (
                   <div className="mt-[8px] flex flex-wrap gap-[8px]">
                     <a href={`tel:${d.phone}`} className="btn-secondary btn-sm">

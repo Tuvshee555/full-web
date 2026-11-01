@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -33,7 +34,8 @@ import { RawOrder, orderNumber } from "@/app/(admin)/admin/[locale]/(orders)/com
 import { OrderStatusPill, customerName } from "@/app/(admin)/admin/[locale]/(orders)/components/OrderDetails";
 
 type Day = { date: string; revenue: number; orders: number };
-type Revenue = { stats: { totalRevenue: number; weeklyRevenue: number; monthlyRevenue: number }; chartData: Day[] };
+type TopProduct = { productId: string; productName: string; image: string | null; quantity: number; revenue: number };
+type Revenue = { stats: { totalRevenue: number; weeklyRevenue: number; monthlyRevenue: number }; chartData: Day[]; topProducts?: TopProduct[] };
 
 const days = (data: Day[], count: number, offset = 0) => {
   const byDate = new Map(data.map((d) => [d.date, d]));
@@ -269,6 +271,32 @@ export default function Overview() {
                   <span>{t("common.today")}</span>
                 </div>
               </>
+            )}
+          </Panel>
+
+          <Panel title={t("overview.best.title")} description={t("overview.best.subtitle")}>
+            {loading ? (
+              <LoadingRows rows={3} rowClassName="h-[44px]" />
+            ) : !revenue ? (
+              <p className="px-[16px] py-[16px] text-[13px] text-taupe md:px-[20px]">{t("revenue.errors.load_failed")}</p>
+            ) : !revenue.topProducts?.length ? (
+              <p className="px-[16px] py-[16px] text-[13px] leading-relaxed text-taupe md:px-[20px]">{t("overview.best.none")}</p>
+            ) : (
+              <ol className="divide-y divide-ink/10">
+                {revenue.topProducts.map((p, index) => (
+                  <li key={p.productId}>
+                    <button type="button" onClick={() => go("products", { product: p.productId })} className="flex w-full items-center gap-[12px] px-[16px] py-[10px] text-left hover:bg-paper md:px-[20px]">
+                      <span className="w-[16px] shrink-0 text-[13px] tabular-nums text-taupe">{index + 1}</span>
+                      {p.image ? <img src={p.image} alt="" className="h-[36px] w-[36px] shrink-0 bg-sand object-cover" /> : <span className="h-[36px] w-[36px] shrink-0 bg-sand" />}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[14px] text-ink">{p.productName}</span>
+                        <span className="block text-[12px] tabular-nums text-taupe">{t("overview.best.sold", { count: p.quantity })}</span>
+                      </span>
+                      <span className="shrink-0 text-[13px] font-medium tabular-nums text-ink">{formatMNT(p.revenue)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
             )}
           </Panel>
 

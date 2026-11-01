@@ -79,7 +79,8 @@ test("keys built from order data exist for every status, method and step", () =>
   for (const tab of ["all", "awaiting_payment", "to_ship", "delivering", "delivered", "cancelled"]) keys.add(`orders.tabs.${tab}`).add(`orders.empty.${tab}.title`).add(`orders.empty.${tab}.body`);
   keys.add("orders.empty.search.title").add("orders.empty.search.body");
   for (const next of ["DELIVERING", "DELIVERED"]) keys.add(`orders.bulk.${next}`).add(`orders.bulk_done.${next}`).add(`orders.bulk_confirm.${next}.title`).add(`orders.bulk_confirm.${next}.body`);
-  for (const view of ["overview", "orders", "messages", "products", "revenue", "assistant"]) keys.add(`nav.${view}`);
+  for (const view of ["overview", "orders", "messages", "products", "customers", "revenue", "assistant"]) keys.add(`nav.${view}`);
+  for (const group of ["go", "orders", "customers", "products"]) keys.add(`search.groups.${group}`);
   for (const state of ["ok", "low", "partial", "soldout", "untracked"]) keys.add(`stock.state.${state}`);
   for (const filter of ["all", "restock", "soldout", "in_stock", "untracked"]) keys.add(`products.filter.stock_${filter}`);
   for (const sort of ["newest", "name", "price_low", "price_high", "stock"]) keys.add(`products.sort.${sort}`);

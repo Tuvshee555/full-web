@@ -27,6 +27,7 @@ const Overview = dynamic(() => import("@admin/components/admin/Overview"), { loa
 const OrdersAdmin = dynamic(() => import("../(orders)/OrdersAdmin"), { loading: PanelLoading });
 const ProductCatalog = dynamic(() => import("../(products)/ProductCatalog").then((module) => module.ProductCatalog), { loading: PanelLoading });
 const RevenueDashboard = dynamic(() => import("../(revenue)/RevenueDashboard"), { loading: PanelLoading });
+const CustomersAdmin = dynamic(() => import("../(customers)/CustomersAdmin"), { loading: PanelLoading });
 const MessagesDashboard = dynamic(() => import("@admin/components/chatbot/MessagesDashboard").then((module) => module.MessagesDashboard), { loading: PanelLoading });
 const AssistantDashboard = dynamic(() => import("@admin/components/chatbot/AssistantDashboard").then((module) => module.AssistantDashboard), { loading: PanelLoading });
 
@@ -108,6 +109,7 @@ function AdminHome() {
         {view === "orders" && <OrdersAdmin />}
         {view === "messages" && <MessagesDashboard />}
         {view === "products" && <ProductCatalog />}
+        {view === "customers" && <CustomersAdmin />}
         {view === "revenue" && <RevenueDashboard />}
         {view === "assistant" && <AssistantDashboard />}
       </AdminLayout>

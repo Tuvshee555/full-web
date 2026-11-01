@@ -310,6 +310,69 @@ try {
     assert.equal(res.code, 409); assert.ok(await prisma.order.findUnique({ where: { id: sample.order.id } }));
   });
 
+  const { getCustomers } = await import("../server/controller/orders/customers.js");
+  const { lookupOrder } = await import("../server/controller/orders/lookup-order.js");
+  const placed = (product, { phone, status, totalPrice, quantity = 1, ...extra }) => prisma.order.create({ data: {
+    userId: user.id, orderNumber: `AGP${crypto.randomUUID().slice(0, 8).toUpperCase()}`, totalPrice, status, paymentMethod: "BANK",
+    phone, firstName: "Saraa", lastName: "Bat", city: "Улаанбаатар", district: "Сүхбаатар", ...extra,
+    orderItems: { create: { productId: product.id, quantity, size: "Small", unitPrice: totalPrice / quantity } },
+  } });
+
+  await check("customers are grouped by phone and only orders that brought money in count as spent", async () => {
+    const product = await fixture();
+    await placed(product, { phone: "99001122", status: "DELIVERED", totalPrice: 100, firstName: "Anu", createdAt: new Date(Date.now() - 86400000) });
+    await placed(product, { phone: "99001122", status: "PAID", totalPrice: 50 });
+    await placed(product, { phone: "99001122", status: "CANCELLED", totalPrice: 70 });
+    await placed(product, { phone: "88001122", status: "WAITING_PAYMENT", totalPrice: 40, firstName: "Bold", lastName: "Dorj" });
+    const res = response();
+    await getCustomers({ query: { sort: "spent" } }, res);
+    assert.equal(res.code, 200);
+    const [top, other] = res.body.customers;
+    assert.equal(res.body.customers.length, 2);
+    assert.deepEqual([top.phone, top.orders, top.paidOrders, top.spent, top.firstName], ["99001122", 3, 2, 150, "Saraa"]);
+    assert.deepEqual([other.phone, other.paidOrders, other.spent], ["88001122", 0, 0]);
+    assert.deepEqual(res.body.summary, { customers: 2, repeat: 1 });
+    // A name from an older order still finds the customer, with all of their orders counted.
+    const byName = response();
+    await getCustomers({ query: { search: "anu" } }, byName);
+    assert.deepEqual(byName.body.customers.map((c) => [c.phone, c.orders]), [["99001122", 3]]);
+    const byPhone = response();
+    await getCustomers({ query: { phone: "8800-1122" } }, byPhone);
+    assert.deepEqual(byPhone.body.customers.map((c) => c.lastName), ["Dorj"]);
+  });
+
+  await check("order lookup needs the matching number and phone, and leaves out personal details", async () => {
+    const product = await fixture();
+    const order = await placed(product, { phone: "99112233", status: "DELIVERING", totalPrice: 100, orderNumber: "AGPLOOK1",
+      firstName: "Private", lastName: "Person", khoroo: "7", address: "Secret street 1" });
+    const found = response();
+    await lookupOrder({ body: { orderNumber: " #agplook1 ", phone: "9911-2233" } }, found);
+    assert.equal(found.code, 200);
+    assert.deepEqual([found.body.status, found.body.paymentStatus, found.body.items[0].lineTotal], ["DELIVERING", "PAID", 100]);
+    const text = JSON.stringify(found.body);
+    for (const secret of ["Private", "Person", "Secret street", "99112233", order.id, user.id]) assert.ok(!text.includes(secret), `lookup must not reveal ${secret}`);
+    const wrongPhone = response();
+    await lookupOrder({ body: { orderNumber: "AGPLOOK1", phone: "99112234" } }, wrongPhone);
+    const wrongNumber = response();
+    await lookupOrder({ body: { orderNumber: "AGPLOOK2", phone: "99112233" } }, wrongNumber);
+    assert.equal(wrongPhone.code, 404);
+    assert.deepEqual([wrongNumber.code, wrongNumber.body], [404, wrongPhone.body]);
+    const invalid = response();
+    await lookupOrder({ body: { orderNumber: "", phone: "1" } }, invalid);
+    assert.equal(invalid.code, 400);
+  });
+
+  await check("the revenue report lists the month's best sellers from paid orders only", async () => {
+    const product = await fixture();
+    await placed(product, { phone: "99001122", status: "PAID", totalPrice: 300, quantity: 3 });
+    await placed(product, { phone: "99001122", status: "CANCELLED", totalPrice: 500, quantity: 5 });
+    await placed(product, { phone: "99001122", status: "DELIVERED", totalPrice: 100, createdAt: new Date(Date.now() - 45 * 86400000) });
+    const res = response();
+    await getAllOrder({ query: { mode: "revenue" }, user: { id: user.id, role: "ADMIN" } }, res);
+    assert.equal(res.code, 200);
+    assert.deepEqual(res.body.topProducts.map((p) => [p.productId, p.quantity, p.revenue]), [[product.id, 3, 300]]);
+  });
+
   console.log(`Commerce integration: ${passed} checks passed against isolated PostgreSQL on 127.0.0.1:${port}.`);
 } catch (error) {
   console.error(error);

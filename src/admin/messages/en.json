@@ -69,7 +69,11 @@
     "more": "More",
     "menu": "Menu",
     "menu_hint": "All sections of the admin",
-    "skip": "Skip to content"
+    "skip": "Skip to content",
+    "customers": "Customers",
+    "customers_short": "Customers",
+    "search": "Search",
+    "search_hint": "Find an order, customer or product"
   },
   "bulk": {
     "region": "Actions for selected items",
@@ -176,6 +180,15 @@
       "option_low": {
         "one": "{option}: 1 left",
         "other": "{option}: {count} left"
+      }
+    },
+    "best": {
+      "title": "Best sellers",
+      "subtitle": "Last 30 days, paid orders",
+      "none": "No paid sales in the last 30 days yet.",
+      "sold": {
+        "one": "1 sold",
+        "other": "{count} sold"
       }
     }
   },
@@ -351,7 +364,10 @@
       "total": "Total",
       "payment": "Payment",
       "method": "Method",
-      "payment_state": "Payment"
+      "payment_state": "Payment",
+      "first_order": "First order from this customer",
+      "returning": "{count} orders from this customer · {amount} paid in total",
+      "view_customer": "Customer’s orders"
     },
     "review": {
       "title": "Check this payment",
@@ -431,6 +447,26 @@
       "changed": "This order changed in the meantime. It has been refreshed; check it and try again.",
       "not_allowed": "This step isn’t possible for this order any more. Refresh to see its current status.",
       "update_failed": "Couldn’t update the order. Try again."
+    },
+    "print": {
+      "button": "Print packing slip",
+      "bulk": {
+        "one": "Print 1 packing slip",
+        "other": "Print {count} packing slips"
+      },
+      "title": "Packing slip",
+      "order": "Order",
+      "date": "Date",
+      "ship_to": "Deliver to",
+      "note": "Customer note",
+      "item": "Product",
+      "option": "Option",
+      "qty": "Qty",
+      "total": "Order total",
+      "paid": "Paid · {method}",
+      "collect": "Collect on delivery: {amount}",
+      "unpaid": "Not paid yet",
+      "thanks": "Thank you for shopping with us!"
     }
   },
   "products": {
@@ -1042,6 +1078,96 @@
       "done": "Password changed. Sign in with your new password.",
       "expired": "This link is invalid or has expired. Ask for a new one.",
       "new_link": "Send me a new link"
+    }
+  },
+  "customers": {
+    "title": "Customers",
+    "description": "Everyone who has ordered, recognised by their phone number. “Spent” counts paid orders only.",
+    "search": "Search by name or phone",
+    "sort_label": "Sort customers",
+    "sort": {
+      "recent": "Latest order",
+      "spent": "Spent most",
+      "orders": "Most orders"
+    },
+    "stats": {
+      "customers": "Customers",
+      "repeat": "Bought more than once",
+      "repeat_hint": "{pct}% of customers"
+    },
+    "col": {
+      "customer": "Customer",
+      "place": "Where",
+      "orders": "Orders",
+      "spent": "Spent",
+      "last": "Last order"
+    },
+    "orders_count": {
+      "one": "1 order",
+      "other": "{count} orders"
+    },
+    "paid_count": {
+      "one": "1 paid",
+      "other": "{count} paid"
+    },
+    "no_name": "No name given",
+    "found": {
+      "one": "1 customer found",
+      "other": "{count} customers found"
+    },
+    "total": {
+      "one": "1 customer",
+      "other": "{count} customers"
+    },
+    "repeat_badge": "Repeat customer",
+    "open": "Open customer {name}",
+    "empty": {
+      "title": "No customers yet",
+      "body": "People appear here after their first order."
+    },
+    "empty_search": {
+      "title": "No customer matches",
+      "body": "Check the spelling, or search by phone number."
+    },
+    "errors": {
+      "load_failed": "Couldn’t load customers.",
+      "orders_failed": "Couldn’t load this customer’s orders."
+    },
+    "drawer": {
+      "title": "Customer",
+      "since": "Ordering since {date}",
+      "spent": "Spent",
+      "orders": "Orders",
+      "average": "Average paid order",
+      "history": "Order history",
+      "email": "Account email",
+      "open_order": "Open order #{order}"
+    }
+  },
+  "search": {
+    "title": "Search the admin",
+    "placeholder": "Order number, phone, name or product",
+    "empty": "Nothing found for “{q}”.",
+    "searching": "Searching…",
+    "failed": "Search didn’t work. Check the connection and try again.",
+    "hint": "↑ ↓ to move · Enter to open · Esc to close",
+    "results": {
+      "one": "1 result",
+      "other": "{count} results"
+    },
+    "groups": {
+      "orders": "Orders",
+      "customers": "Customers",
+      "products": "Products",
+      "go": "Go to"
+    },
+    "go": {
+      "to_ship": "Orders to ship",
+      "awaiting_payment": "Orders waiting for payment",
+      "restock": "Products to restock",
+      "chats": "Chats that need you",
+      "customers": "All customers",
+      "revenue": "Sales report"
     }
   }
 }

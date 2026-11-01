@@ -5,13 +5,15 @@ import { Menu } from "lucide-react";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 import { AdminSummary, AdminView } from "@admin/lib/adminNav";
 import { Sidebar, useNavItems } from "../Sidebar";
+import { AdminSearch } from "../AdminSearch";
 
 /** Phones and tablets: the four most used sections are one tap away; everything else is under "More". */
 function BottomNav({ active, onNavigate, summary, onMore }: { active: AdminView; onNavigate: (view: AdminView) => void; summary: AdminSummary; onMore: () => void }) {
   const { t } = useI18n();
   const { main } = useNavItems(summary);
-  const tabs = main.filter((item) => item.id !== "revenue");
-  const inMore = active === "revenue" || active === "assistant";
+  // Customers and sales live under "More": the bar keeps five targets a thumb can hit.
+  const tabs = main.filter((item) => item.id !== "revenue" && item.id !== "customers");
+  const inMore = active === "revenue" || active === "customers" || active === "assistant";
   return (
     <nav
       aria-label={t("nav.label")}
@@ -71,15 +73,21 @@ export default function AdminLayout({
 }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const openSearch = () => {
+    setOpen(false);
+    setSearchOpen(true);
+  };
 
   return (
     <div className="min-h-screen w-full lg:flex">
       <a href="#admin-main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-white focus:p-3">{t("nav.skip")}</a>
       <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 lg:block">
-        <Sidebar active={active} onNavigate={onNavigate} summary={summary} />
+        <Sidebar active={active} onNavigate={onNavigate} summary={summary} onSearch={openSearch} />
       </aside>
 
-      <Sidebar active={active} onNavigate={onNavigate} summary={summary} isMobile open={open} onClose={() => setOpen(false)} />
+      <Sidebar active={active} onNavigate={onNavigate} summary={summary} onSearch={openSearch} isMobile open={open} onClose={() => setOpen(false)} />
+      <AdminSearch open={searchOpen} onOpenChange={setSearchOpen} />
       <BottomNav active={active} onNavigate={onNavigate} summary={summary} onMore={() => setOpen(true)} />
 
       <main

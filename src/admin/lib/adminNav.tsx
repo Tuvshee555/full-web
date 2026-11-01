@@ -4,8 +4,8 @@ import { createContext, useContext } from "react";
 import { api } from "./api";
 import type { OrderStatus, RawOrder } from "@/app/(admin)/admin/[locale]/(orders)/components/type";
 
-export type AdminView = "overview" | "orders" | "messages" | "products" | "revenue" | "assistant";
-export const ADMIN_VIEWS: AdminView[] = ["overview", "orders", "messages", "products", "revenue", "assistant"];
+export type AdminView = "overview" | "orders" | "messages" | "products" | "customers" | "revenue" | "assistant";
+export const ADMIN_VIEWS: AdminView[] = ["overview", "orders", "messages", "products", "customers", "revenue", "assistant"];
 /** Older links (Telegram alerts, bookmarks) keep working. */
 export const VIEW_ALIASES: Record<string, AdminView> = { chatbot: "messages" };
 
