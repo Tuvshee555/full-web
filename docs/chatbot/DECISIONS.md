@@ -34,3 +34,23 @@
 - The model's own "medical" label is not trusted on its own: it labelled "how often do I apply it" as medical. Growth and safety questions are matched deterministically and answered without promises.
 - Untracked stock (`stock = null`) is reported as "available to order", never with a count or urgency.
 - Not-yet-converted Uudam test suites are parked in `tests/chatbot/uudam-pending/` rather than deleted or left failing the build.
+
+## Intelligence, commerce and admin round (Claude, 2026-11-01)
+
+- Product facts live on the `Product` row (volume, howToUse, ingredientList, safetyNotes, faq), edited in the admin and read by both the product page and the assistant. The config file `PRODUCT_CONTENT` stays as a fallback. An unpublished fact is said so with the contact line; it never becomes a lead on its own, but it is counted as "unanswered" in the Activity page so the owner sees what to fill in.
+- The shop FAQ (`ChatFaq`) is quoted verbatim by a deterministic matcher; answers with amounts are refused on save because they would go stale unnoticed.
+- Purchase intent is deterministic first ("авъя", "захиалъя", "order it", Latin forms) and the model's `buy` intent second; the model's `order` label is corrected to `buy` when the text is a purchase, because a live customer's "odo hudaldaj away" had been treated as an order-status question.
+- Chat orders are bank-transfer only and go through the same `placeOrder` service as checkout; QPay stays on the website because the invoice/QR flow needs the browser. The assistant creates an order only after "тийм" on a summary it priced itself, with an idempotency key per draft, and never says anything is paid. The admin test chat and QA runs get simulated order numbers.
+- Every intent pattern reads the customer's text and its normalized form (`intentProbe`), so one alias table in `textNorm.ts` serves routing, topics and the purchase layer. Function words were added to the generic list after "Харин" matched the pencil "Нарийн".
+- Identical matching evidence for two products is a tie (ask which), whatever the name-length penalties say.
+- Hand-offs carry a reason (`customer_request`, `complaint`, `payment_claim`, `medical`, `unanswered`, `order_problem`, `ai_error`) and the conversation context; a taken-over chat returns to the assistant after the owner's silence limit (default 24 hours, 0 = never), with `botReleasedAt` so old staff replies cannot re-pause it.
+- Model spend is estimated per day/model/source (`ChatAiUsage`); over the owner's daily budget the assistant keeps answering from its rules. The model is selectable from an allow-list; gpt-5 models get no temperature parameter.
+- Evaluation runs that spend credit are opt-in (`EVAL_RUN_APPROVED=1`), capped and refused against production; CI runs the 147-conversation set with no model.
+
+## Pre-merge review (2026-11-01)
+
+- gpt-5-mini was removed from the admin's model list: in the comparison its reasoning tokens used up the output limit and most calls returned empty. Adding it back needs a larger output budget and a reasoning-effort setting, then a new comparison.
+- "Очиж авч болох уу?" (can I pick it up?) was read as a purchase and answered with a checkout link; pickup questions are now excluded from purchase intent so the owner's FAQ answers them.
+- Chat-order customers get `guest-chat-…@guest.invalid` addresses, the same shape as checkout guests, so the admin shows them as guests. No email was ever at risk: addresses ending in `.invalid` are never mailed.
+- The evaluation runner always points the database at a dead local address and removes alert settings, so a live run started with `.env.local` cannot reach the shop's database or staff.
+- A held-out evaluation set was added and kept out of `npm test`, so the engine is not tuned against it. A case that gets fixed moves to the main set and is replaced.

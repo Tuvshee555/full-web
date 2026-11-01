@@ -1,0 +1,877 @@
+{
+  "summary": {
+    "mode": "live (gpt-5-mini)",
+    "byCategory": {
+      "pricing": {
+        "turns": 14,
+        "passed": 12,
+        "hardOk": 14
+      },
+      "availability": {
+        "turns": 10,
+        "passed": 10,
+        "hardOk": 10
+      },
+      "usage": {
+        "turns": 10,
+        "passed": 10,
+        "hardOk": 10
+      },
+      "purchase": {
+        "turns": 16,
+        "passed": 15,
+        "hardOk": 15
+      },
+      "latin": {
+        "turns": 11,
+        "passed": 11,
+        "hardOk": 11
+      },
+      "unknown": {
+        "turns": 7,
+        "passed": 5,
+        "hardOk": 6
+      },
+      "contradictory": {
+        "turns": 6,
+        "passed": 6,
+        "hardOk": 6
+      }
+    },
+    "cases": 62,
+    "casesPassed": 57,
+    "passed": 69,
+    "hardOk": 72,
+    "passRate": 93.2,
+    "hardCriteriaRate": 97.3,
+    "avgMs": 3724
+  },
+  "turns": [
+    {
+      "turn": "Хөмсөгний сэрум үнэ хэд вэ?",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/mn/products/ev-serum\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 4254,
+      "intent": "product",
+      "model": "rules",
+      "id": "price-01-named-product",
+      "category": "pricing"
+    },
+    {
+      "turn": "test homsognii serum une hed ve",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/mn/products/ev-serum\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 5349,
+      "intent": "product",
+      "model": "rules",
+      "id": "price-02-latin-named",
+      "category": "pricing"
+    },
+    {
+      "turn": "сэрумын үнэ хэд вэ",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/mn/products/ev-serum\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 5272,
+      "intent": "product",
+      "model": "rules",
+      "id": "price-03-keyword-serum",
+      "category": "pricing"
+    },
+    {
+      "turn": "Хамгийн хямд нь юу вэ?",
+      "reply": "Хамгийн хямд нь:\nНалуу сойз — 15,000₮\nhttps://shop.example.invalid/mn/products/ev-brush",
+      "hard": [],
+      "failures": [],
+      "ms": 5553,
+      "intent": "product",
+      "model": "rules",
+      "id": "price-04-cheapest",
+      "category": "pricing"
+    },
+    {
+      "turn": "Хөмсөгний багц хямдралтай юу?",
+      "reply": "Хөмсөгний багц — 95,000₮ (үндсэн үнэ 110,000₮)\nhttps://shop.example.invalid/mn/products/ev-set\nДээрх үнэд бүтээгдэхүүний идэвхтэй хямдрал орсон.\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 5981,
+      "intent": "product",
+      "model": "rules",
+      "id": "price-05-set-discount",
+      "category": "pricing"
+    },
+    {
+      "turn": "Ямар бүтээгдэхүүн байгаа вэ?",
+      "reply": "Уучлаарай, систем түр алдаатай байна.",
+      "hard": [],
+      "failures": [
+        "missing /1\\)/"
+      ],
+      "ms": 10553,
+      "intent": "catalog",
+      "model": "writer",
+      "id": "price-06-after-list",
+      "category": "pricing"
+    },
+    {
+      "turn": "эхнийх нь хэд вэ",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nХөмсөгний өдөр тутмын арчилгаанд зориулсан сэрум.\nhttps://shop.example.invalid/mn/products/ev-serum",
+      "hard": [],
+      "failures": [],
+      "ms": 9393,
+      "intent": "ai",
+      "model": "writer",
+      "id": "price-06-after-list",
+      "category": "pricing"
+    },
+    {
+      "turn": "How much is Хөмсөгний сэрум?",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/en/products/ev-serum\n\nTo order, write \"buy\" here or add it to your cart from the product page.",
+      "hard": [],
+      "failures": [],
+      "ms": 4090,
+      "intent": "product",
+      "model": "rules",
+      "id": "price-07-english",
+      "category": "pricing"
+    },
+    {
+      "turn": "Хөмсөгний сэрум байгаа юу",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/mn/products/ev-serum\n5 мл — захиалах боломжтой\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 4779,
+      "intent": "product",
+      "model": "rules",
+      "id": "price-08-latin-followup",
+      "category": "pricing"
+    },
+    {
+      "turn": "une ni hed ve",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/mn/products/ev-serum\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 4688,
+      "intent": "product",
+      "model": "rules",
+      "id": "price-08-latin-followup",
+      "category": "pricing"
+    },
+    {
+      "turn": "харандаа хэд вэ",
+      "reply": "Аль бүтээгдэхүүнийг сонирхож байна вэ?\n\n1) Модон хөмсөгний харандаа — 18,000₮\nhttps://shop.example.invalid/mn/products/ev-pencil-b\n\n2) Нарийн хөмсөгний харандаа — 23,000₮\nhttps://shop.example.invalid/mn/products/ev-pencil-a\n\n3) Хөмсөгний помад — 36,000₮\nhttps://shop.example.invalid/mn/products/ev-pomade",
+      "hard": [],
+      "failures": [],
+      "ms": 4778,
+      "intent": "product",
+      "model": "rules",
+      "id": "price-09-two-products",
+      "category": "pricing"
+    },
+    {
+      "turn": "serum unehedve",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/mn/products/ev-serum\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 4645,
+      "intent": "product",
+      "model": "rules",
+      "id": "price-10-glued-latin",
+      "category": "pricing"
+    },
+    {
+      "turn": "tanai buteegdhuni une hedwe",
+      "reply": "Уучлаарай, систем түр алдаатай байна.",
+      "hard": [],
+      "failures": [
+        "missing /₮/"
+      ],
+      "ms": 8180,
+      "intent": "catalog",
+      "model": "writer",
+      "id": "price-11-generic-latin-typo",
+      "category": "pricing"
+    },
+    {
+      "turn": "тос хэдэн төгрөг вэ",
+      "reply": "Хөмсөгний тос — 41,000₮\nhttps://shop.example.invalid/mn/products/ev-oil\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 5502,
+      "intent": "product",
+      "model": "rules",
+      "id": "price-12-oil",
+      "category": "pricing"
+    },
+    {
+      "turn": "Хөмсөгний сэрум одоо бэлэн байгаа юу?",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/mn/products/ev-serum\n5 мл — захиалах боломжтой\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 5458,
+      "intent": "product",
+      "model": "rules",
+      "id": "stock-01-serum-available",
+      "category": "availability"
+    },
+    {
+      "turn": "serum odoo bga yu",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/mn/products/ev-serum\n5 мл — захиалах боломжтой\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 5509,
+      "intent": "product",
+      "model": "rules",
+      "id": "stock-02-latin",
+      "category": "availability"
+    },
+    {
+      "turn": "Нарийн хөмсөгний харандаа хүрэн байгаа юу",
+      "reply": "Нарийн хөмсөгний харандаа — 23,000₮\nhttps://shop.example.invalid/mn/products/ev-pencil-a\nХүрэн — Дууссан\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 6902,
+      "intent": "product",
+      "model": "rules",
+      "id": "stock-03-soldout-shade",
+      "category": "availability"
+    },
+    {
+      "turn": "Нарийн хөмсөгний харандаа цайвар хүрэн байна уу",
+      "reply": "Нарийн хөмсөгний харандаа — 23,000₮\nhttps://shop.example.invalid/mn/products/ev-pencil-a\nЦайвар хүрэн — Дуусаж байна\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 7234,
+      "intent": "product",
+      "model": "rules",
+      "id": "stock-04-low-shade",
+      "category": "availability"
+    },
+    {
+      "turn": "Нарийн хөмсөгний харандаа хар хүрэн байна уу",
+      "reply": "Нарийн хөмсөгний харандаа — 23,000₮\nhttps://shop.example.invalid/mn/products/ev-pencil-a\nХар хүрэн — захиалах боломжтой\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 6858,
+      "intent": "product",
+      "model": "rules",
+      "id": "stock-05-untracked-shade",
+      "category": "availability"
+    },
+    {
+      "turn": "хүрэн харандаа байна уу",
+      "reply": "Аль бүтээгдэхүүнийг сонирхож байна вэ?\n\n1) Модон хөмсөгний харандаа — 18,000₮\nhttps://shop.example.invalid/mn/products/ev-pencil-b\nХүрэн — захиалах боломжтой\n\n2) Нарийн хөмсөгний харандаа — 23,000₮\nhttps://shop.example.invalid/mn/products/ev-pencil-a\nХүрэн — Дууссан",
+      "hard": [],
+      "failures": [],
+      "ms": 6110,
+      "intent": "product",
+      "model": "rules",
+      "id": "stock-06-shade-across-pencils",
+      "category": "availability"
+    },
+    {
+      "turn": "Тунгалаг хөмсөгний гель дууссан уу?",
+      "reply": "Тунгалаг хөмсөгний гель — 31,000₮\nhttps://shop.example.invalid/mn/products/ev-gel\nЗахиалах боломжтой.\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 5785,
+      "intent": "product",
+      "model": "rules",
+      "id": "stock-07-duussan-uu",
+      "category": "availability"
+    },
+    {
+      "turn": "Is Нарийн хөмсөгний харандаа in stock?",
+      "reply": "Нарийн хөмсөгний харандаа — 23,000₮\nhttps://shop.example.invalid/en/products/ev-pencil-a\nЦайвар хүрэн — Almost gone\nХүрэн — Sold out\nХар хүрэн — available to order\n\nTo order, write \"buy\" here or add it to your cart from the product page.",
+      "hard": [],
+      "failures": [],
+      "ms": 6522,
+      "intent": "product",
+      "model": "rules",
+      "id": "stock-08-english",
+      "category": "availability"
+    },
+    {
+      "turn": "харандаа ямар өнгөтэй байгаа",
+      "reply": "Аль бүтээгдэхүүнийг сонирхож байна вэ?\n\n1) Модон хөмсөгний харандаа — 18,000₮\nhttps://shop.example.invalid/mn/products/ev-pencil-b\nЦайвар хүрэн\nХүрэн\nХар хүрэн\n\n2) Нарийн хөмсөгний харандаа — 23,000₮\nhttps://shop.example.invalid/mn/products/ev-pencil-a\nЦайвар хүрэн — Дуусаж байна\nХүрэн — Дууссан\nХар хүрэн\n\n3) Хөмсөгний помад — 36,000₮\nhttps://shop.example.invalid/mn/products/ev-pomade\nЦайвар хүрэн\nХар хүрэн",
+      "hard": [],
+      "failures": [],
+      "ms": 6735,
+      "intent": "product",
+      "model": "rules",
+      "id": "stock-09-colours-question",
+      "category": "availability"
+    },
+    {
+      "turn": "serum duussan uu",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/mn/products/ev-serum\n5 мл — захиалах боломжтой\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 6296,
+      "intent": "product",
+      "model": "rules",
+      "id": "stock-10-latin-duussan",
+      "category": "availability"
+    },
+    {
+      "turn": "Хөмсөгний сэрум яаж хэрэглэх вэ?",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/mn/products/ev-serum\nХэрэглэх заавар:\n• Орой цэвэр, хуурай хөмсөгт үсний ургалтын дагуу нимгэн түрхэнэ.\n• Өдөрт нэг удаа хэрэглэнэ.\n• Нүдэнд хүргэхгүй байна уу.\nАнхаарах: Нүдэнд орвол усаар зайлна.\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 6001,
+      "intent": "product",
+      "model": "rules",
+      "id": "usage-01-mn",
+      "category": "usage"
+    },
+    {
+      "turn": "serumaa yaj heregleh ve",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/mn/products/ev-serum\nХэрэглэх заавар:\n• Орой цэвэр, хуурай хөмсөгт үсний ургалтын дагуу нимгэн түрхэнэ.\n• Өдөрт нэг удаа хэрэглэнэ.\n• Нүдэнд хүргэхгүй байна уу.\nАнхаарах: Нүдэнд орвол усаар зайлна.\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 5090,
+      "intent": "product",
+      "model": "rules",
+      "id": "usage-02-latin",
+      "category": "usage"
+    },
+    {
+      "turn": "сэрумыг өдөрт хэдэн удаа хэрэглэх вэ?",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/mn/products/ev-serum\nХэрэглэх заавар:\n• Орой цэвэр, хуурай хөмсөгт үсний ургалтын дагуу нимгэн түрхэнэ.\n• Өдөрт нэг удаа хэрэглэнэ.\n• Нүдэнд хүргэхгүй байна уу.\nАнхаарах: Нүдэнд орвол усаар зайлна.\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 5713,
+      "intent": "product",
+      "model": "rules",
+      "id": "usage-03-frequency",
+      "category": "usage"
+    },
+    {
+      "turn": "сэрумыг хэдий хугацаанд хэрэглэх вэ?",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/mn/products/ev-serum\nТасралтгүй 8 долоо хоног хэрэглэхийг зөвлөдөг.\nХэрэглэх заавар:\n• Орой цэвэр, хуурай хөмсөгт үсний ургалтын дагуу нимгэн түрхэнэ.\n• Өдөрт нэг удаа хэрэглэнэ.\n• Нүдэнд хүргэхгүй байна уу.\nАнхаарах: Нүдэнд орвол усаар зайлна.\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 5757,
+      "intent": "product",
+      "model": "rules",
+      "id": "usage-04-duration-faq",
+      "category": "usage"
+    },
+    {
+      "turn": "Тунгалаг хөмсөгний гель яаж хэрэглэх вэ?",
+      "reply": "Тунгалаг хөмсөгний гель — 31,000₮\nhttps://shop.example.invalid/mn/products/ev-gel\nХэрэглэх зааврыг одоогоор нийтлээгүй байна. Ажилтнаас тодруулж болно: 00000000 · test@example.invalid",
+      "hard": [],
+      "failures": [],
+      "ms": 5331,
+      "intent": "product",
+      "model": "rules",
+      "id": "usage-05-missing-honest",
+      "category": "usage"
+    },
+    {
+      "turn": "Do you have Хөмсөгний сэрум?",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/en/products/ev-serum\n5 мл — available to order\n\nTo order, write \"buy\" here or add it to your cart from the product page.",
+      "hard": [],
+      "failures": [],
+      "ms": 5205,
+      "intent": "product",
+      "model": "rules",
+      "id": "usage-06-followup-en",
+      "category": "usage"
+    },
+    {
+      "turn": "how do I use it?",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/en/products/ev-serum\nThe published instructions are in Mongolian on the product page: https://shop.example.invalid/en/products/ev-serum\n\nTo order, write \"buy\" here or add it to your cart from the product page.",
+      "hard": [],
+      "failures": [],
+      "ms": 5689,
+      "intent": "product",
+      "model": "rules",
+      "id": "usage-06-followup-en",
+      "category": "usage"
+    },
+    {
+      "turn": "Нарийн хөмсөгний харандаа үнэ хэд вэ",
+      "reply": "Нарийн хөмсөгний харандаа — 23,000₮\nhttps://shop.example.invalid/mn/products/ev-pencil-a\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 4290,
+      "intent": "product",
+      "model": "rules",
+      "id": "usage-07-button",
+      "category": "usage"
+    },
+    {
+      "turn": "Хэрэглэх заавар",
+      "reply": "Нарийн хөмсөгний харандаа — 23,000₮\nhttps://shop.example.invalid/mn/products/ev-pencil-a\nХэрэглэх заавар:\n• Үс шиг нарийн зураасаар хоосон хэсгийг нөхнө.\n• Сойзоор зөөлөн самнана.\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 2,
+      "intent": "product",
+      "model": "rules",
+      "id": "usage-07-button",
+      "category": "usage"
+    },
+    {
+      "turn": "сэрум түрхэх арга хэлээч",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/mn/products/ev-serum\nХэрэглэх заавар:\n• Орой цэвэр, хуурай хөмсөгт үсний ургалтын дагуу нимгэн түрхэнэ.\n• Өдөрт нэг удаа хэрэглэнэ.\n• Нүдэнд хүргэхгүй байна уу.\nАнхаарах: Нүдэнд орвол усаар зайлна.\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 5711,
+      "intent": "product",
+      "model": "rules",
+      "id": "usage-08-apply-word",
+      "category": "usage"
+    },
+    {
+      "turn": "Яаж захиалах вэ?",
+      "reply": "Картаар төлөх боломжгүй. Зөвхөн QPay эсвэл банкны шилжүүлгээр төлнө. Бүтээгдэхүүнээ сагсанд нэмээд захиалгаа баталгаажуулна.\nhttps://shop.example.invalid/mn/cart\nhttps://shop.example.invalid/mn/checkout\nЭнд бичээд ч захиалж болно: бүтээгдэхүүнээ нэрлээд «авъя» гэж бичээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 1,
+      "intent": "payment",
+      "model": "rules",
+      "id": "buy-01-how-to-order",
+      "category": "purchase"
+    },
+    {
+      "turn": "yaj zahialah ve",
+      "reply": "Картаар төлөх боломжгүй. Зөвхөн QPay эсвэл банкны шилжүүлгээр төлнө. Бүтээгдэхүүнээ сагсанд нэмээд захиалгаа баталгаажуулна.\nhttps://shop.example.invalid/mn/cart\nhttps://shop.example.invalid/mn/checkout\nЭнд бичээд ч захиалж болно: бүтээгдэхүүнээ нэрлээд «авъя» гэж бичээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 1,
+      "intent": "payment",
+      "model": "rules",
+      "id": "buy-02-latin-how",
+      "category": "purchase"
+    },
+    {
+      "turn": "Хөмсөгний сэрум үнэ хэд вэ",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/mn/products/ev-serum\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 3608,
+      "intent": "product",
+      "model": "rules",
+      "id": "buy-03-take-one-after-focus",
+      "category": "purchase"
+    },
+    {
+      "turn": "Нэгийг авъя.",
+      "reply": "Хөмсөгний сэрум (5 мл) — 61,000₮\nХүргэлт: 7,000₮ · Нийт: 68,000₮\nЗахиалах (QPay эсвэл дансаар төлнө):\nhttps://shop.example.invalid/mn/buy/ev-serum?size=5+%D0%BC%D0%BB\nЭсвэл энд чатаар захиалж дансаар төлөх бол «энд захиалъя» гэж бичнэ үү.",
+      "hard": [],
+      "failures": [],
+      "ms": 7,
+      "intent": "purchase",
+      "model": "rules",
+      "id": "buy-03-take-one-after-focus",
+      "category": "purchase"
+    },
+    {
+      "turn": "serum avya",
+      "reply": "Хөмсөгний сэрум (5 мл) — 61,000₮\nХүргэлт: 7,000₮ · Нийт: 68,000₮\nЗахиалах (QPay эсвэл дансаар төлнө):\nhttps://shop.example.invalid/mn/buy/ev-serum?size=5+%D0%BC%D0%BB\nЭсвэл энд чатаар захиалж дансаар төлөх бол «энд захиалъя» гэж бичнэ үү.",
+      "hard": [],
+      "failures": [],
+      "ms": 4,
+      "intent": "purchase",
+      "model": "rules",
+      "id": "buy-04-latin-avya",
+      "category": "purchase"
+    },
+    {
+      "turn": "odo hudaldaj away",
+      "reply": "Аль бүтээгдэхүүнийг авах вэ?\n1) Хөмсөгний сэрум — 61,000₮\n2) Нарийн хөмсөгний харандаа — 23,000₮\n3) Модон хөмсөгний харандаа — 18,000₮\n4) Тунгалаг хөмсөгний гель — 31,000₮\n5) Хөмсөгний помад — 36,000₮\n6) Хөмсөгний багц — 95,000₮\n7) Хөмсөгний тос — 41,000₮\n8) Налуу сойз — 15,000₮",
+      "hard": [],
+      "failures": [],
+      "ms": 1,
+      "intent": "purchase",
+      "model": "rules",
+      "id": "buy-05-hudaldaj-avya",
+      "category": "purchase"
+    },
+    {
+      "turn": "захиалга өгье",
+      "reply": "Аль бүтээгдэхүүнийг авах вэ?\n1) Хөмсөгний сэрум — 61,000₮\n2) Нарийн хөмсөгний харандаа — 23,000₮\n3) Модон хөмсөгний харандаа — 18,000₮\n4) Тунгалаг хөмсөгний гель — 31,000₮\n5) Хөмсөгний помад — 36,000₮\n6) Хөмсөгний багц — 95,000₮\n7) Хөмсөгний тос — 41,000₮\n8) Налуу сойз — 15,000₮",
+      "hard": [],
+      "failures": [],
+      "ms": 3,
+      "intent": "purchase",
+      "model": "rules",
+      "id": "buy-06-no-product",
+      "category": "purchase"
+    },
+    {
+      "turn": "1",
+      "reply": "Хөмсөгний сэрум (5 мл) — 61,000₮\nХүргэлт: 7,000₮ · Нийт: 68,000₮\nЗахиалах (QPay эсвэл дансаар төлнө):\nhttps://shop.example.invalid/mn/buy/ev-serum?size=5+%D0%BC%D0%BB\nЭсвэл энд чатаар захиалж дансаар төлөх бол «энд захиалъя» гэж бичнэ үү.",
+      "hard": [],
+      "failures": [],
+      "ms": 3,
+      "intent": "purchase",
+      "model": "rules",
+      "id": "buy-06-no-product",
+      "category": "purchase"
+    },
+    {
+      "turn": "сэрум 2 ширхэг авъя",
+      "reply": "Хөмсөгний сэрум (5 мл) — 61,000₮\n2 ширхэг × 61,000₮ = 122,000₮\nХүргэлт: 7,000₮ · Нийт: 129,000₮\nЗахиалах (QPay эсвэл дансаар төлнө):\nhttps://shop.example.invalid/mn/buy/ev-serum?size=5+%D0%BC%D0%BB&qty=2\nЭсвэл энд чатаар захиалж дансаар төлөх бол «энд захиалъя» гэж бичнэ үү.",
+      "hard": [],
+      "failures": [],
+      "ms": 3,
+      "intent": "purchase",
+      "model": "rules",
+      "id": "buy-07-quantity",
+      "category": "purchase"
+    },
+    {
+      "turn": "I want to buy Хөмсөгний сэрум",
+      "reply": "Хөмсөгний сэрум (5 мл) — 61,000₮\nDelivery: 7,000₮ · Total: 68,000₮\nOrder here (QPay or bank transfer):\nhttps://shop.example.invalid/en/buy/ev-serum?size=5+%D0%BC%D0%BB\nOr write \"order here\" to place a bank-transfer order in this chat.",
+      "hard": [],
+      "failures": [],
+      "ms": 3,
+      "intent": "purchase",
+      "model": "rules",
+      "id": "buy-08-en",
+      "category": "purchase"
+    },
+    {
+      "turn": "Tell me about Хөмсөгний тос",
+      "reply": "Уучлаарай, систем түр алдаатай байна.",
+      "hard": [
+        "Mongolian prose in English reply"
+      ],
+      "failures": [],
+      "ms": 9358,
+      "intent": "product",
+      "model": "writer",
+      "id": "buy-09-en-order-it",
+      "category": "purchase"
+    },
+    {
+      "turn": "order it",
+      "reply": "Хөмсөгний тос (10 мл) — 41,000₮\nDelivery: 7,000₮ · Total: 48,000₮\nOrder here (QPay or bank transfer):\nhttps://shop.example.invalid/en/buy/ev-oil?size=10+%D0%BC%D0%BB\nOr write \"order here\" to place a bank-transfer order in this chat.",
+      "hard": [],
+      "failures": [],
+      "ms": 1,
+      "intent": "purchase",
+      "model": "rules",
+      "id": "buy-09-en-order-it",
+      "category": "purchase"
+    },
+    {
+      "turn": "Нарийн хөмсөгний харандаа хүрэн өнгийг авъя",
+      "reply": "Нарийн хөмсөгний харандаа: Хүрэн — Дууссан.\nБэлэн байгаа сонголт:\n1) Цайвар хүрэн — Дуусаж байна\n2) Хар хүрэн — захиалах боломжтой\nАль нь вэ?",
+      "hard": [],
+      "failures": [],
+      "ms": 5,
+      "intent": "purchase",
+      "model": "rules",
+      "id": "buy-10-soldout-shade-refused",
+      "category": "purchase"
+    },
+    {
+      "turn": "Модон хөмсөгний харандаа авъя",
+      "reply": "Модон хөмсөгний харандаа — 18,000₮\nАль сонголтыг авах вэ?\n1) Цайвар хүрэн — захиалах боломжтой\n2) Хүрэн — захиалах боломжтой\n3) Хар хүрэн — захиалах боломжтой",
+      "hard": [],
+      "failures": [],
+      "ms": 4,
+      "intent": "purchase",
+      "model": "rules",
+      "id": "buy-11-shade-needed",
+      "category": "purchase"
+    },
+    {
+      "turn": "хар хүрэн",
+      "reply": "Модон хөмсөгний харандаа (Хар хүрэн) — 18,000₮\nХүргэлт: 7,000₮ · Нийт: 25,000₮\nЗахиалах (QPay эсвэл дансаар төлнө):\nhttps://shop.example.invalid/mn/buy/ev-pencil-b?size=%D0%A5%D0%B0%D1%80+%D1%85%D2%AF%D1%80%D1%8D%D0%BD\nЭсвэл энд чатаар захиалж дансаар төлөх бол «энд захиалъя» гэж бичнэ үү.",
+      "hard": [],
+      "failures": [],
+      "ms": 4,
+      "intent": "purchase",
+      "model": "rules",
+      "id": "buy-11-shade-needed",
+      "category": "purchase"
+    },
+    {
+      "turn": "serum zahialya",
+      "reply": "Хөмсөгний сэрум (5 мл) — 61,000₮\nХүргэлт: 7,000₮ · Нийт: 68,000₮\nЗахиалах (QPay эсвэл дансаар төлнө):\nhttps://shop.example.invalid/mn/buy/ev-serum?size=5+%D0%BC%D0%BB\nЭсвэл энд чатаар захиалж дансаар төлөх бол «энд захиалъя» гэж бичнэ үү.",
+      "hard": [],
+      "failures": [],
+      "ms": 3,
+      "intent": "purchase",
+      "model": "rules",
+      "id": "buy-12-zahialya-latin",
+      "category": "purchase"
+    },
+    {
+      "turn": "sain uu",
+      "reply": "Сайн байна уу! Тест дэлгүүрийн бүтээгдэхүүн, хүргэлт, захиалгын талаар асуугаарай.",
+      "hard": [],
+      "failures": [],
+      "ms": 3,
+      "intent": "greeting",
+      "model": "rules",
+      "id": "latin-01-greeting",
+      "category": "latin"
+    },
+    {
+      "turn": "homsognii serum bgaa yu",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/mn/products/ev-serum\n5 мл — захиалах боломжтой\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 4896,
+      "intent": "product",
+      "model": "rules",
+      "id": "latin-02-serum-bga-yu",
+      "category": "latin"
+    },
+    {
+      "turn": "homsognii serum bgaa yu",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/mn/products/ev-serum\n5 мл — захиалах боломжтой\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 4945,
+      "intent": "product",
+      "model": "rules",
+      "id": "latin-03-une-ni",
+      "category": "latin"
+    },
+    {
+      "turn": "une ni hed ve",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/mn/products/ev-serum\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 3493,
+      "intent": "product",
+      "model": "rules",
+      "id": "latin-03-une-ni",
+      "category": "latin"
+    },
+    {
+      "turn": "hurgelt hed ve",
+      "reply": "Хүргэлтийн төлбөр: 7,000₮.\nТест: Улаанбаатарт 1–2 ажлын өдөр, орон нутагт 2–5 ажлын өдөрт хүрнэ.",
+      "hard": [],
+      "failures": [],
+      "ms": 0,
+      "intent": "delivery",
+      "model": "rules",
+      "id": "latin-04-hurgelt",
+      "category": "latin"
+    },
+    {
+      "turn": "serum heregleh zaavar",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/mn/products/ev-serum\nХэрэглэх заавар:\n• Орой цэвэр, хуурай хөмсөгт үсний ургалтын дагуу нимгэн түрхэнэ.\n• Өдөрт нэг удаа хэрэглэнэ.\n• Нүдэнд хүргэхгүй байна уу.\nАнхаарах: Нүдэнд орвол усаар зайлна.\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 4682,
+      "intent": "product",
+      "model": "rules",
+      "id": "latin-05-zaavar",
+      "category": "latin"
+    },
+    {
+      "turn": "hezee ur dun garah ve",
+      "reply": "Үс ургалт, хугацаа, эмчилгээний үр дүнг батлах мэдээлэл байхгүй. Энэ бол гоо сайхны бүтээгдэхүүн; энэ талаар манай ажилтнаас тодруулж болно.\n00000000 · test@example.invalid",
+      "hard": [],
+      "failures": [],
+      "ms": 2,
+      "intent": "medical",
+      "model": "rules",
+      "id": "latin-06-ur-dun",
+      "category": "latin"
+    },
+    {
+      "turn": "dansnii dugaar uguh uu",
+      "reply": "Банкны шилжүүлэг:\nТест банк\nТест дэлгүүр\n0000000000\nГүйлгээний утгад захиалгын дугаараа бичнэ үү.",
+      "hard": [],
+      "failures": [],
+      "ms": 2,
+      "intent": "bank",
+      "model": "rules",
+      "id": "latin-07-dans",
+      "category": "latin"
+    },
+    {
+      "turn": "huntei holbogdmoor baina",
+      "reply": "Таны хүсэлтийг ажилтанд хадгаллаа. Нэр, холбогдох утсаа үлдээнэ үү.",
+      "hard": [],
+      "failures": [],
+      "ms": 3,
+      "intent": "human",
+      "model": "rules",
+      "id": "latin-08-huntei",
+      "category": "latin"
+    },
+    {
+      "turn": "serum price hed ve",
+      "reply": "Хөмсөгний сэрум — 61,000₮\nhttps://shop.example.invalid/mn/products/ev-serum\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 3860,
+      "intent": "product",
+      "model": "rules",
+      "id": "latin-09-mixed",
+      "category": "latin"
+    },
+    {
+      "turn": "tos odo belen bn uu",
+      "reply": "Хөмсөгний тос — 41,000₮\nhttps://shop.example.invalid/mn/products/ev-oil\n10 мл — захиалах боломжтой\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 5109,
+      "intent": "product",
+      "model": "rules",
+      "id": "latin-10-odo-belen",
+      "category": "latin"
+    },
+    {
+      "turn": "Маргааш цаг агаар ямар байх вэ?",
+      "reply": "Уучлаарай, цаг агаарын мэдээлэл өгөх боломжгүй; би бүтээгдэхүүн, үнэ, хүргэлт болон захиалгад тусалж чадна. 😊",
+      "hard": [],
+      "failures": [],
+      "ms": 8727,
+      "intent": "smalltalk",
+      "model": "writer",
+      "id": "unk-01-weather",
+      "category": "unknown"
+    },
+    {
+      "turn": "Чамайг хэн хийсэн бэ",
+      "reply": "Уучлаарай, систем түр алдаатай байна.",
+      "hard": [],
+      "failures": [
+        "missing /туслах|бүтээгдэхүүн/"
+      ],
+      "ms": 13694,
+      "intent": "ai",
+      "model": "writer",
+      "id": "unk-02-who-made-you",
+      "category": "unknown"
+    },
+    {
+      "turn": "нүүрний тос байгаа юу",
+      "reply": "Хөмсөгний тос — 41,000₮\nhttps://shop.example.invalid/mn/products/ev-oil\n10 мл — захиалах боломжтой\n\nЗахиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.",
+      "hard": [],
+      "failures": [],
+      "ms": 7174,
+      "intent": "product",
+      "model": "rules",
+      "id": "unk-03-face-cream",
+      "category": "unknown"
+    },
+    {
+      "turn": "Do you sell shampoo?",
+      "reply": "Уучлаарай, систем түр алдаатай байна.",
+      "hard": [
+        "Mongolian prose in English reply"
+      ],
+      "failures": [
+        "missing /not|eyebrow/"
+      ],
+      "ms": 10699,
+      "intent": "ai",
+      "model": "writer",
+      "id": "unk-04-shampoo-en",
+      "category": "unknown"
+    },
+    {
+      "turn": "Та нар хэн бэ?",
+      "reply": "Тест дэлгүүрийн тухай мэдээлэл.",
+      "hard": [],
+      "failures": [],
+      "ms": 8,
+      "intent": "about",
+      "model": "rules",
+      "id": "unk-05-about",
+      "category": "unknown"
+    },
+    {
+      "turn": "Холбоо барих утас хэд вэ",
+      "reply": "Lorentz-тэй холбогдох: 00000000 · test@example.invalid. Энд чатаар ч асуулт тань хариулагдана.",
+      "hard": [],
+      "failures": [],
+      "ms": 1,
+      "intent": "contact",
+      "model": "rules",
+      "id": "unk-06-contact",
+      "category": "unknown"
+    },
+    {
+      "turn": "Ажлын цаг хэд вэ?",
+      "reply": "Тест: Даваа–Баасан 10:00–18:00 цагт ажиллана.",
+      "hard": [],
+      "failures": [],
+      "ms": 1,
+      "intent": "faq",
+      "model": "rules",
+      "id": "unk-07-shop-faq",
+      "category": "unknown"
+    },
+    {
+      "turn": "Хөмсөгний сэрум авъя",
+      "reply": "Хөмсөгний сэрум (5 мл) — 61,000₮\nХүргэлт: 7,000₮ · Нийт: 68,000₮\nЗахиалах (QPay эсвэл дансаар төлнө):\nhttps://shop.example.invalid/mn/buy/ev-serum?size=5+%D0%BC%D0%BB\nЭсвэл энд чатаар захиалж дансаар төлөх бол «энд захиалъя» гэж бичнэ үү.",
+      "hard": [],
+      "failures": [],
+      "ms": 4,
+      "intent": "purchase",
+      "model": "rules",
+      "id": "contra-01-switch-product",
+      "category": "contradictory"
+    },
+    {
+      "turn": "үгүй, харандаа авъя",
+      "reply": "Аль нь вэ?\n1) Модон хөмсөгний харандаа — 18,000₮\n2) Нарийн хөмсөгний харандаа — 23,000₮\n3) Хөмсөгний помад — 36,000₮",
+      "hard": [],
+      "failures": [],
+      "ms": 8,
+      "intent": "purchase",
+      "model": "rules",
+      "id": "contra-01-switch-product",
+      "category": "contradictory"
+    },
+    {
+      "turn": "Модон хөмсөгний харандаа хар хүрэн авъя",
+      "reply": "Модон хөмсөгний харандаа (Хар хүрэн) — 18,000₮\nХүргэлт: 7,000₮ · Нийт: 25,000₮\nЗахиалах (QPay эсвэл дансаар төлнө):\nhttps://shop.example.invalid/mn/buy/ev-pencil-b?size=%D0%A5%D0%B0%D1%80+%D1%85%D2%AF%D1%80%D1%8D%D0%BD\nЭсвэл энд чатаар захиалж дансаар төлөх бол «энд захиалъя» гэж бичнэ үү.",
+      "hard": [],
+      "failures": [],
+      "ms": 4,
+      "intent": "purchase",
+      "model": "rules",
+      "id": "contra-02-switch-shade",
+      "category": "contradictory"
+    },
+    {
+      "turn": "биш, цайвар хүрэн нь",
+      "reply": "Модон хөмсөгний харандаа (Цайвар хүрэн) — 18,000₮\nХүргэлт: 7,000₮ · Нийт: 25,000₮\nЗахиалах (QPay эсвэл дансаар төлнө):\nhttps://shop.example.invalid/mn/buy/ev-pencil-b?size=%D0%A6%D0%B0%D0%B9%D0%B2%D0%B0%D1%80+%D1%85%D2%AF%D1%80%D1%8D%D0%BD\nЭсвэл энд чатаар захиалж дансаар төлөх бол «энд захиалъя» гэж бичнэ үү.",
+      "hard": [],
+      "failures": [],
+      "ms": 4,
+      "intent": "purchase",
+      "model": "rules",
+      "id": "contra-02-switch-shade",
+      "category": "contradictory"
+    },
+    {
+      "turn": "сэрум 2 ширхэг авъя",
+      "reply": "Хөмсөгний сэрум (5 мл) — 61,000₮\n2 ширхэг × 61,000₮ = 122,000₮\nХүргэлт: 7,000₮ · Нийт: 129,000₮\nЗахиалах (QPay эсвэл дансаар төлнө):\nhttps://shop.example.invalid/mn/buy/ev-serum?size=5+%D0%BC%D0%BB&qty=2\nЭсвэл энд чатаар захиалж дансаар төлөх бол «энд захиалъя» гэж бичнэ үү.",
+      "hard": [],
+      "failures": [],
+      "ms": 2,
+      "intent": "purchase",
+      "model": "rules",
+      "id": "contra-03-switch-qty",
+      "category": "contradictory"
+    },
+    {
+      "turn": "биш 3 ширхэг",
+      "reply": "Хөмсөгний сэрум (5 мл) — 61,000₮\n3 ширхэг × 61,000₮ = 183,000₮\nХүргэлт: 7,000₮ · Нийт: 190,000₮\nЗахиалах (QPay эсвэл дансаар төлнө):\nhttps://shop.example.invalid/mn/buy/ev-serum?size=5+%D0%BC%D0%BB&qty=3\nЭсвэл энд чатаар захиалж дансаар төлөх бол «энд захиалъя» гэж бичнэ үү.",
+      "hard": [],
+      "failures": [],
+      "ms": 1,
+      "intent": "purchase",
+      "model": "rules",
+      "id": "contra-03-switch-qty",
+      "category": "contradictory"
+    }
+  ]
+}
