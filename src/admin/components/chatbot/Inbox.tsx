@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, Bot, CircleHelp, Loader2, MessageSquare, RefreshCw, Send, UserRound, WifiOff } from "lucide-react";
+import { ArrowLeft, Bot, CircleHelp, Loader2, MessageSquare, Phone, RefreshCw, Send, StickyNote, UserRound, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@admin/lib/api";
 import { chatNeedsYou } from "@admin/lib/adminNav";
@@ -10,13 +10,13 @@ import { ErrorState, Notice } from "@admin/components/ui/feedback";
 import { Dot, StatusPill } from "@admin/components/ui/status";
 import { elapsed, formatWhen } from "@admin/utils/format";
 import { cn } from "@admin/lib/utils";
-import { type Conversation } from "./types";
+import { type Conversation, reasonKey } from "./types";
 import { ConversationTranscript } from "./ConversationTranscript";
 
 const PAGE_SIZE = 30;
 const META_CHANNELS = ["messenger", "instagram"];
 
-export type Filter = "all" | "attention";
+export type Filter = "all" | "attention" | "taken";
 
 export function Inbox({
   selectedId,
@@ -39,16 +39,18 @@ export function Inbox({
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [notes, setNotes] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [action, setAction] = useState<"send" | "takeover">();
+  const [action, setAction] = useState<"send" | "takeover" | "notes">();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<string>();
   const [offline, setOffline] = useState(false);
   const [filter, setFilter] = useState<Filter>(initialFilter);
   const [search, setSearch] = useState("");
+  const [query, setQuery] = useState("");
   const pending = useRef(new Map<string, { text: string; id: string }>());
   const request = useRef<AbortController | null>(null);
   const sequence = useRef(0);
@@ -59,14 +61,18 @@ export function Inbox({
   const activeThread = thread?.id === selectedId ? thread : undefined;
   const text = selectedId ? drafts[selectedId] ?? "" : "";
   const channelName = (channel: string) => t(`chat.channel.${channel}`, undefined, channel);
-  const ago = (iso?: string) => {
-    const e = elapsed(iso);
+  const ago = (iso?: string | null) => {
+    const e = elapsed(iso ?? undefined);
     if (!e) return "—";
     if (e.minutes < 1) return t("common.just_now");
     if (e.minutes < 60) return t("common.minutes_ago", { count: e.minutes });
     if (e.hours < 24) return t("common.hours_ago", { count: e.hours });
-    return formatWhen(iso, { today: t("common.today"), yesterday: t("common.yesterday") });
+    return formatWhen(iso ?? undefined, { today: t("common.today"), yesterday: t("common.yesterday") });
   };
+  const customerLabel = (c: Pick<Conversation, "customerName" | "customerPhone">) => c.customerName || c.customerPhone || "";
+
+  // The search box waits for a pause in typing before it asks the server.
+  useEffect(() => { const timer = setTimeout(() => { setQuery(search.trim()); setPage(1); }, 300); return () => clearTimeout(timer); }, [search]);
 
   const refresh = useCallback(async () => {
     request.current?.abort();
@@ -76,13 +82,16 @@ export function Inbox({
     setRefreshing(true);
     try {
       const [list, detail] = await Promise.all([
-        api.get("/chatbot/admin/conversations", { params: { page }, signal: controller.signal }),
+        api.get("/chatbot/admin/conversations", { params: { page, ...(query ? { q: query } : {}), ...(filter !== "all" ? { filter } : {}) }, signal: controller.signal }),
         selectedId ? api.get(`/chatbot/admin/conversations/${selectedId}`, { signal: controller.signal }) : Promise.resolve(null),
       ]);
       if (current !== sequence.current || controller.signal.aborted) return;
       setRows(Array.isArray(list.data?.rows) ? list.data.rows.map((row: Conversation) => row.id === selectedId ? { ...row, unread: 0 } : row) : []);
       setTotal(Number(list.data?.total) || 0);
-      if (detail) setThread(detail.data);
+      if (detail) {
+        setThread(detail.data);
+        setNotes((prior) => (selectedId && prior[selectedId] === undefined ? { ...prior, [selectedId]: detail.data?.notes ?? "" } : prior));
+      }
       setUpdatedAt(new Date().toISOString());
       setError("");
       // Opening a chat marks it read on the server; let the menu badge catch up once.
@@ -95,7 +104,7 @@ export function Inbox({
     } finally {
       if (!controller.signal.aborted && current === sequence.current) { setLoading(false); setRefreshing(false); }
     }
-  }, [page, selectedId, t, onChanged]);
+  }, [page, selectedId, t, onChanged, query, filter]);
 
   useEffect(() => { setActionError(""); }, [selectedId]);
   useEffect(() => {
@@ -155,12 +164,22 @@ export function Inbox({
     catch { setActionError(t("chat.errors.reply_failed")); }
     finally { mutation.current = false; setBusy(false); setAction(undefined); }
   };
+  const saveNotes = async () => {
+    if (!activeThread || mutation.current) return;
+    mutation.current = true; setBusy(true); setAction("notes"); setActionError("");
+    try {
+      await api.patch(`/chatbot/admin/conversations/${activeThread.id}`, { notes: notes[activeThread.id] ?? "" });
+      setThread((prior) => (prior && prior.id === activeThread.id ? { ...prior, notes: notes[activeThread.id] ?? "" } : prior));
+      toast.success(t("chat.notes_saved"));
+    }
+    catch { setActionError(t("chat.errors.notes_failed")); }
+    finally { mutation.current = false; setBusy(false); setAction(undefined); }
+  };
 
-  const matches = (c: Conversation) => !search.trim() || `${c.id} ${channelName(c.channel)} ${c.messages[0]?.text || ""}`.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase());
   const needingYou = rows.filter(chatNeedsYou).length;
-  const filtered = rows.filter((c) => (filter === "all" || chatNeedsYou(c)) && matches(c));
   const metaBlocked = Boolean(activeThread && META_CHANNELS.includes(activeThread.channel) && bot && !bot.metaOutbound);
   const showList = !selectedId;
+  const noteDirty = Boolean(activeThread) && (notes[activeThread!.id] ?? "") !== (activeThread!.notes ?? "");
 
   return <section className="space-y-[12px]">
     {offline && <Notice tone="warning" role="status"><span className="inline-flex items-center gap-[8px]"><WifiOff aria-hidden size={16} className="shrink-0" />{t("chat.offline")}</span></Notice>}
@@ -173,30 +192,31 @@ export function Inbox({
             <Segmented
               label={t("chat.filter_label")}
               value={filter}
-              onChange={setFilter}
-              options={[{ value: "all", label: t("chat.filter.all"), count: rows.length }, { value: "attention", label: t("chat.filter.attention"), count: needingYou }]}
+              onChange={(value) => { setFilter(value); setPage(1); }}
+              options={[{ value: "all", label: t("chat.filter.all") }, { value: "attention", label: t("chat.filter.attention"), count: filter === "all" ? needingYou : undefined }, { value: "taken", label: t("chat.filter.taken") }]}
             />
             <button type="button" aria-label={t("chat.refresh")} title={updatedAt ? t("chat.updated_at", { time: formatWhen(updatedAt, { today: t("common.today"), yesterday: t("common.yesterday") }) }) : t("chat.refresh")} disabled={refreshing || busy} className="btn-ghost btn-sm" onClick={() => void refresh()}>
               <RefreshCw aria-hidden size={15} className={refreshing ? "animate-spin" : ""} />
             </button>
           </div>
-          <SearchInput value={search} onChange={setSearch} placeholder={t("chat.search")} label={t("chat.search_label")} />
+          <SearchInput value={search} onChange={setSearch} placeholder={t("chat.search_hint")} label={t("chat.search_label")} />
           {total > PAGE_SIZE && <p className="text-[12px] text-taupe">{t("chat.page_note")}</p>}
         </div>
         <div className="max-h-[65dvh] flex-1 overflow-y-auto lg:max-h-[620px]">
           {loading && !rows.length ? (
             <div role="status" className="flex items-center gap-3 p-6 text-sm text-taupe"><Loader2 aria-hidden size={18} className="animate-spin" />{t("common.loading")}</div>
-          ) : !filtered.length && !error ? (
+          ) : !rows.length && !error ? (
             <div className="px-[20px] py-[40px] text-center">
               <MessageSquare aria-hidden size={26} strokeWidth={1.4} className="mx-auto mb-[12px] text-taupe" />
-              <p className="text-[14px] font-medium">{t(search || filter !== "all" ? "chat.empty.no_match" : "chat.empty.none")}</p>
-              <p className="mx-auto mt-[6px] max-w-[34ch] text-[13px] leading-relaxed text-taupe">{t(search || filter !== "all" ? (filter === "attention" && !search ? "chat.empty.all_done" : "chat.empty.no_match_hint") : "chat.empty.none_hint")}</p>
+              <p className="text-[14px] font-medium">{t(query || filter !== "all" ? "chat.empty.no_match" : "chat.empty.none")}</p>
+              <p className="mx-auto mt-[6px] max-w-[34ch] text-[13px] leading-relaxed text-taupe">{t(query || filter !== "all" ? (filter === "attention" && !query ? "chat.empty.all_done" : "chat.empty.no_match_hint") : "chat.empty.none_hint")}</p>
             </div>
           ) : null}
           <ul>
-            {filtered.map((c) => {
+            {rows.map((c) => {
               const last = c.messages[0];
               const needs = chatNeedsYou(c);
+              const who = customerLabel(c);
               return (
                 <li key={c.id}>
                   <button
@@ -209,8 +229,8 @@ export function Inbox({
                     <span className="flex items-center justify-between gap-[8px]">
                       <span className="flex min-w-0 items-center gap-[6px] text-[14px] font-semibold">
                         {needs && <Dot label={t("chat.needs_you")} />}
-                        <span className="truncate">{channelName(c.channel)}</span>
-                        <span className="font-normal text-taupe">#{c.id.slice(-6)}</span>
+                        <span className="truncate">{who || channelName(c.channel)}</span>
+                        <span className="font-normal text-taupe">{who ? `· ${channelName(c.channel)}` : `#${c.id.slice(-6)}`}</span>
                       </span>
                       <span className="shrink-0 text-[12px] tabular-nums text-taupe">{ago(c.updatedAt)}</span>
                     </span>
@@ -219,7 +239,7 @@ export function Inbox({
                     </span>
                     <span className="mt-[6px] flex flex-wrap items-center gap-[6px]">
                       {c.unread > 0 && <StatusPill tone="attention" icon={null}>{t("chat.unread", { count: c.unread })}</StatusPill>}
-                      {c.needsHuman && !c.paused && <StatusPill tone="attention">{t("chat.state.wants_person")}</StatusPill>}
+                      {c.needsHuman && !c.paused && <StatusPill tone="attention">{t(reasonKey(c.handoffReason))}</StatusPill>}
                       {c.paused && <StatusPill tone="progress" icon={UserRound}>{t("chat.state.you")}</StatusPill>}
                     </span>
                   </button>
@@ -245,10 +265,11 @@ export function Inbox({
         ) : <>
           <div className="flex flex-wrap items-center justify-between gap-[12px] border-b border-ink/10 px-[16px] py-[12px] lg:px-[20px]">
             <div className="min-w-0">
-              <h2 className="text-[15px] font-semibold">{channelName(activeThread.channel)} <span className="font-normal text-taupe">#{activeThread.id.slice(-6)} · {activeThread.locale.toUpperCase()}</span></h2>
-              <p className="mt-[2px] flex items-center gap-[6px] text-[13px] text-taupe">
-                {activeThread.paused ? <UserRound aria-hidden size={14} /> : <Bot aria-hidden size={14} />}
-                {t(activeThread.paused ? "chat.thread.you_handle" : bot && !bot.enabled ? "chat.thread.bot_off" : "chat.thread.bot_handles")}
+              <h2 className="text-[15px] font-semibold">{customerLabel(activeThread) || t("chat.customer_unknown")} <span className="font-normal text-taupe">· {channelName(activeThread.channel)} #{activeThread.id.slice(-6)} · {activeThread.locale.toUpperCase()}</span></h2>
+              <p className="mt-[2px] flex flex-wrap items-center gap-x-[10px] gap-y-[4px] text-[13px] text-taupe">
+                <span className="inline-flex items-center gap-[6px]">{activeThread.paused ? <UserRound aria-hidden size={14} /> : <Bot aria-hidden size={14} />}{t(activeThread.paused ? "chat.thread.you_handle" : bot && !bot.enabled ? "chat.thread.bot_off" : "chat.thread.bot_handles")}</span>
+                {activeThread.customerPhone && <a className="inline-flex items-center gap-[4px] underline underline-offset-2" href={`tel:${activeThread.customerPhone}`}><Phone aria-hidden size={13} />{activeThread.customerPhone}</a>}
+                {activeThread.needsHuman && !activeThread.paused && activeThread.handoffReason && <span>{t("chat.reason_label")}: {t(reasonKey(activeThread.handoffReason))}{activeThread.handoffAt ? ` · ${t("chat.waiting_since", { time: ago(activeThread.handoffAt) })}` : ""}</span>}
               </p>
             </div>
             <button type="button" onClick={toggle} disabled={busy || offline} className="btn-secondary btn-sm">
@@ -256,6 +277,7 @@ export function Inbox({
               {t(activeThread.paused ? "chat.give_back" : "chat.take_over")}
             </button>
           </div>
+          {activeThread.lead?.context && <p className="border-b border-ink/10 bg-paper px-[16px] py-[8px] text-[12px] leading-relaxed text-taupe lg:px-[20px]">{activeThread.lead.context}</p>}
           <div ref={messages} tabIndex={0} aria-label={t("chat.thread.messages")} className="h-[48dvh] min-h-[280px] flex-1 overflow-y-auto bg-paper/70 p-[16px] lg:max-h-[560px] lg:p-[20px]"><ConversationTranscript messages={activeThread.messages} /></div>
           <form onSubmit={send} className="space-y-[10px] border-t border-ink/10 p-[12px] lg:p-[16px]">
             {metaBlocked && (
@@ -285,6 +307,15 @@ export function Inbox({
             </div>
             <p className="text-[12px] leading-relaxed text-taupe">{t(activeThread.paused ? "chat.composer_hint_paused" : "chat.composer_hint")}</p>
           </form>
+          <div className="border-t border-ink/10 bg-paper p-[12px] lg:p-[16px]">
+            <label htmlFor="support-notes" className="mb-[6px] flex items-center gap-[6px] text-[13px] font-medium text-ink"><StickyNote aria-hidden size={14} />{t("chat.notes")}</label>
+            <div className="flex flex-col gap-[8px] sm:flex-row">
+              <textarea id="support-notes" rows={2} maxLength={4000} disabled={busy || offline} value={notes[activeThread.id] ?? ""} onChange={(e) => setNotes((prior) => ({ ...prior, [activeThread.id]: e.target.value }))} placeholder={t("chat.notes_placeholder")} className="field resize-y" />
+              <button type="button" disabled={busy || offline || !noteDirty} className="btn-secondary shrink-0 self-end sm:self-stretch" onClick={() => void saveNotes()}>
+                {action === "notes" ? <Loader2 aria-hidden size={16} className="animate-spin" /> : null}{t("chat.notes_save")}
+              </button>
+            </div>
+          </div>
         </>}
       </div>
     </div>

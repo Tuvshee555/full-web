@@ -76,15 +76,18 @@ export function buildWriterPrompt(input: {
 export type AskReply = (system: string, user: string) => Promise<string | null>;
 
 /** Production reply model. Never falls back to a cheaper model: a wrong answer is worse than a contact line. */
-export const openAIReply: AskReply = async (system, user) => {
-  const result = await askOpenAIChatParts([{ text: user }], {
-    systemText: system, temperature: 0.3, maxOutputTokens: 500, timeoutMs: WRITER_TIMEOUT_MS,
-    model: process.env.OPENAI_REPLY_MODEL || process.env.OPENAI_MODEL || "gpt-4.1",
-    alternateModelAttempted: true,
-    source: "product_writer",
-  }).catch(() => null);
-  return result?.text?.trim() || null;
-};
+export function replyModel(model?: string): AskReply {
+  return async (system, user) => {
+    const result = await askOpenAIChatParts([{ text: user }], {
+      systemText: system, temperature: 0.3, maxOutputTokens: 500, timeoutMs: WRITER_TIMEOUT_MS,
+      model: model || process.env.OPENAI_REPLY_MODEL || process.env.OPENAI_MODEL || "gpt-4.1",
+      alternateModelAttempted: true,
+      source: "product_writer",
+    }).catch(() => null);
+    return result?.text?.trim() || null;
+  };
+}
+export const openAIReply: AskReply = replyModel();
 
 // Latin letters the model sometimes slips into Cyrillic words ("Nарийн"), so names match the catalogue exactly.
 const LATIN_TO_CYRILLIC: Record<string, string> = { A: "А", B: "В", C: "С", E: "Е", H: "Н", N: "Н", K: "К", M: "М", O: "О", P: "Р", T: "Т", X: "Х", Y: "У", a: "а", c: "с", e: "е", o: "о", p: "р", x: "х", y: "у" };

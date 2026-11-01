@@ -2,6 +2,7 @@ import { apiRoute, authorizePublic, deleteTestConversation, first, limitRequest,
 import { prisma } from "../../../../chatbot/prisma";
 import { getSettings } from "../../../../chatbot/settings.mjs";
 import { handleCustomerMessage } from "../../../../chatbot/handler";
+import { shopFaqFor } from "../../../../chatbot/catalogue";
 import { chatError, hash, newToken } from "../../../../chatbot/security.js";
 import { STORE } from "../../../../config/store-data.mjs";
 
@@ -13,6 +14,13 @@ export default apiRoute(async (req, res) => {
     await limitRequest(req, "config", 120);
     const s = await getSettings();
     return res.json({ enabled: s.enabled, greetingMn: s.greetingMn, greetingEn: s.greetingEn, contact: STORE.contact });
+  }
+  // The owner's shop FAQ for the storefront FAQ page (the same rows the assistant answers from).
+  if (kind === "faq" && req.method === "GET") {
+    await limitRequest(req, "faq", 120);
+    const rows = await prisma.chatFaq.findMany({ where: { enabled: true }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], take: 100 });
+    res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
+    return res.json({ items: shopFaqFor(rows, first(req.query.locale) === "en" ? "en" : "mn") });
   }
   if (kind !== "conversations") return res.status(404).end();
   if (!id && req.method === "POST") {

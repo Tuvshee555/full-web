@@ -21,6 +21,22 @@ import { ProductImage } from "./ProductImage";
 import { PRODUCT_IMAGE, imageSrcSet, imageUrl } from "@/lib/image";
 
 type Media = { type: "image" | "video"; src: string };
+type PageContent = ProductContent & { safetyNotes?: string };
+
+/** The facts the owner publishes in the admin (how to use, ingredients, FAQ, safety note); they win over the config file. */
+function publishedContent(product: any): PageContent {
+  const steps = typeof product.howToUse === "string" ? product.howToUse.split(/\r?\n/).map((line: string) => line.replace(/^\s*(?:\d+[.)]|[-•*])\s*/, "").trim()).filter(Boolean) : [];
+  const faq = Array.isArray(product.faq) ? product.faq.filter((item: any) => item && typeof item.q === "string" && typeof item.a === "string" && item.q.trim() && item.a.trim()) : [];
+  const ingredients = typeof product.ingredientList === "string" ? product.ingredientList.trim() : "";
+  const safetyNotes = typeof product.safetyNotes === "string" ? product.safetyNotes.trim() : "";
+  return {
+    ...productContent(product.id),
+    ...(steps.length ? { howTo: steps } : {}),
+    ...(ingredients ? { fullIngredients: ingredients } : {}),
+    ...(faq.length ? { faq } : {}),
+    ...(safetyNotes ? { safetyNotes } : {}),
+  };
+}
 
 export function ProductPage({ product, related }: { product: any; related: any[] }) {
   const { st, locale } = useStoreT();
@@ -46,7 +62,8 @@ export function ProductPage({ product, related }: { product: any; related: any[]
   const sizeOut = sizes.some((s) => sizeLabel(s) === size && sizeSoldOut(s));
   const unavailable = soldOut || sizeOut;
   const stars = rating(product);
-  const content = productContent(product.id);
+  const content = publishedContent(product);
+  const volume = typeof product.volume === "string" ? product.volume.trim() : "";
   const category = product.category && typeof product.category === "object" && product.category.id ? product.category : null;
 
   // Track whether the main buttons are on screen (drives the mobile sticky bar)
@@ -120,6 +137,7 @@ export function ProductPage({ product, related }: { product: any; related: any[]
               {soldOut ? <Badge kind="soldout">{st("sold_out")}</Badge> : onSale(product) && ownSizePrice(sizes.find((s) => sizeLabel(s) === size)) === null && <Badge kind="sale">-{salePercent(product)}%</Badge>}
             </div>
             <p className="mt-[6px] text-[13px] text-taupe">{st("delivery_fee_note", { fee: money(DELIVERY_FEE) })}</p>
+            {volume && <p className="mt-[4px] text-[13px] text-taupe">{st("volume")}: {volume}</p>}
 
             {/* What it is and how to use it, before any choice is asked of the shopper. */}
             {product.ingredients && <p className="mt-[18px] max-w-[560px] whitespace-pre-line text-[15px] leading-relaxed text-[#403831]">{product.ingredients}</p>}
@@ -263,21 +281,24 @@ export function ProductPage({ product, related }: { product: any; related: any[]
 
 /** REFY-style tabs: How to use / Key ingredients / Full ingredients / FAQ.
  *  A tab exists only when its content is filled in (src/config/store.ts). */
-function DetailTabs({ content }: { content: ProductContent }) {
+function DetailTabs({ content }: { content: PageContent }) {
   const { st } = useStoreT();
   const tabs = [
     content.howTo?.length && {
       id: "how",
       label: st("how_to"),
       body: (
-        <ol className="grid gap-[16px] md:grid-cols-4">
-          {content.howTo.map((step, i) => (
-            <li key={i} className="p-[18px]" style={{ background: CREAM }}>
-              <p className="text-[13px] font-medium text-taupe">{st("step", { n: i + 1 })}</p>
-              <p className="mt-[6px] text-[15px] text-[#1c1714]">{step}</p>
-            </li>
-          ))}
-        </ol>
+        <>
+          <ol className="grid gap-[16px] md:grid-cols-4">
+            {content.howTo.map((step, i) => (
+              <li key={i} className="p-[18px]" style={{ background: CREAM }}>
+                <p className="text-[13px] font-medium text-taupe">{st("step", { n: i + 1 })}</p>
+                <p className="mt-[6px] text-[15px] text-[#1c1714]">{step}</p>
+              </li>
+            ))}
+          </ol>
+          {content.safetyNotes && <p className="mt-[16px] max-w-[800px] text-[14px] leading-relaxed text-taupe">{content.safetyNotes}</p>}
+        </>
       ),
     },
     content.keyIngredients?.length && {

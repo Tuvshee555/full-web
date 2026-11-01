@@ -1,4 +1,22 @@
 /** Reject malformed money/inventory before Prisma can persist invalid values. */
+const TEXT_LIMITS = { volume: 60, howToUse: 4000, ingredientList: 4000, safetyNotes: 2000 };
+
+/** The product FAQ as stored: up to 30 question/answer pairs, each a short plain string. */
+export function normalizeProductFaq(value) {
+  if (value === undefined) return undefined;
+  if (value === null) return [];
+  if (!Array.isArray(value) || value.length > 30) return null;
+  const items = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object" || typeof item.q !== "string" || typeof item.a !== "string") return null;
+    const q = item.q.trim(); const a = item.a.trim();
+    if (!q && !a) continue;
+    if (!q || !a || q.length > 300 || a.length > 2000) return null;
+    items.push({ q, a });
+  }
+  return items;
+}
+
 export function validateProductInput(body, creating = false) {
   if (!body || typeof body !== "object" || Array.isArray(body)) return "Invalid product data";
   if (creating || body.productName !== undefined) {
@@ -7,6 +25,10 @@ export function validateProductInput(body, creating = false) {
   for (const key of ["image", "video", "ingredients", "address"]) {
     if (body[key] !== undefined && typeof body[key] !== "string") return `Invalid ${key}`;
   }
+  for (const [key, limit] of Object.entries(TEXT_LIMITS)) {
+    if (body[key] !== undefined && body[key] !== null && (typeof body[key] !== "string" || body[key].length > limit)) return `Invalid ${key}`;
+  }
+  if (body.faq !== undefined && normalizeProductFaq(body.faq) === null) return "Invalid faq";
   if (body.categoryId != null && typeof body.categoryId !== "string") return "Invalid category";
   if (body.isFeatured !== undefined && typeof body.isFeatured !== "boolean") return "Invalid featured flag";
   if (body.extraImages !== undefined && (!Array.isArray(body.extraImages) || body.extraImages.length > 30 || body.extraImages.some((image) => typeof image !== "string"))) return "Invalid product images";
@@ -39,4 +61,16 @@ export function validateProductInput(body, creating = false) {
     }
   }
   return null;
+}
+
+/** The knowledge fields of a create/update body, trimmed; undefined means "leave unchanged". */
+export function knowledgeFields(body) {
+  const data = {};
+  for (const key of Object.keys(TEXT_LIMITS)) {
+    if (body[key] === undefined) continue;
+    data[key] = typeof body[key] === "string" && body[key].trim() ? body[key].trim() : null;
+  }
+  const faq = normalizeProductFaq(body.faq);
+  if (faq !== undefined && faq !== null) data.faq = faq;
+  return data;
 }

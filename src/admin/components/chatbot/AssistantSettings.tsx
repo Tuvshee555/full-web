@@ -12,21 +12,24 @@ import { ContactInfoCard } from "./uudam/ContactInfoCard";
 import { type Settings } from "./types";
 
 /** Only these fields are saved here; the on/off switch lives in the page header and saves at once. */
-const FORM_KEYS = ["metaOutbound", "showExactStock", "lowStockThreshold", "greetingMn", "greetingEn", "handoffMn", "handoffEn", "extraKnowledgeMn", "extraKnowledgeEn"] as const;
+const FORM_KEYS = ["metaOutbound", "showExactStock", "lowStockThreshold", "greetingMn", "greetingEn", "handoffMn", "handoffEn", "extraKnowledgeMn", "extraKnowledgeEn", "chatOrdersEnabled", "handoverAutoResumeHours", "aiModel", "aiDailyBudgetUsd"] as const;
 type FormKey = (typeof FORM_KEYS)[number];
 type Draft = Pick<Settings, FormKey>;
-type TextKey = Exclude<FormKey, "metaOutbound" | "showExactStock" | "lowStockThreshold">;
+type TextKey = "greetingMn" | "greetingEn" | "handoffMn" | "handoffEn" | "extraKnowledgeMn" | "extraKnowledgeEn";
+type ErrorCode = "required" | "too_long" | "facts" | "threshold" | "hours" | "budget";
 
 // Must match parseSettingsFields in src/chatbot/settingsFields.ts: facts (prices, percentages, promised
 // results) come from the catalogue, never from free text the assistant repeats.
 const FACT_PATTERN = /₮|\bMNT\b|\d+\s*%|100%|regrow|ургуул|баталгаатай.*үр дүн/i;
 const LIMIT: Record<TextKey, number> = { greetingMn: 1000, greetingEn: 1000, handoffMn: 1000, handoffEn: 1000, extraKnowledgeMn: 8000, extraKnowledgeEn: 8000 };
 const REQUIRED: TextKey[] = ["greetingMn", "greetingEn", "handoffMn", "handoffEn"];
+/** Models the owner may choose; "" = the server's default. Kept in step with SELECTABLE_MODELS in src/chatbot/aiUsage.ts. */
+export const MODEL_OPTIONS = ["", "gpt-4.1", "gpt-4.1-mini", "gpt-4o-mini", "gpt-5-mini"] as const;
 
 const pick = (settings: Settings): Draft => Object.fromEntries(FORM_KEYS.map((key) => [key, settings[key]])) as Draft;
 
-export function validateAssistantDraft(draft: Draft): Partial<Record<FormKey, "required" | "too_long" | "facts" | "threshold">> {
-  const errors: Partial<Record<FormKey, "required" | "too_long" | "facts" | "threshold">> = {};
+export function validateAssistantDraft(draft: Draft): Partial<Record<FormKey, ErrorCode>> {
+  const errors: Partial<Record<FormKey, ErrorCode>> = {};
   for (const key of Object.keys(LIMIT) as TextKey[]) {
     const text = draft[key] ?? "";
     if (REQUIRED.includes(key) && !text.trim()) errors[key] = "required";
@@ -34,10 +37,12 @@ export function validateAssistantDraft(draft: Draft): Partial<Record<FormKey, "r
     else if (FACT_PATTERN.test(text)) errors[key] = "facts";
   }
   if (!Number.isInteger(draft.lowStockThreshold) || draft.lowStockThreshold < 1 || draft.lowStockThreshold > 1000) errors.lowStockThreshold = "threshold";
+  if (!Number.isInteger(draft.handoverAutoResumeHours) || draft.handoverAutoResumeHours < 0 || draft.handoverAutoResumeHours > 720) errors.handoverAutoResumeHours = "hours";
+  if (!Number.isFinite(draft.aiDailyBudgetUsd) || draft.aiDailyBudgetUsd < 0 || draft.aiDailyBudgetUsd > 1000) errors.aiDailyBudgetUsd = "budget";
   return errors;
 }
 
-export function AssistantSettings({ settings, onSaved }: { settings: Settings; onSaved: (s: Settings) => void }) {
+export function AssistantSettings({ settings, onSaved, aiConfigured, defaultModel }: { settings: Settings; onSaved: (s: Settings) => void; aiConfigured?: boolean; defaultModel?: string }) {
   const { t } = useI18n();
   const [draft, setDraft] = useState<Draft>(() => pick(settings));
   const [saving, setSaving] = useState(false);
@@ -105,6 +110,23 @@ export function AssistantSettings({ settings, onSaved }: { settings: Settings; o
       )}
     </Field>
   );
+  const numberField = (key: "lowStockThreshold" | "handoverAutoResumeHours" | "aiDailyBudgetUsd", min: number, max: number, step: number) => (
+    <Field label={t(`assistant.fields.${key}`)} hint={t(`assistant.fields.${key}_hint`)} error={errorText(key)}>
+      {(props) => (
+        <input
+          {...props}
+          type="number"
+          inputMode="decimal"
+          min={min}
+          max={max}
+          step={step}
+          value={Number.isFinite(draft[key]) ? draft[key] : ""}
+          onChange={(e) => set(key, e.target.value === "" ? NaN : Number(e.target.value))}
+          className="field max-w-[160px] tabular-nums"
+        />
+      )}
+    </Field>
+  );
 
   return (
     <form onSubmit={save} className="max-w-[1100px] space-y-[16px]" noValidate>
@@ -122,29 +144,40 @@ export function AssistantSettings({ settings, onSaved }: { settings: Settings; o
             label={t("assistant.fields.showExactStock")}
             description={t("assistant.fields.showExactStock_hint")}
           />
-          <div className="py-[12px]">
-            <Field label={t("assistant.fields.lowStockThreshold")} hint={t("assistant.fields.lowStockThreshold_hint")} error={errorText("lowStockThreshold")}>
-              {(props) => (
-                <input
-                  {...props}
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  max={1000}
-                  step={1}
-                  value={Number.isFinite(draft.lowStockThreshold) ? draft.lowStockThreshold : ""}
-                  onChange={(e) => set("lowStockThreshold", e.target.value === "" ? NaN : Number(e.target.value))}
-                  className="field max-w-[140px] tabular-nums"
-                />
-              )}
-            </Field>
-          </div>
+          <div className="py-[12px]">{numberField("lowStockThreshold", 1, 1000, 1)}</div>
         </Panel>
         <aside className="admin-surface space-y-[14px] bg-paper p-[16px] md:p-[20px]">
           <ContactInfoCard label={t("assistant.contact_shown")} />
           <p className="border-t border-ink/10 pt-[14px] text-[13px] leading-relaxed text-taupe">{t("assistant.facts_rule")}</p>
         </aside>
       </div>
+
+      <Panel title={t("assistant.sections.orders")} description={t("assistant.sections.orders_hint")} bodyClassName="px-[16px] md:px-[20px]">
+        <Switch
+          checked={draft.chatOrdersEnabled}
+          onChange={(on) => set("chatOrdersEnabled", on)}
+          label={t("assistant.fields.chatOrdersEnabled")}
+          description={t("assistant.fields.chatOrdersEnabled_hint")}
+        />
+      </Panel>
+
+      <Panel title={t("assistant.sections.handover_timer")} description={t("assistant.sections.handover_timer_hint")} bodyClassName="p-[16px] md:p-[20px]">
+        {numberField("handoverAutoResumeHours", 0, 720, 1)}
+      </Panel>
+
+      <Panel title={t("assistant.sections.ai")} description={t("assistant.sections.ai_hint")} bodyClassName="space-y-[16px] p-[16px] md:p-[20px]">
+        <Notice tone={aiConfigured === false ? "warning" : "success"} role="status">{t(aiConfigured === false ? "assistant.ai_key_missing" : "assistant.ai_key_ok")}</Notice>
+        <div className="grid gap-[16px] md:grid-cols-2">
+          <Field label={t("assistant.fields.aiModel")} hint={t("assistant.fields.aiModel_hint", { model: defaultModel || "gpt-4.1" })}>
+            {(props) => (
+              <select {...props} className="field" value={draft.aiModel} onChange={(e) => set("aiModel", e.target.value)}>
+                {MODEL_OPTIONS.map((model) => <option key={model || "default"} value={model}>{model || t("assistant.fields.aiModel_default")}</option>)}
+              </select>
+            )}
+          </Field>
+          {numberField("aiDailyBudgetUsd", 0, 1000, 0.5)}
+        </div>
+      </Panel>
 
       <Panel title={t("assistant.sections.greeting")} description={t("assistant.sections.greeting_hint")} bodyClassName="grid gap-[16px] p-[16px] md:grid-cols-2 md:p-[20px]">
         {textField("greetingMn", 4)}

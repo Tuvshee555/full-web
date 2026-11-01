@@ -9,7 +9,7 @@ import { EmptyState, ErrorState, LoadingRows } from "@admin/components/ui/feedba
 import { StatusPill, type Tone } from "@admin/components/ui/status";
 import { formatWhen } from "@admin/utils/format";
 import { cn } from "@admin/lib/utils";
-import { type Lead } from "./types";
+import { type Lead, reasonKey } from "./types";
 
 const PAGE_SIZE = 50;
 const STATUSES = ["new", "contacted", "done"] as const;
@@ -112,9 +112,11 @@ export function Requests({ onOpenChat, onChanged }: { onOpenChat: (conversationI
                     <div className="flex flex-wrap items-center gap-x-[10px] gap-y-[4px]">
                       <p className="text-[15px] font-medium text-ink">{lead.name || t("requests.no_name")}</p>
                       {status === "new" && <StatusPill tone={TONE.new}>{t("requests.status.new")}</StatusPill>}
+                      <StatusPill tone="neutral">{t(reasonKey(lead.reason))}</StatusPill>
                       {lead.createdAt && <span className="text-[12px] tabular-nums text-taupe">{formatWhen(lead.createdAt, { today: t("common.today"), yesterday: t("common.yesterday") })}</span>}
                     </div>
                     <p className="mt-[6px] whitespace-pre-wrap break-words text-[14px] leading-relaxed text-ink">{lead.question}</p>
+                    {lead.context && <p className="mt-[4px] whitespace-pre-wrap text-[12px] leading-relaxed text-taupe">{t("requests.context_label")}: {lead.context}</p>}
                     <div className="mt-[8px] flex flex-wrap gap-[8px]">
                       {lead.phone ? (
                         <a className="btn-secondary btn-sm" href={`tel:${lead.phone}`}>

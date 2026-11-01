@@ -11,13 +11,14 @@ import { PageHeader } from "@admin/components/ui/page";
 import { ErrorState, LoadingRows, Notice } from "@admin/components/ui/feedback";
 import { cn } from "@admin/lib/utils";
 import { AssistantSettings } from "./AssistantSettings";
+import { KnowledgeTab } from "./KnowledgeTab";
 import { TestChat } from "./TestChat";
 import { AnalyticsTab } from "./uudam/AnalyticsTab";
 import { ErrorLogsTab } from "./uudam/ErrorLogsTab";
 import { type Settings } from "./types";
 
-type Tab = "settings" | "test" | "activity" | "log";
-const TABS: Tab[] = ["settings", "test", "activity", "log"];
+type Tab = "settings" | "knowledge" | "test" | "activity" | "log";
+const TABS: Tab[] = ["settings", "knowledge", "test", "activity", "log"];
 
 /** The one master switch: saves immediately, says what it does. */
 function BotSwitch({ on, busy, onChange }: { on: boolean; busy: boolean; onChange: (on: boolean) => void }) {
@@ -42,6 +43,7 @@ export function AssistantDashboard() {
   const params = useSearchParams();
   const tab: Tab = TABS.includes(params?.get("tab") as Tab) ? (params!.get("tab") as Tab) : "settings";
   const [settings, setSettings] = useState<Settings>();
+  const [system, setSystem] = useState<{ aiConfigured: boolean; defaultModel?: string }>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [switching, setSwitching] = useState(false);
@@ -49,9 +51,10 @@ export function AssistantDashboard() {
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     try {
-      const { data } = await api.get("/chatbot/admin/settings", { signal });
+      const [{ data }, systemCheck] = await Promise.all([api.get("/chatbot/admin/settings", { signal }), api.get("/chatbot/admin/system", { signal }).catch(() => null)]);
       if (signal?.aborted) return;
       setSettings(data);
+      if (systemCheck?.data) setSystem({ aiConfigured: systemCheck.data.aiConfigured !== false, defaultModel: systemCheck.data.defaultModel });
       setError(false);
     } catch {
       if (!signal?.aborted) setError(true);
@@ -111,8 +114,9 @@ export function AssistantDashboard() {
         ) : error && !settings ? (
           <ErrorState message={t("assistant.errors.load_failed")} onRetry={() => void load()} />
         ) : settings ? (
-          <AssistantSettings settings={settings} onSaved={saved} />
+          <AssistantSettings settings={settings} onSaved={saved} aiConfigured={system?.aiConfigured} defaultModel={system?.defaultModel} />
         ) : null)}
+      {tab === "knowledge" && <KnowledgeTab />}
       {tab === "test" && <TestChat />}
       {tab === "activity" && <AnalyticsTab />}
       {tab === "log" && <ErrorLogsTab />}

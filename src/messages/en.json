@@ -576,6 +576,9 @@
     "previous_image": "Previous image",
     "next_image": "Next image",
     "catalogue_error": "We couldn’t load the products. Please try again.",
+    "buy_link_adding": "Adding to your cart…",
+    "buy_link_open_product": "Open the product",
+    "volume": "Volume",
     "payment_received": "Payment received",
     "payment_review_title": "Your payment needs a manual check",
     "payment_review_body": "Payment arrived for a cancelled order. Please contact us with your order number so we can arrange fulfillment or a refund. Do not pay again.",
@@ -660,6 +663,11 @@
     "unavailable": "Chat is temporarily unavailable. Please contact our team.",
     "send_error": "Message could not be sent. Please try again.",
     "waiting": "Please wait…",
-    "staff": "Staff"
+    "staff": "Staff",
+    "starters": "Common questions",
+    "chip_price": "How much is it?",
+    "chip_usage": "How do I use it?",
+    "chip_delivery": "How long does delivery take?",
+    "chip_order": "I want to order"
   }
 }

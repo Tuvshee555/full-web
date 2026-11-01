@@ -2,7 +2,7 @@
 import { prisma } from "../../prismaClient.js";
 import { normalizeSizeInput } from "../../utils/sizes.js";
 import { invalidateCatalog } from "../../utils/cache.js";
-import { validateProductInput } from "./validate-product.js";
+import { knowledgeFields, validateProductInput } from "./validate-product.js";
 
 export const createProduct = async (req, res) => {
   const invalid = validateProductInput(req.body, true);
@@ -81,6 +81,7 @@ export const createProduct = async (req, res) => {
         categoryId: categoryId || undefined,
         isFeatured: Boolean(isFeatured),
         extraImages: Array.isArray(extraImages) ? extraImages : [],
+        ...knowledgeFields(req.body),
         sizes: {
           create: normalizeSizeInput(sizes),
         },

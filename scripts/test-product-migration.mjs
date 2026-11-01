@@ -102,6 +102,15 @@ try {
   assert.doesNotMatch(JSON.stringify(after), /Food|foodId|foodName/);
   console.log("PASS migration history applies; all columns, defaults, constraints and indexes are retained with product names");
 
+  // Everything after the rename (chatbot knowledge, orders ledger, ...) must apply on top of it too.
+  const later = (await readdir(migrations, { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory() && entry.name > rename)
+    .map((entry) => entry.name).sort();
+  for (const migration of later) {
+    await client.query(await readFile(path.join(migrations, migration, "migration.sql"), "utf8"));
+  }
+  console.log(`PASS ${later.length} later migration(s) apply on the renamed schema`);
+
   prisma = new PrismaClient({ datasources: { db: { url } } });
   const product = await prisma.product.findUniqueOrThrow({
     where: { id: "rename-product" }, include: { category: true, sizes: true, reviews: true, OrderItem: true },

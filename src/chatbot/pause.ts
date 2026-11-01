@@ -11,10 +11,11 @@ export async function pauseBot(senderId: string, _durationMs?: number, reason = 
   const state = row.state && typeof row.state === "object" && !Array.isArray(row.state) ? row.state : {};
   await prisma.chatConversation.update({ where: { id: senderId }, data: { paused: true, needsHuman: true, state: { ...state, humanTakeoverAt: new Date().toISOString(), pauseReason: reason } } });
 }
+/** Staff hand the chat back: the assistant answers again and the hand-off marker is cleared. */
 export async function resumeBot(senderId: string): Promise<void> {
   const row = await prisma.chatConversation.findUniqueOrThrow({ where: { id: senderId } });
   const state = row.state && typeof row.state === "object" && !Array.isArray(row.state) ? row.state : {};
-  await prisma.chatConversation.update({ where: { id: senderId }, data: { paused: false, needsHuman: false, state: { ...state, humanTakeoverAt: "", pauseReason: "" } } });
+  await prisma.chatConversation.update({ where: { id: senderId }, data: { paused: false, needsHuman: false, botReleasedAt: new Date(), handoffReason: null, handoffAt: null, state: { ...state, humanTakeoverAt: "", pauseReason: "" } } });
 }
 export async function autoHandoffSender(senderId: string): Promise<void> {
   await prisma.chatConversation.update({ where: { id: senderId }, data: { needsHuman: true } });

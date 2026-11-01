@@ -13,6 +13,12 @@ export type ProductType = {
   productName: string;
   price: string | number;
   ingredients: string;
+  // Product facts for the product page and the chat assistant (admin editor)
+  volume?: string | null;
+  howToUse?: string | null;
+  ingredientList?: string | null;
+  safetyNotes?: string | null;
+  faq?: { q: string; a: string }[];
   categoryId: string;
   category?: string | { id: string; categoryName: string };
 
@@ -53,6 +59,12 @@ export type ProductData = {
   productName: string;
   price: string;
   ingredients: string;
+  // Product facts for the product page and the chat assistant (admin editor)
+  volume?: string | null;
+  howToUse?: string | null;
+  ingredientList?: string | null;
+  safetyNotes?: string | null;
+  faq?: { q: string; a: string }[];
   image: File | null;
   category: string;
 };

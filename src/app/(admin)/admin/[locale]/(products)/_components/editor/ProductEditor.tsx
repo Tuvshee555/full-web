@@ -38,9 +38,15 @@ type Form = {
   isFeatured: boolean;
   /** price: the size's own price as digits, "" = same as the product price */
   sizes: (InventoryOption & { price: string })[];
+  /** Facts the product page and the chat assistant read; empty = not published yet. */
+  volume: string;
+  howToUse: string;
+  ingredientList: string;
+  safetyNotes: string;
+  faq: { q: string; a: string }[];
 };
 
-type ErrorKey = "productName" | "price" | "oldPrice" | "categoryId" | "photos" | "sizes";
+type ErrorKey = "productName" | "price" | "oldPrice" | "categoryId" | "photos" | "sizes" | "faq";
 type Errors = Partial<Record<ErrorKey, string>>;
 /** Where each error's field lives, so the summary can jump to it. */
 const ERROR_TARGET: Record<ErrorKey, string> = {
@@ -50,6 +56,7 @@ const ERROR_TARGET: Record<ErrorKey, string> = {
   price: "pe-price",
   oldPrice: "pe-old",
   sizes: "pe-sizes",
+  faq: "pe-faq",
 };
 
 const digits = (v: string) => v.replace(/[^\d]/g, "");
@@ -74,6 +81,11 @@ function initialForm(product: ProductType | null | undefined, defaultCategoryId?
     categoryId: product?.categoryId ?? defaultCategoryId ?? "",
     isFeatured: Boolean(product?.isFeatured),
     sizes: inventoryOptions(product?.sizes).map((option) => ({ ...option, price: ownPriceText(product?.sizes, option.label) })),
+    volume: product?.volume ?? "",
+    howToUse: product?.howToUse ?? "",
+    ingredientList: product?.ingredientList ?? "",
+    safetyNotes: product?.safetyNotes ?? "",
+    faq: Array.isArray(product?.faq) ? product.faq.filter((item) => item && typeof item.q === "string" && typeof item.a === "string").map((item) => ({ q: item.q, a: item.a })) : [],
   };
 }
 
@@ -183,6 +195,7 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
     if (!form.categoryId) e.categoryId = t("editor.errors.category");
     if (photos.length === 0) e.photos = t("editor.errors.photo");
     if (!validInventory(form.sizes)) e.sizes = t("editor.errors.stock");
+    if (form.faq.some((item) => Boolean(item.q.trim()) !== Boolean(item.a.trim()))) e.faq = t("editor.errors.faq");
     setErrors(e);
     return e;
   };
@@ -246,6 +259,12 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
         image: photoUrls[0],
         extraImages: photoUrls.slice(1),
         video: videoUrl,
+        // Product facts (empty = not published; the assistant then says so instead of guessing)
+        volume: form.volume.trim() || null,
+        howToUse: form.howToUse.trim() || null,
+        ingredientList: form.ingredientList.trim() || null,
+        safetyNotes: form.safetyNotes.trim() || null,
+        faq: form.faq.map((item) => ({ q: item.q.trim(), a: item.a.trim() })).filter((item) => item.q && item.a),
       };
       const headers = { Authorization: `Bearer ${token}` };
       phase = "save";
@@ -542,6 +561,53 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
                 label={t("editor.featured")}
                 description={t("editor.featured_hint")}
               />
+            </section>
+
+            <section className="admin-surface min-w-0 space-y-[16px] p-[18px]">
+              <div>
+                <h3 className="admin-section-title">{t("editor.section_facts")}</h3>
+                <p className="admin-hint mt-[4px]">{t("editor.facts_hint")}</p>
+              </div>
+              <div>
+                <label className={label} htmlFor="pe-volume">{t("editor.volume")} <span className="font-normal text-taupe">({t("common.optional")})</span></label>
+                <input id="pe-volume" value={form.volume} onChange={(e) => set("volume", e.target.value)} placeholder={t("editor.volume_placeholder")} maxLength={60} className="field max-w-[240px]" />
+              </div>
+              <div>
+                <label className={label} htmlFor="pe-howto">{t("editor.how_to_use")} <span className="font-normal text-taupe">({t("common.optional")})</span></label>
+                <textarea id="pe-howto" value={form.howToUse} onChange={(e) => set("howToUse", e.target.value)} placeholder={t("editor.how_to_use_placeholder")} rows={4} maxLength={4000} className="field resize-y" />
+                <p className="admin-hint">{t("editor.how_to_use_hint")}</p>
+              </div>
+              <div>
+                <label className={label} htmlFor="pe-ingredients">{t("editor.ingredient_list")} <span className="font-normal text-taupe">({t("common.optional")})</span></label>
+                <textarea id="pe-ingredients" value={form.ingredientList} onChange={(e) => set("ingredientList", e.target.value)} rows={3} maxLength={4000} className="field resize-y" />
+                <p className="admin-hint">{t("editor.ingredient_list_hint")}</p>
+              </div>
+              <div>
+                <label className={label} htmlFor="pe-safety">{t("editor.safety_notes")} <span className="font-normal text-taupe">({t("common.optional")})</span></label>
+                <textarea id="pe-safety" value={form.safetyNotes} onChange={(e) => set("safetyNotes", e.target.value)} rows={2} maxLength={2000} className="field resize-y" />
+                <p className="admin-hint">{t("editor.safety_notes_hint")}</p>
+              </div>
+              <div id="pe-faq">
+                <p className={label}>{t("editor.faq")} <span className="font-normal text-taupe">({t("common.optional")})</span></p>
+                <p className="admin-hint mb-[8px]">{t("editor.faq_hint")}</p>
+                <ul className="space-y-[10px]">
+                  {form.faq.map((item, index) => (
+                    <li key={index} className="grid gap-[8px] border border-ink/10 bg-paper p-[10px] md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto]">
+                      <input aria-label={t("editor.faq_q")} value={item.q} maxLength={300} placeholder={t("editor.faq_q")} onChange={(e) => set("faq", form.faq.map((row, i) => (i === index ? { ...row, q: e.target.value } : row)))} className="field" />
+                      <textarea aria-label={t("editor.faq_a")} value={item.a} maxLength={2000} rows={2} placeholder={t("editor.faq_a")} onChange={(e) => set("faq", form.faq.map((row, i) => (i === index ? { ...row, a: e.target.value } : row)))} className="field resize-y" />
+                      <button type="button" className="btn-ghost btn-sm self-start" aria-label={t("editor.remove_faq")} onClick={() => set("faq", form.faq.filter((_, i) => i !== index))}>
+                        <X aria-hidden size={14} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                {form.faq.length < 30 && (
+                  <button type="button" className="btn-secondary btn-sm mt-[10px]" onClick={() => set("faq", [...form.faq, { q: "", a: "" }])}>
+                    <Plus aria-hidden size={14} />{t("editor.add_faq")}
+                  </button>
+                )}
+                {err("faq")}
+              </div>
             </section>
 
             <section className="admin-surface min-w-0 p-[18px]">

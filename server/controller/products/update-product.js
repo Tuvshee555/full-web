@@ -2,7 +2,7 @@
 import { prisma } from "../../prismaClient.js";
 import { normalizeSizeInput } from "../../utils/sizes.js";
 import { invalidateCatalog } from "../../utils/cache.js";
-import { validateProductInput } from "./validate-product.js";
+import { knowledgeFields, validateProductInput } from "./validate-product.js";
 
 export const updateProduct = async (req, res) => {
   const invalid = validateProductInput(req.body);
@@ -92,6 +92,8 @@ export const updateProduct = async (req, res) => {
       video: typeof video === "string" ? video : undefined,
       isFeatured: typeof isFeatured === "boolean" ? isFeatured : undefined,
       salesCount: salesCount != null && salesCount !== "" ? Number(salesCount) : undefined,
+      // Product facts the product page and the chat assistant read (volume, how to use, ingredients, FAQ).
+      ...knowledgeFields(req.body),
     };
 
     const updatedProduct = await prisma.$transaction(async (tx) => {

@@ -14,26 +14,27 @@ export function contactFallback(context:CatalogueContext):string {
 const STATUSES:Record<string,[string,string]>={PENDING:["Баталгаажуулалт хүлээж байна","Awaiting confirmation"],WAITING_PAYMENT:["Төлбөр хүлээж байна","Awaiting payment"],COD_PENDING:["Баталгаажуулалт хүлээж байна","Awaiting confirmation"],PAID:["Төлбөр төлөгдсөн","Paid"],DELIVERING:["Хүргэлтэд гарсан","On the way"],DELIVERED:["Хүргэгдсэн","Delivered"],CANCELLED:["Цуцлагдсан","Cancelled"]};
 export function composeReply(plan:ReplyPlan,context:CatalogueContext):{text:string;needsHuman:boolean} {
  const say=(mn:string,en:string)=>context.locale==="en"?en:mn;
+ const brand=context.store.name||"Lorentz";
  if(plan.productPlan)return {text:plan.productPlan.reply,needsHuman:plan.productPlan.status==="handoff"};
  let text="";let needsHuman=false;
  switch(plan.intent){
  case "greeting":text=context.locale==="en"?context.settings.greetingEn:context.settings.greetingMn;break;
  case "thanks":text=say("Зүгээр ээ. Өөр асуух зүйл байвал бичээрэй.","You're welcome. Let me know if you have another question.");break;
  case "delivery":{
- const faq=context.brand.faq.find((item)=>/delivery|хүргэлт/i.test(item.q));
- text=say(`Хүргэлтийн төлбөр: ${money(context.deliveryFee)}.`,`Delivery fee: ${money(context.deliveryFee)}.`)+(faq?"\n"+faq.a:"");break;}
+ const faq=context.policies?.delivery||context.brand.faq.find((item)=>/delivery|хүргэлт/i.test(item.q))?.a;
+ text=say(`Хүргэлтийн төлбөр: ${money(context.deliveryFee)}.`,`Delivery fee: ${money(context.deliveryFee)}.`)+(faq?"\n"+faq:"");break;}
  case "payment":text=say("Картаар төлөх боломжгүй. Зөвхөн QPay эсвэл банкны шилжүүлгээр төлнө. Бүтээгдэхүүнээ сагсанд нэмээд захиалгаа баталгаажуулна.","Cards are not accepted. Pay with QPay or bank transfer. Add products to your cart, then complete checkout.")+`\n${context.site}/${context.locale}/cart\n${context.site}/${context.locale}/checkout`;break;
  case "bank":text=say("Банкны шилжүүлэг:","Bank transfer:")+`\n${context.store.bank.name}\n${context.store.bank.holder}\n${context.store.bank.account}\n`+say("Гүйлгээний утгад захиалгын дугаараа бичнэ үү.","Use your order number as the payment reference.");break;
  case "order":text=!plan.hasOrderCredentials?say("Захиалгын дугаар болон тухайн захиалгад бүртгэсэн утасны дугаараа хамт бичнэ үү.","Please provide your order number and the phone number registered on that order."):plan.orderStatus&&STATUSES[plan.orderStatus]?say("Захиалгын төлөв: ","Order status: ")+STATUSES[plan.orderStatus][context.locale==="en"?1:0]:say("Захиалгын дугаар, утасны мэдээллийг баталгаажуулж чадсангүй. Хоёуланг нь шалгаад дахин бичнэ үү.","I could not verify the order number and phone number. Please check both and try again.");break;
- case "returns":{const faq=context.brand.faq.find((item)=>/return|буцаа/i.test(item.q));text=faq?.a||contactFallback(context);needsHuman=!faq;break;}
+ case "returns":{const faq=context.policies?.returns||context.brand.faq.find((item)=>/return|буцаа/i.test(item.q))?.a;text=faq||contactFallback(context);needsHuman=!faq;break;}
  case "about":text=context.brand.about.join("\n");break;
- case "contact":text=[context.store.contact.phone,context.store.contact.email].filter(Boolean).join(" · ");break;
- case "medical":text=say("Үс ургалт, хугацаа, эмчилгээний үр дүнг батлах мэдээлэл байхгүй. Энэ талаар манай ажилтнаас тодруулж болно.","We have no verified growth timeframe or medical result to promise. Our team can help with this question.");needsHuman=true;break;
+ case "contact":{const contact=[context.store.contact.phone,context.store.contact.email].filter(Boolean).join(" · ");text=say(`${brand}-тэй холбогдох: ${contact}. Энд чатаар ч асуулт тань хариулагдана.`,`Contact ${brand}: ${contact}. You can also ask here in the chat.`);break;}
+ case "medical":text=say("Үс ургалт, хугацаа, эмчилгээний үр дүнг батлах мэдээлэл байхгүй. Энэ бол гоо сайхны бүтээгдэхүүн; энэ талаар манай ажилтнаас тодруулж болно.","We have no verified growth timeframe or medical result to promise; this is a cosmetic product. Our team can help with this question.");needsHuman=true;break;
  case "human":needsHuman=true;text=plan.handoffAcknowledged?say("Таны хүсэлтийг ажилтанд өмнө нь хадгалсан. Би бусад асуултад тань тусалж болно.","Your request is saved for our team. I can still help with your other questions."):(context.locale==="en"?context.settings.handoffEn:context.settings.handoffMn);break;
  case "knowledge":{const knowledge=context.locale==="en"?context.settings.extraKnowledgeEn:context.settings.extraKnowledgeMn;text=knowledge&&!unsafeClaim(knowledge)&&!/₮|\bMNT\b|stock|нөөц|хямдрал|discount|price|үнэ/i.test(knowledge)?knowledge:contactFallback(context);break;}
  case "clarify":text=say("Аль бүтээгдэхүүн бэ? Нэр эсвэл төрлийг нь бичнэ үү.","Which product do you mean? Please share its name or type.");break;
  case "outside":text=say("Тэр бүтээгдэхүүн одоогийн каталогт байхгүй байна. Манай хөмсөгний бүтээгдэхүүнээс сонгоход тусалж болно.","That product is not listed in our current catalogue. I can help you choose from our eyebrow products.");break;
- default:text=say("Би Lorentz-ийн онлайн туслах. Бүтээгдэхүүн, үнэ, хүргэлт, захиалгын талаар тусалж болно.","I'm Lorentz's online assistant. I can help with products, prices, delivery and orders.");
+ default:text=say(`Би ${brand}-ийн онлайн туслах. Бүтээгдэхүүн, үнэ, хүргэлт, захиалгын талаар тусалж болно.`,`I'm ${brand}'s online assistant. I can help with products, prices, delivery and orders.`);
  }
  return {text:text||contactFallback(context),needsHuman};
 }
@@ -99,7 +100,7 @@ export function sanitizeAssistantReply(text: string) {
   if (!cleaned) return "Энэ мэдээлэл одоогоор тодорхойгүй байна. Хүний ажилтантай холбож өгье.";
 
   // Split on blank lines (paragraph breaks) — preserve them so the AI's
-  // line-by-line trip details format (price on one line, date on next, etc.)
+  // line-by-line product details format (price on one line, variant on next, etc.)
   // is kept intact when sent to Messenger.
   const blocks = cleaned.split(/\n\n+/);
   const dedupedBlocks: string[] = [];
@@ -138,4 +139,3 @@ export function stripRepeatedGreeting(replyText: string, hasPriorAssistantReply:
   if (!isGreetingBlock(blocks[0])) return replyText;
   return blocks.slice(1).join("\n\n").trim();
 }
-
