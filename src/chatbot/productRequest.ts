@@ -3,7 +3,7 @@ import { stripProductNamesForIntent } from "./customerTurn";
 import { normText, phoneticLatinText } from "./textNorm";
 import type { Understanding } from "./productUnderstanding";
 
-export const PRODUCT_TOPICS = ["price", "availability", "variants", "volume", "ingredients", "usage", "photos", "comparison", "budget", "discount", "faq"] as const;
+export const PRODUCT_TOPICS = ["price", "availability", "variants", "volume", "ingredients", "usage", "duration", "storage", "photos", "comparison", "budget", "discount", "faq"] as const;
 export type ProductTopic = typeof PRODUCT_TOPICS[number];
 export type ProductSelection = { productId: string; variantId: string | null };
 export type ProductRequest = { topics: ProductTopic[]; variantId: string | null; variant: string | null };
@@ -17,8 +17,10 @@ export function buildProductRequest(text: string, products: CatalogProduct[], un
     ["availability", /нөөц|дууссан|бэлэн|байгаа\s*(?:юу|уу)|байна\s*уу|available|in\s+stock|stock|sold\s+out/i],
     ["variants", /өнгө|color|colour|variant|shade|сонголт/i],
     ["volume", /хэдэн\s*(?:мл|ml)|(?<!\p{L})(?:мл|ml)(?!\p{L})|millilit|how\s+many\s+(?:ml|мл)|хэмжээ(?:тэй)?\s*(?:нь)?\s*(?:хэд|юу|вэ)|хэмжээ(?:тэй)?\s*(?:вэ|юу)|хэдий\s+хэмжээ|size\s+in\s+(?:ml|мл)|how\s+big/iu],
-    ["ingredients", /найрлага|орц|ingredient|what(?:'s|\s+is)\s+in\s+it|бүрэлдэхүүн/i],
+    ["ingredients", /найрлага|орц|ingredient|what(?:'s|\s+is|s)\s+in\b|бүрэлдэхүүн|made\s+of|contain|дотор\s+юу|юу\s+юу\s+(?:байдаг|орсон|байна|бий|орд)|юунаас/iu],
     ["usage", /хэрэгл|түрх|яаж|хэрхэн|заавар|how\s*(?:do|to|often|long)|use\b|apply|direction|instruction|өдөрт\s+хэд|хэдэн\s+удаа|хугацаанд|хэдий\s+хугац|how\s+many\s+times/i],
+    ["duration", /хэдэн\s+(?:сар|долоо\s*хоног|өдөр|хоног)\s+(?:хэрэгл|түрх|ууж)|хэд\s+(?:сар|хоног|долоо)|хэр\s+удаан|хэдий\s+(?:хугацаа|удаан)|хугацаа(?:нд|ны)?\s+(?:хэрэгл|түрх)|how\s+(?:long\s+(?:should|do|to|does\s+it\s+take\s+to)|many\s+(?:weeks|months|days))|(?:weeks|months)\s+(?:of\s+use|to\s+use)|курс|course/iu],
+    ["storage", /хадгал|storage|store\s+it|shelf\s+life|expir|дуусах\s+хугацаа|хугацаа\s+(?:нь\s+)?дуус|хүчинтэй\s+хугацаа/iu],
     ["photos", /зураг|photo|picture/i],
     ["comparison", /харьцуул|ялгаа|compare|difference/i],
     ["budget", /хамгийн\s*хямд|төсөв|budget|cheapest/i],

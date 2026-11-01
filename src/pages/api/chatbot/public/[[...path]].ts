@@ -5,9 +5,13 @@ import { handleCustomerMessage } from "../../../../chatbot/handler";
 import { shopFaqFor } from "../../../../chatbot/catalogue";
 import { chatError, hash, newToken } from "../../../../chatbot/security.js";
 import { STORE } from "../../../../config/store-data.mjs";
+import { background } from "../../../../../server/utils/background.js";
+import { runDueJobs } from "../../../../../server/utils/lazyJobs.js";
 
 export const config = { api: { bodyParser: { sizeLimit: "64kb" } }, maxDuration: 30 };
 export default apiRoute(async (req, res) => {
+  // Reservation expiry must not depend on storefront traffic alone: chat traffic sweeps too.
+  if (req.method === "POST") background(runDueJobs());
   const paths = req.query.path as string[] | undefined;
   const [kind, id, action] = paths || [];
   if (kind === "config" && req.method === "GET") {

@@ -53,16 +53,24 @@ const say = (locale: Locale, mn: string, en: string) => (locale === "en" ? en : 
 const PAYMENT_CLAIM = /(?:шилжүүлсэн|шилжүүлчихсэн|төлчихсөн|төлсөн|мөнгөө\s+(?:хийсэн|шилжүүлсэн)|i\s+(?:have\s+)?(?:paid|transferred)|payment\s+(?:sent|made|done))/iu;
 const PAYMENT_QUESTION = /(?:яаж|хаана|хэрхэн|how|where|can\s+i|болох\s+уу|боломжтой\s+юу)/iu;
 // Explicit human requests and complaints (Uudam handoffDetection + shop complaints).
-const HUMAN_REQUEST = /(?:хүнтэй|хүн\s+(?:холбогд|ярь|ярих)|ажилтантай|оператор|ярих\s+хүн|хүн\s+(?:байгаа|байна)\s+(?:юу|уу)|жинхэнэ\s+хүн|human|operator|real\s+person|someone\s+to\s+talk|talk\s+to\s+(?:a\s+)?person|staff\s+member)/iu;
+const HUMAN_REQUEST = /(?:хүнтэй|хүн\s+(?:холбогд|ярь|ярих|хэрэгтэй|байгаа\s*юу|байна\s*уу|алга)|ажилтан(?:тай)?\s*(?:холбо|ярь|ярих|хэрэгтэй|байгаа|байна)|ажилтантай|оператор|ярих\s+хүн|хүн\s+(?:байгаа|байна)\s+(?:юу|уу)|жинхэнэ\s+хүн|(?:чатбот|робот|бот)\s+биш|холбож\s+өг|менежер|хүн\s+хариул|human|operator|real\s+person|someone\s+to\s+talk|talk\s+to\s+(?:a\s+)?(?:person|human|someone)|staff\s+member|not\s+a\s+bot|live\s+agent)/iu;
 const COMPLAINT = /(?:гомдол|эвдэрсэн|эвдэрч|гэмтэлтэй|гэмтсэн|буруу\s+(?:бараа|бүтээгдэхүүн|өнгө).{0,20}ир|мөнгө(?:ө)?\s+буцаа|complain|damaged|broken|wrong\s+(?:item|product|colou?r)|refund)/iu;
 const HOW_TO_ORDER = /(?:(?:яаж|хэрхэн)\s+(?:\S+\s+)?(?:захиал|авах)|захиалах\s+(?:вэ|уу)|how\s+(?:do|can|to)\s+(?:i\s+)?(?:order|buy|purchase))/iu;
 const ORDER_TALK = /(?:захиалга|захиалсан|захиалгын|ирэхгүй|ирээгүй|хүргэгдээгүй|хаана\s+явна|\border\b|hasn'?t\s+(?:arrived|come)|not\s+(?:arrived|delivered)|where\s+is\s+my)/iu;
 const ORDER_COMPLAINT_AGAIN = /(?:ирэхгүй|ирээгүй|гомдол|удаж|hasn'?t|not\s+arrived|still|late)/iu;
 const CONTACT_ONLY = /^[\p{L}\s.,:'-]{0,60}(?:\+?976[ -]?)?\d{4}[ -]?\d{4}[\p{L}\s.,!]{0,40}$/u;
 const GROWTH = /(?:ургуул|ургах|ургана|ургадаг|урга(?:лт|на)|үс\s+ург|өтгөр(?:үүл|өх)|эмчил|үр\s*дүн|regrow|grow\s+(?:back|my|in)|hair\s+growth|thicker\s+brows|make\s+(?:my\s+)?brows\s+(?:grow|thicker)|results?\s+(?:in|after|take)|when\s+(?:will|do)\s+i\s+see)/iu;
-const SAFETY = /(?:харшил|жирэмсэн|хөхүүл|аюулгүй\s+юу|гаж\s+нөлөө|улай|загатн|хавд|цочир|нүд(?:энд|эндээ)?\s+(?:ор|хүр)|allerg|pregnan|breastfeed|is\s+it\s+safe|side\s+effect|sensitive\s+skin|rash|irritat|redness|itch)/iu;
+const SAFETY = /(?:харшил|жирэмсэн|хөхүүл|аюулгүй\s+юу|гаж\s+нөлөө|улай|загатн|хавд|цочир|нүд(?:энд|эндээ|\s*р[үу]у)?\s*(?:ор|хүр)|allerg|pregnan|breastfeed|is\s+it\s+safe|side\s+effect|sensitive\s+skin|rash|irritat|redness|itch|(?:in|into)\s+(?:my\s+)?eyes?|eye\s+contact)/iu;
 const CATALOG = /(?:ямар\s+(?:бүтээгдэхүүн|бараа)|бүтээгдэхүүнүүд|юу\s+(?:зардаг|байна\s+вэ)|бүх\s+бүтээгдэхүүн|нимгэн|сийрэг|what\s+do\s+you\s+(?:sell|have)|list\s+(?:your\s+|all\s+)?products|all\s+products|your\s+products|sparse|thin\s+brows|recommend)/iu;
 const ASKS_IF_SOLD = /(?:байгаа\s+(?:юу|уу)|байна\s+уу|зардаг\s+уу|do\s+you\s+(?:sell|have)|is\s+there)/iu;
+// "hed hongiin dotor irhe ve", "hezee irh ve", "Ulaangom ruu yvuulj boloh uu": the delivery policy, never a product card.
+const DELIVERY_TIME = /(?:(?:хэдэн|хэд|хэр)\s+(?:хоног|өдөр|удаан|хугацаа)|хоног(?:ийн)?\s+дотор|хэзээ\s+(?:ирэх|ирнэ|ирж|хүрэх|хүрнэ|авах|авч|очих)|(?:ирэх|хүрэх)\s+(?:вэ|уу|бол)|явуул|илгээ|хүргэж\s+өг|how\s+(?:many\s+days|long\s+(?:does|will|until|is)\s+(?:the\s+)?(?:delivery|shipping|it\s+take))|when\s+(?:will|does|would|can)\s+(?:it|my\s+(?:order|stuff|package|parcel|items?)|the\s+order|i\s+get)\s*(?:arrive|come|get|be\s+delivered|it)?|delivery\s+time|ship\s+to|send\s+(?:it\s+)?to|deliver\s+to)/iu;
+const USAGE_WORDS = /(?:хэрэгл|түрх|ууж|use|apply|wear)/iu;
+// "ymar buteegdehuun zardag ve": the numbered catalogue from the rules (a model-written list has no numbers, so "the second one" would not resolve).
+const CATALOG_LIST = /(?:ямар\s+(?:бүтээгдэхүүн|бараа|зүйл)|бүтээгдэхүүнүүд|юу\s+(?:зардаг|байна\s+вэ|байгаа\s+вэ|байдаг)|юу\s+юу\s+(?:байна|байгаа|зардаг)|бүх\s+бүтээгдэхүүн|what\s+do\s+you\s+(?:sell|have|offer)|list\s+(?:your\s+|all\s+)?products|all\s+products|your\s+products|show\s+me\s+(?:everything|all|the\s+products)|product\s+list|catalogu?e)/iu;
+const RECOMMEND = /(?:тохир|зөвлө|санал\s+болго|нимгэн|сийрэг|recommend|suit|best\s+for|sparse|thin\s+brows|beginner|which\s+(?:one\s+)?(?:is\s+)?(?:better|best))/iu;
+// "serumiig hed sar hereglevel deer ve": how long to use is a product usage question, not a growth claim.
+const DURATION_OF_USE = /(?:хэдэн\s+(?:сар|долоо\s*хоног|өдөр|хоног)|хэд\s+(?:сар|хоног|долоо)|хэр\s+удаан|хэдий\s+(?:хугацаа|удаан)|хугацаа(?:нд|ны)?\s+(?:хэрэгл|түрх)|how\s+(?:long|many\s+(?:weeks|months|days))|(?:weeks|months)\s+(?:of\s+use|to\s+use))/iu;
 const RULE_TOPICS: Array<[string, RegExp]> = [
   ["bank", /(?:данс|банк|bank|account\s+number)/iu],
   ["delivery", /(?:хүргэлт|хүргэх|хүргүүл|хүргэдэг|хүргэ|deliver|shipping)/iu],
@@ -73,6 +81,8 @@ const RULE_TOPICS: Array<[string, RegExp]> = [
 ];
 
 function ruleTopic(probe: string): string | null {
+  // How long delivery takes, whether we ship to a place: the delivery policy (unless it is about using the product).
+  if (DELIVERY_TIME.test(probe) && !USAGE_WORDS.test(probe)) return "delivery";
   for (const [topic, pattern] of RULE_TOPICS) if (pattern.test(probe)) return topic;
   return null;
 }
@@ -205,7 +215,7 @@ export async function runCustomerTurn(input: TurnInput): Promise<TurnOutput> {
   if (SAFETY.test(probe)) {
     // Never give medical advice: point to the published ingredients, the FAQ's patch test and a doctor.
     const patchTest = context.policies?.safety || context.brand.faq.find((item) => /туршиж|patch|test/i.test(item.q))?.a;
-    const reaction = /улай|загатн|хавд|цочир|rash|irritat|redness|itch|гаж\s+нөлөө|side\s+effect/iu.test(probe);
+    const reaction = /улай|загатн|хавд|цочир|rash|irritat|redness|itch|гаж\s+нөлөө|side\s+effect|нүд(?:энд|эндээ|\s*р[үу]у)?\s*(?:ор|хүр)|(?:in|into)\s+(?:my\s+)?eyes?/iu.test(probe);
     return done({ intent: "safety", needsHuman: reaction, handoffReason: "medical", events: ["safety_question"], text: [
       reaction
         ? say(locale, "Улайх, загатнах, хавдах зэрэг шинж илэрвэл хэрэглэхээ шууд зогсоож, усаар зайлаад эмчид хандана уу. Эмнэлгийн зөвлөгөө өгөх боломжгүй.", "If you notice redness, itching or swelling, stop using the product right away, rinse with water and see a doctor. We cannot give medical advice.")
@@ -261,6 +271,15 @@ export async function runCustomerTurn(input: TurnInput): Promise<TurnOutput> {
     state.clarification = { candidateProductIds: offered.map((product) => product.id), createdAt: Date.now() };
     state.productSelection = input.state.productSelection ?? null;
   }
+  if (route.chosenProductId && ambiguousProducts.length > 1 && ambiguousProducts.some((product) => product.id === route.chosenProductId) && !parseNumberedChoice(text)) {
+    const variantName = buildProductRequest(text, ambiguousProducts).variant;
+    const having = variantName ? ambiguousProducts.filter((product) => product.sizes.some((size) => size.label === variantName)) : [];
+    if (having.length !== 1 && filterCandidatesByAttribute(text, ambiguousProducts).length !== 1) {
+      route = { ...route, chosenProductId: undefined, scopedClarify: ambiguousProducts };
+      state.clarification = { candidateProductIds: ambiguousProducts.map((product) => product.id), createdAt: Date.now() };
+      state.productSelection = input.state.productSelection ?? null;
+    }
+  }
   // routeFastPathText records selection/clarification on `state`; carry them into the next turn.
   const routed = { productSelection: state.productSelection ?? null, clarification: state.clarification ?? null };
   const intent = route.understanding?.intent;
@@ -272,7 +291,8 @@ export async function runCustomerTurn(input: TurnInput): Promise<TurnOutput> {
   }
   if (intent === "human") return done({ intent: "human", needsHuman: true, handoffReason: "customer_request", patch: routed, text: composeReply({ intent: "human", handoffAcknowledged: handedOff }, context).text });
   if (intent === "order") return done({ intent: "order", patch: { ...routed, orderAskedAt: Date.now() }, text: composeReply({ intent: "order", hasOrderCredentials: false }, context).text });
-  if (intent === "medical") {
+  const usageDuration = DURATION_OF_USE.test(probe) && Boolean(route.chosenProductId || route.scopedClarify?.length || route.understanding?.products.length || focusedProduct || namedProduct);
+  if (intent === "medical" && !usageDuration) {
     const reply = composeReply({ intent: "medical" }, context).text;
     return done({ intent: "medical", patch: routed, events: ["growth_question"], text: contactLine ? `${reply}\n${contactLine}` : reply });
   }
@@ -283,6 +303,12 @@ export async function runCustomerTurn(input: TurnInput): Promise<TurnOutput> {
   if (route.notInCatalog) {
     const written = await writeVerified();
     return done({ intent: "outside", patch: routed, events: ["not_in_catalogue"], text: written || notInCatalogReply(route.notInCatalog, locale), model: written ? "writer" : "rules" });
+  }
+  const namesNothing = resolveProductFromUserMessage(text, context.products, { allowLooseFallback: false }).status === "not_found";
+  // "What do you sell?" is answered with the numbered catalogue before the writer gets a turn.
+  if (namesNothing && !route.chosenProductId && !RECOMMEND.test(probe) && (CATALOG_LIST.test(probe) || (intent === "catalog" && !route.scopedClarify?.length && !route.understanding?.products.length))) {
+    const list = listProducts(context.products, context, say(locale, "Манай бүтээгдэхүүнүүд:", "Our products:"));
+    return done({ intent: "catalog", productIds: list.productIds, patch: { ...routed, ...list.patch }, text: list.text });
   }
 
   // Deterministic product answer (Uudam's structured answer): one product, or a numbered choice list.
@@ -313,10 +339,14 @@ export async function runCustomerTurn(input: TurnInput): Promise<TurnOutput> {
   if (plan && plan.status !== "handoff") return done({ intent: plan.status === "clarify" ? "clarify" : "product", productIds: plan.productIds, patch: { ...routed, ...topicMemory(plan.status) }, text: plan.reply, events: unpublishedEvents(plan) });
   // A follow-up that names nothing ("how much is it?") is about the product already in focus.
   const focused = (state.productSelection as { selection?: { productId?: string } } | null)?.selection?.productId;
-  const namesNothing = resolveProductFromUserMessage(text, context.products, { allowLooseFallback: false }).status === "not_found";
   if (!plan && focused && namesNothing && askedTopics.length && context.products.some((product) => product.id === focused) && !route.understanding?.products.length) {
     const focusedPlan = answerFor({ matchText: text, scopedClarify: null, chosenProductId: focused });
     if (focusedPlan && focusedPlan.status !== "handoff") return done({ intent: "product", productIds: focusedPlan.productIds, patch: { ...routed, pendingTopics: [] }, text: focusedPlan.reply, events: unpublishedEvents(focusedPlan) });
+  }
+
+  if (!plan && namesNothing && !focused && askedTopics.length && !openQuestion && !RECOMMEND.test(probe) && !(route.understanding?.products.length && route.understanding.products.length < context.products.length)) {
+    const list = listProducts(context.products, context, say(locale, "Аль бүтээгдэхүүний талаар асууж байна вэ?", "Which product do you mean?"));
+    return done({ intent: "clarify", productIds: list.productIds, patch: { ...routed, ...list.patch, pendingTopics: askedTopics }, text: list.text });
   }
 
   // ── Layer 2: the AI writer (recommendations, chit-chat, knowledge, unanswered details) ──

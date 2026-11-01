@@ -1,7 +1,7 @@
 /** Source answer planner: requested topic sections, missing evidence and selection have one ordered path. */
 import { buildProductRequest, type ProductSelection, type ProductTopic } from "./productRequest";
 import { formatProductLine, formatVariantLine, productLink, variantOwnPrice } from "./productPriceBlock";
-import { contentOf, safeProductText } from "./productFacts";
+import { contentOf, safeProductText, verifiedVolume } from "./productFacts";
 import { matchFaq } from "./knowledge";
 import type { CatalogProduct, CatalogueContext } from "./types";
 import type { FastPathRoute } from "./fastPathRouting";
@@ -13,9 +13,10 @@ export type ProductAnswerPlan = {
 };
 const NEWLINE = String.fromCharCode(10);
 
-/** "5 мл" from the published volume, or from a size label that carries one. */
+/** "5 мл" from the verified published volume, or from a size label that carries one. */
 export function productVolume(product: CatalogProduct): string | null {
-  if (product.volume?.trim()) return product.volume.trim();
+  const verified = verifiedVolume(product);
+  if (verified) return verified;
   const fromSizes = product.sizes.map((size) => size.label).filter((label) => /\d\s*(?:мл|ml|г|g|gr)(?!\p{L})/iu.test(label));
   return fromSizes.length ? fromSizes.join(", ") : null;
 }
@@ -37,7 +38,7 @@ export function buildProductAnswerPlan(input: { text: string; context: Catalogue
   const topics = request.topics.length ? request.topics : input.pendingTopics?.length ? input.pendingTopics : ["price"] as ProductTopic[];
   const selected = route.selection || null;
   const lines: string[] = []; const answered = new Set<ProductTopic>(); const missing = new Set<ProductTopic>(); const unpublished = new Set<ProductTopic>();
-  const clarify = products.length > 1 && topics.some((topic) => topic === "usage" || topic === "ingredients" || topic === "volume");
+  const clarify = products.length > 1 && topics.some((topic) => topic === "usage" || topic === "ingredients" || topic === "volume" || topic === "duration" || topic === "storage");
   if (clarify) {
     lines.push(say("Аль бүтээгдэхүүн бэ?", "Which product do you mean?"));
     lines.push(...products.slice(0, 5).map((product, index) => `${index + 1}) ${formatProductLine(product, context)}`));
@@ -86,10 +87,23 @@ export function buildProductAnswerPlan(input: { text: string; context: Catalogue
       const steps = content.howTo?.filter((step) => safeProductText(step, context.locale));
       if (steps?.length) {
         sections.usage = say("Хэрэглэх заавар:\n", "How to use:\n") + steps.map((step) => `• ${step}`).join("\n");
-        if (product.safetyNotes?.trim() && safeProductText(product.safetyNotes, context.locale)) sections.usage += `\n${say("Анхаарах: ", "Note: ")}${product.safetyNotes.trim()}`;
+        if (content.frequency && safeProductText(content.frequency, context.locale)) sections.usage += `\n${say("Давтамж: ", "How often: ")}${content.frequency}`;
+        if (content.safety && safeProductText(content.safety, context.locale)) sections.usage += `\n${say("Анхаарах: ", "Note: ")}${content.safety}`;
       } else if (content.howTo?.length && context.locale === "en") {
         sections.usage = `The published instructions are in Mongolian on the product page: ${productLink(product, context)}`;
       } else if (!faqHit) { sections.usage = say(`Хэрэглэх зааврыг одоогоор нийтлээгүй байна. Ажилтнаас тодруулж болно: ${contactLine}`, `The usage instructions are not published yet. Our team can help: ${contactLine}`); unpublished.add("usage"); }
+    }
+    // How long to use it: the owner's own FAQ answer or the published frequency; never a guessed course or a result.
+    if (topics.includes("duration")) {
+      const durationFaq = (content.faq || []).find((item) => /хугацаа|удаан|сар|долоо\s*хоног|хэдэн\s+өдөр|how\s+long|weeks|months|duration|course/iu.test(item.q) && safeProductText(item.a, context.locale));
+      if (faqHit && durationFaq && faqHit.item.q === durationFaq.q) answered.add("duration");
+      else if (durationFaq) sections.duration = durationFaq.a;
+      else if (content.frequency && safeProductText(content.frequency, context.locale)) sections.duration = say(`Хэрэглэх давтамж: ${content.frequency}`, `How often: ${content.frequency}`);
+      else { sections.duration = say(`Хэрэглэх хугацааны зөвлөмжийг одоогоор нийтлээгүй байна. Ажилтнаас тодруулж болно: ${contactLine}`, `How long to use it is not published yet. Our team can confirm it: ${contactLine}`); unpublished.add("duration"); }
+    }
+    if (topics.includes("storage")) {
+      if (content.storage && safeProductText(content.storage, context.locale)) sections.storage = say(`Хадгалах: ${content.storage}`, `Storage: ${content.storage}`);
+      else { sections.storage = say(`Хадгалах нөхцөлийг одоогоор нийтлээгүй байна. Ажилтнаас тодруулж болно: ${contactLine}`, `Storage information is not published yet. Our team can confirm it: ${contactLine}`); unpublished.add("storage"); }
     }
     if (topics.includes("photos")) sections.photos = productLink(product, context);
     if (topics.includes("discount")) {

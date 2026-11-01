@@ -9,7 +9,7 @@ export function contactDetails(text: string): { phone: string; name: string } {
   return { phone: normalizePhone(phone), name };
 }
 export function orderCredentials(text: string, state: ConversationState): { orderNumber: string; phone: string; hasOrderCredentials: boolean } {
-  const supplied = /(?:захиалгын\s*(?:дугаар|д[уы]гаар)|захиалга|zahialg(?:iin|yn)?\s*(?:dugaar)?|order\s*(?:number|no\.?|#)?|#)\s*[:：#]?\s*([A-Z0-9][A-Z0-9-]{3,50})/iu.exec(text)?.[1] || "";
+  const supplied = /(?:захиалгын\s*(?:дугаар|д[уы]гаар)|захиалга|zahialg(?:a|iin|yn)?\s*(?:dugaar)?|order\s*(?:number|no\.?|#)?|#)\s*[:：#]?\s*([A-Z0-9][A-Z0-9-]{3,50})/iu.exec(text)?.[1] || "";
   const prior = typeof state.pendingOrderNumber === "string" ? state.pendingOrderNumber : "";
   const orderNumber = supplied || prior;
   const phone = contactDetails(text).phone || (supplied && supplied !== prior ? "" : typeof state.pendingOrderPhone === "string" ? state.pendingOrderPhone : "");

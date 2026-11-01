@@ -12,11 +12,11 @@ import { ContactInfoCard } from "./uudam/ContactInfoCard";
 import { type Settings } from "./types";
 
 /** Only these fields are saved here; the on/off switch lives in the page header and saves at once. */
-const FORM_KEYS = ["metaOutbound", "showExactStock", "lowStockThreshold", "greetingMn", "greetingEn", "handoffMn", "handoffEn", "extraKnowledgeMn", "extraKnowledgeEn", "chatOrdersEnabled", "handoverAutoResumeHours", "aiModel", "aiDailyBudgetUsd"] as const;
+const FORM_KEYS = ["metaOutbound", "showExactStock", "lowStockThreshold", "greetingMn", "greetingEn", "handoffMn", "handoffEn", "extraKnowledgeMn", "extraKnowledgeEn", "chatOrdersEnabled", "handoverAutoResumeHours", "aiModel", "aiDailyBudgetUsd", "chatReservationMinutes", "chatMaxActiveReservationsPerPhone", "chatMaxQuantityPerItem"] as const;
 type FormKey = (typeof FORM_KEYS)[number];
 type Draft = Pick<Settings, FormKey>;
 type TextKey = "greetingMn" | "greetingEn" | "handoffMn" | "handoffEn" | "extraKnowledgeMn" | "extraKnowledgeEn";
-type ErrorCode = "required" | "too_long" | "facts" | "threshold" | "hours" | "budget";
+type ErrorCode = "required" | "too_long" | "facts" | "threshold" | "hours" | "budget" | "minutes" | "per_phone" | "per_item";
 
 // Must match parseSettingsFields in src/chatbot/settingsFields.ts: facts (prices, percentages, promised
 // results) come from the catalogue, never from free text the assistant repeats.
@@ -39,6 +39,10 @@ export function validateAssistantDraft(draft: Draft): Partial<Record<FormKey, Er
   if (!Number.isInteger(draft.lowStockThreshold) || draft.lowStockThreshold < 1 || draft.lowStockThreshold > 1000) errors.lowStockThreshold = "threshold";
   if (!Number.isInteger(draft.handoverAutoResumeHours) || draft.handoverAutoResumeHours < 0 || draft.handoverAutoResumeHours > 720) errors.handoverAutoResumeHours = "hours";
   if (!Number.isFinite(draft.aiDailyBudgetUsd) || draft.aiDailyBudgetUsd < 0 || draft.aiDailyBudgetUsd > 1000) errors.aiDailyBudgetUsd = "budget";
+  // Must match parseSettingsFields: 5 minutes to a day, 1-10 orders per phone, 1-50 units per option.
+  if (!Number.isInteger(draft.chatReservationMinutes) || draft.chatReservationMinutes < 5 || draft.chatReservationMinutes > 1440) errors.chatReservationMinutes = "minutes";
+  if (!Number.isInteger(draft.chatMaxActiveReservationsPerPhone) || draft.chatMaxActiveReservationsPerPhone < 1 || draft.chatMaxActiveReservationsPerPhone > 10) errors.chatMaxActiveReservationsPerPhone = "per_phone";
+  if (!Number.isInteger(draft.chatMaxQuantityPerItem) || draft.chatMaxQuantityPerItem < 1 || draft.chatMaxQuantityPerItem > 50) errors.chatMaxQuantityPerItem = "per_item";
   return errors;
 }
 
@@ -110,7 +114,7 @@ export function AssistantSettings({ settings, onSaved, aiConfigured, defaultMode
       )}
     </Field>
   );
-  const numberField = (key: "lowStockThreshold" | "handoverAutoResumeHours" | "aiDailyBudgetUsd", min: number, max: number, step: number) => (
+  const numberField = (key: "lowStockThreshold" | "handoverAutoResumeHours" | "aiDailyBudgetUsd" | "chatReservationMinutes" | "chatMaxActiveReservationsPerPhone" | "chatMaxQuantityPerItem", min: number, max: number, step: number) => (
     <Field label={t(`assistant.fields.${key}`)} hint={t(`assistant.fields.${key}_hint`)} error={errorText(key)}>
       {(props) => (
         <input
@@ -159,6 +163,12 @@ export function AssistantSettings({ settings, onSaved, aiConfigured, defaultMode
           label={t("assistant.fields.chatOrdersEnabled")}
           description={t("assistant.fields.chatOrdersEnabled_hint")}
         />
+        <div className="grid gap-[16px] border-t border-ink/10 py-[16px] md:grid-cols-3">
+          {numberField("chatReservationMinutes", 5, 1440, 5)}
+          {numberField("chatMaxActiveReservationsPerPhone", 1, 10, 1)}
+          {numberField("chatMaxQuantityPerItem", 1, 50, 1)}
+        </div>
+        <p className="pb-[14px] text-[13px] leading-relaxed text-taupe">{t("assistant.sections.reservations_hint")}</p>
       </Panel>
 
       <Panel title={t("assistant.sections.handover_timer")} description={t("assistant.sections.handover_timer_hint")} bodyClassName="p-[16px] md:p-[20px]">

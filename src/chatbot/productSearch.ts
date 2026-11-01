@@ -136,6 +136,11 @@ export function resolveProductFromUserMessage(text: string, products: CatalogPro
   const fullNameMentions = matches.filter((match) => normText(match.product.productName).length >= 8 && normalizedQuery.includes(normText(match.product.productName)));
   if (fullNameMentions.length === 1) return { status: "verified", product: fullNameMentions[0].product, candidates: [] };
   const queryTokens = unique(phoneticKeywordTokens(text));
+  const namedByEveryWord = matches.filter((match) => {
+    const tokens = phoneticKeywordTokens(match.product.productName);
+    return queryTokens.length > 0 && queryTokens.every((word) => tokens.some((token) => phoneticTokenMatches(word, token)));
+  });
+  if (namedByEveryWord.length === 1 && matches.some((match) => match !== namedByEveryWord[0])) return { status: "verified", product: namedByEveryWord[0].product, candidates: [] };
   const indistinguishable = matches.filter((match) => {
     const tokens = phoneticKeywordTokens(getProductSearchHaystack(match.product));
     return queryTokens.length > 0 && queryTokens.every((word) => tokens.some((token) => phoneticTokenMatches(word, token)));

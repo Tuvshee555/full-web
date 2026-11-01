@@ -29,6 +29,24 @@ export const PRICE_PER_MILLION_USD: Record<string, [number, number]> = {
  */
 export const SELECTABLE_MODELS = ["", "gpt-4.1", "gpt-4.1-mini", "gpt-4o-mini"] as const;
 
+/**
+ * The production default, approved on 2026-11-02 after the held-out comparison (docs/chatbot/MODEL_EVAL.md):
+ * gpt-4.1-mini matched gpt-4.1 (56/59 each) at about a fifth of the cost.
+ */
+export const DEFAULT_AI_MODEL = "gpt-4.1-mini";
+
+/**
+ * Which model to call: the owner's admin choice when it is on the allow-list, else the deployment's
+ * OPENAI_MODEL when it is a model with a known price, else the approved default. A premium model can
+ * only be reached through one of those two explicit choices, never by accident.
+ */
+export function resolveAiModel(settingModel?: string | null): string {
+  if (settingModel && (SELECTABLE_MODELS as readonly string[]).includes(settingModel)) return settingModel;
+  const fromEnv = (process.env.OPENAI_MODEL || "").trim();
+  if (fromEnv && estimateCostUsd(fromEnv, { prompt_tokens: 0, completion_tokens: 0 }) !== null) return fromEnv;
+  return DEFAULT_AI_MODEL;
+}
+
 export function estimateCostUsd(model: string, usage: AiUsage): number | null {
   const price = PRICE_PER_MILLION_USD[model] ?? PRICE_PER_MILLION_USD[model.replace(/-\d{4}-\d{2}-\d{2}$/, "")];
   if (!price) return null;

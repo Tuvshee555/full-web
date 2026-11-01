@@ -6,6 +6,7 @@
  * of staying silent.
  */
 import { askOpenAIChatParts } from "./openaiFallback";
+import { resolveAiModel } from "./aiUsage";
 import { CHATBOT_REPLY_RULES } from "./chatbotReplyPolicy";
 import { contentOf, safeProductText } from "./productFacts";
 import { formatVariantLine, money, productLink, productPrices } from "./productPriceBlock";
@@ -20,10 +21,15 @@ function productBlock(product: CatalogProduct, context: CatalogueContext, focuse
   const lines = [`- ${product.productName} | ${priceText} | category: ${product.category?.categoryName || product.category?.name || "-"} | link: ${productLink(product, context)}`];
   if (product.sizes.length) lines.push(`  variants: ${product.sizes.map((variant) => formatVariantLine(variant, context)).join("; ")}`);
   if (focused) {
+    // Only facts the owner verified reach the model (catalogue.productKnowledge); unverified text stays out of every reply.
     const content = contentOf(product, context);
-    if (product.ingredients?.trim()) lines.push(`  description: ${product.ingredients.trim().replace(/\s+/g, " ").slice(0, 600)}`);
+    if (content.description) lines.push(`  description: ${content.description}`);
     if (content.howTo?.length) lines.push(`  how to use: ${content.howTo.filter((step) => safeProductText(step, "mn")).join(" / ")}`);
+    if (content.frequency) lines.push(`  how often: ${content.frequency}`);
     if (content.fullIngredients) lines.push(`  ingredients: ${content.fullIngredients}`);
+    if (content.storage) lines.push(`  storage: ${content.storage}`);
+    if (content.safety) lines.push(`  safety note: ${content.safety}`);
+    if (content.faq?.length) lines.push(`  product FAQ: ${content.faq.slice(0, 6).map((item) => `Q: ${item.q} A: ${item.a}`).join(" | ")}`);
   }
   return lines.join("\n");
 }
@@ -80,7 +86,7 @@ export function replyModel(model?: string): AskReply {
   return async (system, user) => {
     const result = await askOpenAIChatParts([{ text: user }], {
       systemText: system, temperature: 0.3, maxOutputTokens: 500, timeoutMs: WRITER_TIMEOUT_MS,
-      model: model || process.env.OPENAI_REPLY_MODEL || process.env.OPENAI_MODEL || "gpt-4.1",
+      model: model || process.env.OPENAI_REPLY_MODEL || resolveAiModel(),
       alternateModelAttempted: true,
       source: "product_writer",
     }).catch(() => null);

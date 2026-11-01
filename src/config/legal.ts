@@ -41,6 +41,7 @@ export function termsDocument(localeInput: string, fee: string): LegalDocument {
           items: [
             "QPay: pay the QR code within 15 minutes of confirming the order. If it isn't paid in time, the order is cancelled automatically and the stock is released.",
             "Bank transfer: write your order number in the transfer description and pay within 24 hours. We check our bank account and confirm the payment. An order not paid within 24 hours is cancelled automatically.",
+            "Orders placed in the chat assistant: the chat states the payment deadline for that order (normally shorter than 24 hours, about an hour). An order not paid by then is cancelled automatically and the stock is released; you can simply order again.",
             "If you sent money for an order that was already cancelled, contact us with your order number and we will look into it.",
           ],
         },
@@ -87,6 +88,7 @@ export function termsDocument(localeInput: string, fee: string): LegalDocument {
         items: [
           "QPay: захиалга баталгаажуулсны дараа гарах QR кодыг 15 минутын дотор төлнө. Хугацаандаа төлөөгүй бол захиалга автоматаар цуцлагдаж, нөөц чөлөөлөгдөнө.",
           "Банкны шилжүүлэг: гүйлгээний утга дээр захиалгын дугаараа заавал бичиж, 24 цагийн дотор шилжүүлнэ. Төлбөр орсныг бид банкаар шалгаж баталгаажуулна. 24 цагийн дотор шилжүүлээгүй бол захиалга автоматаар цуцлагдана.",
+          "Чат туслахаар өгсөн захиалга: төлбөрийн хугацааг чат дээр тухайн захиалгад зааж өгнө (ихэвчлэн 24 цагаас богино, ойролцоогоор нэг цаг). Хугацаандаа төлөөгүй бол захиалга автоматаар цуцлагдаж, нөөц чөлөөлөгдөнө; дахин захиалж болно.",
           "Цуцлагдсан захиалгад мөнгө шилжүүлсэн бол захиалгын дугаараа хэлж бидэнтэй холбогдоно уу; бид төлбөрийг шалгаж шийдвэрлэнэ.",
         ],
       },

@@ -7,6 +7,9 @@
 //
 // Prices, names and phone numbers here are the fixture's invented values, never the live shop's.
 
+import { retiredHeldoutCases } from "./heldout-2026-11-01.mjs";
+import { tunedCases } from "./tuned-2026-11-02.mjs";
+
 const t = (text, expect = {}) => ({ text, expect });
 const mutate = (change) => ({ mutate: change });
 const c = (id, category, locale, turns, options = {}) => ({ id, category, locale, turns, ...options });
@@ -240,4 +243,7 @@ export const evalCases = [
   c("review-01-thin-brows", "context", "mn", [t("Сайн байна уу", { must: ["Сайн байна уу"] }), t("Хөмсөг нимгэн, ургуулах юм байна уу?", { mustNot: ["ургана"] }), t("Үнэ хэд вэ?", { must: ["₮"] }), t("Хэд хоногт хүргэх вэ?", { must: ["ажлын өдөр"] }), t("За тэгвэл яаж захиалах вэ", { must: ["сагс|захиал|/buy/"] })]),
 ];
 
+// The retired first held-out set (2026-11-01) joins the gate: a regression on it fails the tests.
+evalCases.push(...retiredHeldoutCases.map((item) => ({ ...item, category: `heldout1_${item.category}` })));
+evalCases.push(...tunedCases.map((item) => ({ ...item, category: `tuned2_${item.category}` })));
 export const CATEGORIES = [...new Set(evalCases.map((item) => item.category))];

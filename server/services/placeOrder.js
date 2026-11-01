@@ -10,6 +10,17 @@ import { applyStockDecrements } from "../utils/stock.js";
 import { background } from "../utils/background.js";
 import { deliveryFee as currentDeliveryFee } from "../utils/deliveryFee.js";
 import { invalidateCatalog } from "../utils/cache.js";
+import { paymentWindowMs } from "../utils/orderPaid.js";
+import { expireUnpaidOrders, withTransaction } from "../jobs/expireOrders.js";
+
+export const ORDER_SOURCES = new Set(["web", "chat"]);
+
+/** When a new unpaid order's reservation ends: the caller's deadline, else the payment method's window (COD: none). */
+export function reservationDeadline({ paymentMethod, expiresAt, now = new Date() }) {
+  if (paymentMethod === "COD") return null;
+  if (expiresAt instanceof Date && Number.isFinite(expiresAt.getTime())) return expiresAt;
+  return new Date(now.getTime() + paymentWindowMs(paymentMethod));
+}
 
 export const DELIVERY_ZONES = new Set(["UB", "RURAL"]);
 export const PAYMENT_METHODS = new Set(["COD", "BANK", "QPAY"]);
@@ -23,7 +34,7 @@ export class OrderError extends Error {
   }
 }
 
-const ORDER_SELECT = { id: true, orderNumber: true, status: true, paymentMethod: true, totalPrice: true, deliveryFee: true, deliveryZone: true, userId: true };
+const ORDER_SELECT = { id: true, orderNumber: true, status: true, paymentMethod: true, totalPrice: true, deliveryFee: true, deliveryZone: true, userId: true, expiresAt: true, source: true };
 const safe = (value) => (typeof value === "string" && value.trim().length ? value.trim() : null);
 
 /** Shape the client-facing order response in one place. */
@@ -38,9 +49,11 @@ export const toOrderResponse = (order) => ({
  * transaction, and a repeated idempotency key returns the first order instead of a duplicate.
  * Throws OrderError (code, HTTP status, message) on every refusal.
  */
-export async function placeOrder(input, { client = prisma } = {}) {
-  const { userId, items, paymentMethod, deliveryZone, idempotencyKey, totalPrice, firstName, lastName, phone, city, district, khoroo, address, notes } = input;
+export async function placeOrder(input, { client = prisma, retryAfterExpiry = true } = {}) {
+  const { userId, items, paymentMethod, deliveryZone, idempotencyKey, totalPrice, firstName, lastName, phone, city, district, khoroo, address, notes, source, expiresAt } = input;
   if (!userId) throw new OrderError("UNAUTHORIZED", 401, "Unauthorized");
+  if (source != null && !ORDER_SOURCES.has(source)) throw new OrderError("INVALID_SOURCE", 400, "Invalid order source");
+  if (expiresAt != null && !(expiresAt instanceof Date && Number.isFinite(expiresAt.getTime()) && expiresAt.getTime() > Date.now())) throw new OrderError("INVALID_DEADLINE", 400, "Invalid reservation deadline");
   const safeKey = typeof idempotencyKey === "string" && idempotencyKey.trim().length ? idempotencyKey.trim() : null;
   if (safeKey?.length > 100) throw new OrderError("INVALID_KEY", 400, "Invalid checkout key");
 
@@ -106,11 +119,12 @@ export async function placeOrder(input, { client = prisma } = {}) {
   let order;
   try {
     // Reserve stock and create the order atomically: a short size rolls everything back.
-    order = await client.$transaction(async (tx) => {
+    order = await withTransaction(client, async (tx) => {
       await applyStockDecrements(tx, pricedItems);
       return tx.order.create({
         data: {
           userId, orderNumber, idempotencyKey: safeKey, totalPrice: computedTotalPrice, deliveryFee, deliveryZone: normalizedZone, paymentMethod, status,
+          source: source || "web", expiresAt: reservationDeadline({ paymentMethod, expiresAt }),
           firstName: safe(firstName), lastName: safe(lastName), phone: safe(phone), city: safe(city), district: safe(district), khoroo: safe(khoroo), address: safe(address), notes: safe(notes),
           orderItems: { create: pricedItems },
         },
@@ -120,7 +134,14 @@ export async function placeOrder(input, { client = prisma } = {}) {
   } catch (createErr) {
     if (createErr?.code === "INVALID_SIZE") throw new OrderError("INVALID_SIZE", 400, "Please select a valid product size.");
     if (createErr?.code === "INVALID_QUANTITY") throw new OrderError("INVALID_QUANTITY", 400, "Invalid item quantity");
-    if (createErr?.code === "OUT_OF_STOCK") throw new OrderError("OUT_OF_STOCK", 409, "Sorry, an item just went out of stock. Please adjust your cart.", { size: createErr.size, productId: createErr.productId });
+    if (createErr?.code === "OUT_OF_STOCK") {
+      // The units may be held by an unpaid order whose deadline has passed and that no sweep has
+      // cancelled yet: release those first and try once more, so a real buyer is not refused.
+      if (retryAfterExpiry && typeof client.$transaction === "function" && (await expireUnpaidOrders(client, { trigger: "inline", limit: 50 }).catch(() => 0)) > 0) {
+        return placeOrder(input, { client, retryAfterExpiry: false });
+      }
+      throw new OrderError("OUT_OF_STOCK", 409, "Sorry, an item just went out of stock. Please adjust your cart.", { size: createErr.size, productId: createErr.productId });
+    }
     if (createErr?.code === "P2002" && safeKey) {
       const existing = await client.order.findUnique({ where: { idempotencyKey: safeKey }, select: ORDER_SELECT });
       if (existing && existing.userId === userId) return { order: existing, replayed: true };

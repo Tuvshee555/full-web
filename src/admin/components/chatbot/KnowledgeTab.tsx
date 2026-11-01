@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { BookOpen, Check, Loader2, Minus, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, BookOpen, Check, Loader2, Minus, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@admin/lib/api";
 import { useAdminNav } from "@admin/lib/adminNav";
@@ -11,9 +11,12 @@ import { EmptyState, ErrorState, LoadingRows, Notice } from "@admin/components/u
 import { Panel } from "@admin/components/ui/page";
 import { StatusPill } from "@admin/components/ui/status";
 import { cn } from "@admin/lib/utils";
+import { type FactStatus, type ProductFactKey } from "./types";
 
-type ProductFacts = { id: string; productName: string; updatedAt: string; facts: { volume: boolean; howToUse: boolean; ingredientList: boolean; safetyNotes: boolean; faq: number }; missing: string[] };
+type ProductFacts = { id: string; productName: string; updatedAt: string; createdAt?: string; facts: { volume: boolean; howToUse: boolean; ingredientList: boolean; safetyNotes: boolean; faq: number }; status: Record<ProductFactKey, FactStatus>; missing: string[]; unverified: string[]; faqCount: number };
 type Knowledge = { products: ProductFacts[]; complete: number; policies: Record<"mn" | "en", { delivery: string; returns: string; safety: string }>; deliveryFee: number; store: { contact: { phone?: string; email?: string }; bank: { name: string; holder: string; account: string } } };
+/** The facts the assistant can quote once verified, in the order the table shows them. */
+const TABLE_FACTS: ProductFactKey[] = ["description", "claims", "ingredients", "volume", "usage", "frequency", "storage", "safety", "photos", "price", "stock"];
 type FaqRow = { id: string; question: string; answer: string; questionEn: string; answerEn: string; enabled: boolean; sortOrder: number };
 type FaqDraft = Omit<FaqRow, "id" | "sortOrder"> & { id?: string };
 
@@ -82,28 +85,30 @@ export function KnowledgeTab() {
   if (error && !data) return <ErrorState message={t("knowledge.errors.load_failed")} onRetry={() => void load()} retrying={loading} />;
   if (!data) return null;
   const policies = data.policies[locale === "en" ? "en" : "mn"];
-  const factCell = (ok: boolean) => ok
-    ? <span className="inline-flex items-center gap-[4px] text-[13px] text-[#3d4a34]"><Check aria-hidden size={14} />{t("knowledge.yes")}</span>
-    : <span className="inline-flex items-center gap-[4px] text-[13px] font-medium text-terracotta"><Minus aria-hidden size={14} />{t("knowledge.no")}</span>;
+  const statusCell = (status: FactStatus | undefined) => status === "verified"
+    ? <span className="inline-flex items-center gap-[4px] text-[13px] text-[#3d4a34]"><Check aria-hidden size={14} />{t("knowledge.status.verified")}</span>
+    : status === "unverified"
+      ? <span className="inline-flex items-center gap-[4px] text-[13px] font-medium text-[#8a6d1f]"><AlertTriangle aria-hidden size={14} />{t("knowledge.status.unverified")}</span>
+      : <span className="inline-flex items-center gap-[4px] text-[13px] font-medium text-terracotta"><Minus aria-hidden size={14} />{t("knowledge.status.missing")}</span>;
+  const unverifiedTotal = data.products.reduce((sum, product) => sum + product.unverified.length, 0);
+  const verifiedProducts = data.products.filter((product) => TABLE_FACTS.every((key) => product.status[key] !== "unverified")).length;
 
   return (
     <div className="space-y-[16px]">
       <Notice title={t("knowledge.title")}>{t("knowledge.hint")}</Notice>
+      {unverifiedTotal > 0 && <Notice tone="warning" title={t("knowledge.unverified_title", { count: unverifiedTotal })}>{t("knowledge.unverified_hint")}</Notice>}
 
-      <Panel title={t("knowledge.products_title")} description={t("knowledge.products_hint")} action={<StatusPill tone={data.complete === data.products.length ? "success" : "attention"}>{t("knowledge.complete", { done: data.complete, total: data.products.length })}</StatusPill>}>
+      <Panel title={t("knowledge.products_title")} description={t("knowledge.products_hint")} action={<StatusPill tone={verifiedProducts === data.products.length ? "success" : "attention"}>{t("knowledge.verified_count", { done: verifiedProducts, total: data.products.length })}</StatusPill>}>
         {data.products.length === 0 ? <EmptyState icon={BookOpen} title={t("knowledge.none")} /> : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
-              <thead className="text-taupe"><tr>{(["product", "volume", "how_to", "ingredients", "safety", "faq"] as const).map((column) => <th key={column} scope="col" className="px-[12px] py-[10px] font-medium first:pl-[16px] md:first:pl-[20px]">{t(`knowledge.col.${column}`)}</th>)}<th scope="col" className="sr-only">{t("knowledge.edit")}</th></tr></thead>
+              <thead className="text-taupe"><tr><th scope="col" className="px-[12px] py-[10px] pl-[16px] font-medium md:pl-[20px]">{t("knowledge.col.product")}</th>{TABLE_FACTS.map((key) => <th key={key} scope="col" className="px-[12px] py-[10px] font-medium">{t(`knowledge.fact.${key}`)}</th>)}<th scope="col" className="px-[12px] py-[10px] font-medium">{t("knowledge.col.faq")}</th><th scope="col" className="sr-only">{t("knowledge.edit")}</th></tr></thead>
               <tbody className="divide-y divide-ink/10">
                 {data.products.map((product) => (
-                  <tr key={product.id} className={cn(product.missing.length ? "bg-terracotta/[0.03]" : "")}>
+                  <tr key={product.id} className={cn(product.unverified.length || product.missing.length ? "bg-terracotta/[0.03]" : "")}>
                     <td className="px-[12px] py-[10px] pl-[16px] font-medium text-ink md:pl-[20px]">{product.productName}</td>
-                    <td className="px-[12px] py-[10px]">{factCell(product.facts.volume)}</td>
-                    <td className="px-[12px] py-[10px]">{factCell(product.facts.howToUse)}</td>
-                    <td className="px-[12px] py-[10px]">{factCell(product.facts.ingredientList)}</td>
-                    <td className="px-[12px] py-[10px]">{factCell(product.facts.safetyNotes)}</td>
-                    <td className="px-[12px] py-[10px] text-taupe">{t("knowledge.faq_count", { count: product.facts.faq })}</td>
+                    {TABLE_FACTS.map((key) => <td key={key} className="px-[12px] py-[10px]">{statusCell(product.status?.[key])}</td>)}
+                    <td className="px-[12px] py-[10px] text-taupe">{t("knowledge.faq_count", { count: product.faqCount ?? product.facts.faq })}</td>
                     <td className="px-[12px] py-[10px] pr-[16px] text-right md:pr-[20px]"><button type="button" className="btn-secondary btn-sm" onClick={() => go("products", { product: product.id })}>{t("knowledge.edit")}</button></td>
                   </tr>
                 ))}
@@ -111,6 +116,7 @@ export function KnowledgeTab() {
             </table>
           </div>
         )}
+        <p className="px-[16px] py-[10px] text-[12px] leading-relaxed text-taupe md:px-[20px]">{t("knowledge.legend")}</p>
       </Panel>
 
       <Panel title={t("knowledge.faq_title")} description={t("knowledge.faq_hint")} action={!editing && <button type="button" className="btn btn-sm" onClick={() => setEditing(emptyDraft())}><Plus aria-hidden size={14} />{t("knowledge.faq_add")}</button>}>

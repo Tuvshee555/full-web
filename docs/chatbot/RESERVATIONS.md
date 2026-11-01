@@ -1,46 +1,73 @@
-# Stock reservations from chat orders: investigation and recommendation (1 November 2026)
+# Stock reservations from chat orders: policy, implementation, impact (2 November 2026)
 
-No policy was changed. This documents what happens today and what is proposed.
+The investigation of 1 November reproduced the risks (several unpaid chat orders per phone, a chat
+order holding stock for 24 hours, expiry that depended on storefront traffic). The owner approved a
+policy on 2 November; this is what was built. Nothing changes for website checkout orders.
 
-## How it works today
+## The policy (owner-configurable: Admin → AI Chatbot → AI settings → Orders in the chat)
 
-- A tracked size (a stock number entered in the admin) is reduced when an order is created, inside
-  the same database transaction, so two orders can never sell the same last unit.
-- A chat order is a bank-transfer order: it holds its units for 24 hours. A website QPay order holds
-  them for 15 minutes, a website bank-transfer order also for 24 hours. These deadlines are written
-  in the Terms page and a test keeps them equal to the code.
-- Unpaid orders past their deadline are cancelled and their units returned by `expireUnpaidOrders`.
-  On Vercel there is no cron: it runs when a request reaches the shop's `/api` adapter, at most once a
-  minute per warm instance, 100 orders per payment method per run. Storefront browsing triggers it.
-- **Live shop today: no size has a stock number**, so nothing is reserved and every product is
-  "available to order". The risks below start the day the owner enters stock counts.
-
-## What was reproduced (isolated PostgreSQL, invented product with 5 tracked units)
-
-| Check | Result |
-| --- | --- |
-| The same "тийм" retried with the same message id | 1 order: duplicate detection returns the stored reply |
-| Two "тийм" sent at the same moment | 1 order: the second gets "conversation busy" |
-| Two purchases in one conversation, confirmed one after the other | 2 unpaid orders, both holding stock |
-| One customer orders all remaining units | Allowed; the next customer is told the size is sold out, although nothing is paid |
-| The same phone orders in chat (bank) and on the site (QPay) | 2 unpaid orders; the QPay one frees its units after 15 min, the chat one after 24 h |
-| After 24 hours | The expiry job cancelled all 5 orders and returned all 5 units |
-
-Abuse ceiling with the current rate limits: 10 new chats per hour per network address, 15 messages
-a minute per chat, about 5 messages per order. One address can therefore hold stock in many orders,
-for 24 hours each, without paying. The website's bank-transfer checkout has the same exposure, with
-the guest-account limit as its only brake.
-
-## Recommendation (needs approval before any change)
-
-| # | Protection | Effect on real customers | Effort |
+| Rule | Default | Range | Where it is enforced |
 | --- | --- | --- | --- |
-| 1 | **One unpaid chat order per conversation.** A second "авъя" while one is unpaid shows that order and its bank details, and offers to add to it or cancel it, instead of reserving again. | None for normal buyers; prevents accidental duplicates. | Small |
-| 2 | **One unpaid chat order per phone number** across chats within 24 hours (a second goes to staff). | A real customer ordering twice in a day talks to staff once. | Small |
-| 3 | **Quantity cap for chat orders**, for example 5 units of one size; more is handed to staff. | Bulk buyers talk to staff. | Small |
-| 4 | **Stock floor for chat orders**: chat cannot reserve the last unit(s) of a size (for example keep 1), so an unpaid chat order cannot sell out a product. | The last unit can only be bought on the website. | Small |
-| 5 | Shorter hold for chat bank orders (for example 6 hours) with a reminder | Changes a promise in the Terms page; tests tie the two together. | Medium; owner decision |
-| 6 | An expiry trigger that does not depend on traffic (a daily Vercel cron as a backstop) | None | Small; Hobby crons run once a day |
+| A chat order holds its stock for | 60 minutes | 5 to 1440 | `Order.expiresAt` is set when the order is created (`placeChatOrder`); the customer's summary and confirmation state the window |
+| Unpaid chat orders one phone number may hold at a time | 1 | 1 to 10 | `placeChatOrder`, counted inside a per-phone advisory lock after that phone's expired orders are released |
+| Units of one product option in one chat order | 5 | 1 to 50 | The engine (`purchase.ts`: the customer gets the website cart link for the full quantity, and staff are told) and again server-side in `placeChatOrder` |
 
-Proposed first step: 1, 2 and 3 together, before the owner starts tracking stock. 4 if stock is
-very small. Keep the 24-hour promise (5) unchanged unless the owner wants to rewrite the Terms.
+Website checkout orders keep their own deadlines (QPay 15 minutes, bank transfer 24 hours, both
+written in the Terms); they are not counted against the chat limits and are never refused by them.
+The Terms page now also says that chat orders carry the deadline stated in the chat.
+
+## What a customer sees
+
+- Order summary: "Төлбөр: дансаар шилжүүлнэ (60 минут дотор)". Confirmation: "60 минут дотор
+  төлбөр хийгээгүй бол захиалга автоматаар цуцлагдаж, нөөц чөлөөлөгдөнө."
+- Second order from the same phone while the first is unpaid: the first order's number, total and
+  the minutes left, the bank details again, and a note that staff can change it. The chat is flagged
+  for staff (reason "order problem").
+- More than 5 units: "Чатаар нэг захиалгад нэг бүтээгдэхүүнээс хамгийн ихдээ 5 ширхэг захиалж
+  болно", the website cart link with the requested quantity, and the chat is flagged for staff
+  (reason "bulk purchase").
+- Duplicate confirmations stay idempotent (same message id → stored reply; two at once → one order).
+
+## Expiry: how a reservation ends
+
+Every order created from now on carries `expiresAt`; older rows fall back to their payment method's
+window. `expireUnpaidOrders` claims each due order with a compare-and-set on its status, cancels it,
+stamps `expiredAt` and returns the stock in the same transaction, so two overlapping runs can never
+restock one order twice. It runs from four places:
+
+1. Shop traffic: every `/api/*` request and every chat message (at most once a minute per warm
+   instance) — unchanged behaviour, now also on chat traffic.
+2. Inline, before a chat order: that phone's expired chat orders are released first, so a customer
+   whose earlier order expired is not refused.
+3. Inline, on a stock shortfall at checkout or in the chat: due orders are released once and the
+   reservation is retried, so a real buyer gets a unit held by a stale reservation.
+4. Scheduled: `POST /api/jobs/expire-orders` with the `CRON_SECRET` (Vercel Cron daily, plus any
+   external scheduler every few minutes; see RELEASE_2026-11.md). Each run is recorded in `JobRun`
+   and shown on the AI Chatbot overview ("Cleanup ran … expired N").
+
+The schedule is **not verified in production yet**: `vercel.json` and the endpoint are in the
+branch, the secret must be set and the first run checked after deployment (release checklist).
+
+## Impact on legitimate customers
+
+| Situation | Before | Now |
+| --- | --- | --- |
+| Orders in chat, pays within the hour | Order held 24 h | Same outcome; the deadline is one hour (configurable) |
+| Orders in chat, pays after 70 minutes | Order still open | Order cancelled at 60 minutes, stock released; the transfer lands on a cancelled order, which the admin flags for review as today ("cancelled order received a payment") |
+| Wants a second product while the first chat order is unpaid | Second reservation | Shown the first order; staff can add to it or cancel it |
+| Wants 8 units | Reserved in chat for 24 h | Website cart for 8 units, staff told |
+| Orders on the website while a chat order is unpaid | Allowed | Allowed |
+| A stale reservation holds the last unit | Next buyer refused until a sweep ran | Next buyer's order releases it inline and succeeds |
+
+Recommendation for the owner: keep 60 minutes unless bank transfers regularly take longer; raise
+"unpaid chat orders per phone" to 2 only if real customers complain. Stock counts are still not
+tracked on the live catalogue, so none of this bites until stock numbers are entered.
+
+## Verified by
+
+- `tests/chatbot/reservations.test.ts` (engine: cap, window text, refusal reply, settings ranges)
+- `tests/commerce/expire-orders.test.mjs` (job: deadline vs legacy window, once-only restock, scoped
+  sweep, deadline stamping, inline retry, cron auth)
+- `scripts/test-chatbot-db.mjs` (real PostgreSQL: one unpaid order per phone, cap, website order
+  unaffected, cron endpoint refuses without the secret and expires exactly once, repeated run is a
+  no-op, the phone can order again, concurrent confirmations create one order, audit trail)

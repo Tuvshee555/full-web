@@ -1,7 +1,10 @@
 // Opt-in integration test for the chat assistant's persistence: its OWN temporary PostgreSQL
 // cluster (never the development or production database), the real handler, real SQL.
 // Covers what unit tests cannot: lead reason/context columns, customer name/phone on the
-// conversation, a confirmed chat order through the shared order service, and automatic hand-back.
+// conversation, a confirmed chat order through the shared order service, automatic hand-back,
+// the reservation policy (one unpaid chat order per phone, the per-item cap, concurrent
+// confirmations, expiry through the secured cron endpoint, the website checkout left alone),
+// fact verification, the audit trail and the daily budget.
 //   npm run test:chatbot:db
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
@@ -15,7 +18,7 @@ import EmbeddedPostgres from "embedded-postgres";
 import { PrismaClient } from "@prisma/client";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const port = 5442;
+const port = Number(process.env.CHATBOT_DB_TEST_PORT) || 5442;
 const database = "chatbot_integration";
 const password = crypto.randomBytes(16).toString("hex");
 const url = `postgresql://postgres:${password}@127.0.0.1:${port}/${database}?sslmode=disable&connection_limit=12`;
@@ -28,7 +31,7 @@ let prisma; let started = false; let passed = 0; let failed = false;
 
 const ensurePortAvailable = () => new Promise((resolve, reject) => {
   const server = net.createServer();
-  server.once("error", () => reject(new Error(`Integration-test port ${port} is busy. Stop that test process and retry.`)));
+  server.once("error", () => reject(new Error(`Integration-test port ${port} is busy. Stop that test process and retry, or set CHATBOT_DB_TEST_PORT to another port.`)));
   server.listen(port, "127.0.0.1", () => server.close(resolve));
 });
 const applySchema = () => new Promise((resolve, reject) => {
@@ -74,7 +77,8 @@ try {
   const { backgroundSettled } = await import("../server/utils/background.js");
 
   await prisma.chatSettings.create({ data: { id: "default", chatOrdersEnabled: true, handoverAutoResumeHours: 24 } });
-  const product = await prisma.product.create({ data: { productName: "Тест сэрум", price: 50000, image: "/x.png", ingredients: "Тест", volume: "5 мл", howToUse: "Орой түрхэнэ.", sizes: { create: [{ label: "5 мл", stock: 3 }] } } });
+  const verifiedAt = new Date().toISOString();
+  const product = await prisma.product.create({ data: { productName: "Тест сэрум", price: 50000, image: "/x.png", ingredients: "Тест", volume: "5 мл", howToUse: "Орой түрхэнэ.", verifiedFacts: { volume: verifiedAt, usage: verifiedAt }, sizes: { create: [{ label: "5 мл", stock: 3 }] } } });
   await prisma.chatFaq.create({ data: { question: "Ажлын цаг хэд вэ?", answer: "Тест: 10:00–18:00." } });
   const conversation = await prisma.chatConversation.create({ data: { channel: "website", tokenHash: "x", locale: "mn" } });
   const turn = async (text) => (await handleCustomerMessage({ conversationId: conversation.id, text, clientMessageId: crypto.randomUUID() })).reply?.text ?? "";
@@ -142,8 +146,17 @@ try {
   await updateProduct({ params: { id: product.id }, body: { price: 55000, howToUse: "Шинэ заавар: өглөө түрхэнэ." } }, controllerRes);
   assert.equal(controllerRes.statusCode, 200);
   assert.match(await turn("Тест сэрум үнэ хэд вэ"), /55,000₮/);
-  assert.match(await turn("Тест сэрум яаж хэрэглэх вэ"), /Шинэ заавар/);
-  console.log("PASS an admin price and usage edit is in the next answer"); passed += 1;
+  // Changed text loses its verification tick: the assistant no longer quotes it until the owner re-verifies.
+  const unverified = await turn("Тест сэрум яаж хэрэглэх вэ");
+  assert.match(unverified, /нийтлээгүй/);
+  assert.doesNotMatch(unverified, /Шинэ заавар/);
+  const reverify = { statusCode: 200, body: null, status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; return this; } };
+  await updateProduct({ params: { id: product.id }, body: { verifiedFacts: { usage: true } } }, reverify);
+  assert.equal(reverify.statusCode, 200);
+  assert.ok(reverify.body.verifiedFacts.usage, "the tick is dated");
+  const freshChat = await prisma.chatConversation.create({ data: { channel: "website", tokenHash: "v", locale: "mn" } });
+  assert.match((await handleCustomerMessage({ conversationId: freshChat.id, text: "Тест сэрум яаж хэрэглэх вэ", clientMessageId: crypto.randomUUID() })).reply?.text ?? "", /Шинэ заавар/);
+  console.log("PASS an admin price edit is in the next answer; an edited fact is quoted only once re-verified"); passed += 1;
 
   // Admin API: permissions, notes, search, knowledge, FAQ guard, analytics, no secrets.
   const jwt = (await import("jsonwebtoken")).default;
@@ -182,7 +195,78 @@ try {
   assert.equal(analytics.body.period.ordersFromChat, 1);
   assert.ok(analytics.body.period.handovers >= 1);
   assert.equal(analytics.body.period.handoversByReason.complaint >= 1, true);
+  assert.equal(knowledge.body.products[0].status.usage, "verified");
+  assert.equal(knowledge.body.products[0].status.ingredients, "missing");
+  assert.equal(knowledge.body.products[0].status.description, "unverified");
   console.log("PASS admin API: permissions, notes, search, knowledge, FAQ amount guard, analytics, no secrets"); passed += 1;
+
+  // ── Reservation policy (defaults: 60 minutes, one unpaid chat order per phone, 5 units per option) ──
+  const chatWith = async (phoneTag) => { const row = await prisma.chatConversation.create({ data: { channel: "website", tokenHash: `r-${phoneTag}-${crypto.randomUUID()}`, locale: "mn" } }); return (text) => handleCustomerMessage({ conversationId: row.id, text, clientMessageId: crypto.randomUUID() }).then((result) => result.reply?.text ?? ""); };
+  const orderFlow = async (say, phone, quantity = 1) => { await say(`Тест сэрум ${quantity} ширхэг авъя`); await say("энд захиалъя"); await say(`Бат ${phone}`); await say("Баянгол дүүрэг 3-р хороо 5-р байр"); return say("тийм"); };
+  const stockNow = async () => (await prisma.productSize.findFirstOrThrow({ where: { productId: product.id } })).stock;
+  const firstOrder = await prisma.order.findFirstOrThrow({ where: { source: "chat" } });
+  assert.ok(firstOrder.expiresAt && firstOrder.expiresAt.getTime() - firstOrder.createdAt.getTime() > 59 * 60_000 && firstOrder.expiresAt.getTime() - firstOrder.createdAt.getTime() < 61 * 60_000, "a chat order holds its stock for 60 minutes");
+  // (a) The same phone cannot hold a second unpaid chat order; the customer is shown the first one.
+  const refused = await orderFlow(await chatWith("a"), "88000000");
+  assert.match(refused, new RegExp(`№${firstOrder.orderNumber}`));
+  assert.doesNotMatch(refused, /бүртгэгдлээ/);
+  assert.equal(await prisma.order.count(), 1);
+  assert.equal(await stockNow(), 1);
+  // (b) More than 5 units of one option never becomes a chat order.
+  const bulk = await (await chatWith("b"))("Тест сэрум 6 ширхэг авъя");
+  assert.match(bulk, /хамгийн ихдээ 5 ширхэг|нөөц хүрэлцэхгүй/);
+  assert.equal(await prisma.order.count(), 1);
+  // (c) The website checkout is not limited by the chat policy: the same phone orders on the site.
+  const { placeOrder: placeWebOrder } = await import("../server/services/placeOrder.js");
+  const webGuest = await prisma.user.create({ data: { email: `guest-${crypto.randomUUID()}@guest.invalid` } });
+  const web = await placeWebOrder({ userId: webGuest.id, items: [{ productId: product.id, size: "5 мл", quantity: 1 }], paymentMethod: "QPAY", firstName: "Бат", lastName: "-", phone: "88000000", city: "Улаанбаатар", district: "Баянгол", khoroo: "3", address: "x" });
+  assert.equal(web.order.source, "web");
+  assert.ok(web.order.expiresAt && Math.abs(web.order.expiresAt.getTime() - Date.now() - 15 * 60_000) < 60_000, "QPay: 15 minutes");
+  assert.equal(await stockNow(), 0);
+  // (d) The secured cron endpoint: refused without the secret, expires due orders once, records the run.
+  process.env.CRON_SECRET = "integration-test-cron-secret-value";
+  process.env.VERCEL_ENV = "production";
+  await prisma.order.updateMany({ where: { id: { in: [firstOrder.id, web.order.id] } }, data: { expiresAt: new Date(Date.now() - 1000) } });
+  const cronRoute = "../src/pages/api/jobs/expire-orders.ts";
+  assert.equal((await call(cronRoute, { query: {} })).statusCode, 401);
+  const cronRun = await call(cronRoute, { query: {}, user: null });
+  assert.equal(cronRun.statusCode, 401, "an admin token is not the cron secret");
+  const handler = (await import(cronRoute)).default;
+  const cronRes = { statusCode: 200, headers: {}, body: undefined, headersSent: false, status(code) { this.statusCode = code; return this; }, setHeader() { return this; }, json(payload) { this.body = payload; this.headersSent = true; return this; }, end() { this.headersSent = true; return this; } };
+  await handler({ method: "POST", query: {}, headers: { authorization: "Bearer integration-test-cron-secret-value" }, socket: { remoteAddress: "127.0.0.1" } }, cronRes);
+  assert.equal(cronRes.statusCode, 200);
+  assert.equal(cronRes.body.expired, 2);
+  assert.equal(await stockNow(), 3, "both reservations returned their stock");
+  const expiredRow = await prisma.order.findUniqueOrThrow({ where: { id: firstOrder.id } });
+  assert.equal(expiredRow.status, "CANCELLED"); assert.ok(expiredRow.expiredAt);
+  const again = { ...cronRes, body: undefined };
+  await handler({ method: "POST", query: {}, headers: { authorization: "Bearer integration-test-cron-secret-value" }, socket: { remoteAddress: "127.0.0.1" } }, again);
+  assert.equal(again.body.expired, 0, "a repeated run restocks nothing twice");
+  assert.equal(await stockNow(), 3);
+  const runs = await prisma.jobRun.findMany({ where: { name: "expire-orders" }, orderBy: { startedAt: "asc" } });
+  assert.deepEqual(runs.map((run) => [run.trigger, run.ok, run.processed]), [["cron", true, 2], ["cron", true, 0]]);
+  delete process.env.VERCEL_ENV; delete process.env.CRON_SECRET;
+  // (e) After the expiry the same phone may order again (a legitimate purchase), and the audit trail has it all.
+  const second = await orderFlow(await chatWith("e"), "88000000");
+  assert.match(second, /бүртгэгдлээ/);
+  assert.equal(await prisma.order.count({ where: { source: "chat", status: "WAITING_PAYMENT" } }), 1);
+  await backgroundSettled();
+  const audit = await prisma.chatAuditLog.findMany({ orderBy: { createdAt: "asc" } });
+  const actions = audit.map((row) => row.action);
+  for (const expected of ["chat_order_created", "orders_expired", "conversation_notes", "faq_created", "product_facts_updated"]) assert.ok(actions.includes(expected), `audit has ${expected}: ${actions.join(",")}`);
+  assert.ok(audit.every((row) => !JSON.stringify(row.details).includes("Баянгол") && !JSON.stringify(row).includes("test-key-not-real")), "no address or secret in the audit log");
+  assert.equal((await call("../src/pages/api/chatbot/admin/audit.ts", { query: {}, user: shopper })).statusCode, 403);
+  assert.ok((await call("../src/pages/api/chatbot/admin/audit.ts", { query: {}, user: admin })).body.rows.length >= 5);
+  console.log("PASS reservation policy: one unpaid chat order per phone, the per-item cap, the website unaffected, cron expiry once, audit trail"); passed += 1;
+  // (f) Two chats confirm for the same phone at the same moment: the per-phone lock lets exactly one through.
+  const sayF1 = await chatWith("f1"); const sayF2 = await chatWith("f2");
+  for (const say of [sayF1, sayF2]) { await say("Тест сэрум авъя"); await say("энд захиалъя"); await say("Бат 77001122"); await say("Баянгол дүүрэг 3-р хороо 5-р байр"); }
+  const both = await Promise.allSettled([sayF1("тийм"), sayF2("тийм")]);
+  assert.ok(both.every((outcome) => outcome.status === "fulfilled"), JSON.stringify(both));
+  assert.equal(await prisma.order.count({ where: { phone: "77001122" } }), 1, "exactly one order for the phone");
+  assert.equal(both.filter((outcome) => /бүртгэгдлээ/.test(outcome.value)).length, 1);
+  assert.equal(both.filter((outcome) => /№/.test(outcome.value) && !/бүртгэгдлээ/.test(outcome.value)).length, 1, "the other chat is shown the existing order");
+  console.log("PASS concurrent confirmations for one phone create exactly one reservation"); passed += 1;
 
   // Model usage is recorded per model with an estimated cost; the owner's model choice is the model called.
   const { resetAiUsageCacheForTests } = await import("../src/chatbot/aiUsage.ts");
@@ -219,11 +303,12 @@ try {
   console.log("PASS over the daily budget the model is skipped and the assistant still answers"); passed += 1;
 
   // The admin test chat never creates a real order.
+  const ordersBeforeTestChat = await prisma.order.count();
   const testConversation = await prisma.chatConversation.create({ data: { channel: "test", tokenHash: "y", locale: "mn" } });
   const testTurn = async (text) => (await handleCustomerMessage({ conversationId: testConversation.id, text, clientMessageId: crypto.randomUUID() })).reply?.text ?? "";
   await testTurn("Тест сэрум авъя"); await testTurn("энд захиалъя"); await testTurn("Тест 99112233"); await testTurn("Хан-Уул 2-р хороо 3-р байр");
   assert.match(await testTurn("тийм"), /TEST-/);
-  assert.equal(await prisma.order.count(), 1, "the test chat created no order");
+  assert.equal(await prisma.order.count(), ordersBeforeTestChat, "the test chat created no order");
   console.log("PASS the admin test chat simulates orders and never creates one"); passed += 1;
 
   // Chat customers are stored like checkout guests (emails are never sent to them).

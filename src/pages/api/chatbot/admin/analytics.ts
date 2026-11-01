@@ -2,11 +2,10 @@ import { apiRoute, first } from "../../../../chatbot/api";
 import { requireAdminAccess } from "../../../../chatbot/adminAccess";
 import { prisma } from "../../../../chatbot/prisma";
 import { summarizeAssistantMessages, summarizeUsage } from "../../../../chatbot/analytics";
-import { getAiUsageSummary, todayAiCostUsd } from "../../../../chatbot/aiUsage";
+import { getAiUsageSummary, resolveAiModel, todayAiCostUsd } from "../../../../chatbot/aiUsage";
 import { getSettings } from "../../../../chatbot/settings.mjs";
 
 const FAILURE_CODES = ["openai.fallback_failed", "BOT_FAILURE", "HANDLER_FAILURE", "API_UNAVAILABLE", "CHAT_UNAVAILABLE"];
-const CHAT_ORDER_NOTES = ["Чатаар захиалсан", "Ordered in the website chat"];
 
 /** Counts for the admin: the long-standing totals (used by the menu badges) plus this period's activity and model spend. */
 export default apiRoute(async (req, res) => {
@@ -26,14 +25,17 @@ export default apiRoute(async (req, res) => {
   const stats = { totalContacts, needsHuman, paused, totalLeads, newLeads, leadsByStatus: Object.fromEntries(byStatus.map((r) => [r.status, r._count])), conversationsByChannel: Object.fromEntries(byChannel.map((r) => [r.channel, r._count])), leadsByDay: [...days.entries()].sort().map(([date, count]) => ({ date, count })) };
 
   const inPeriod = { createdAt: { gte: since }, conversation: real };
-  const [conversationsStarted, activeConversations, customerMessages, assistantRows, leadsInPeriod, leadsByReason, ordersFromChat, failures, rejectedReplies, usageRows, settings, todayCostUsd] = await Promise.all([
+  const [conversationsStarted, activeConversations, customerMessages, assistantRows, leadsInPeriod, leadsByReason, ordersFromChat, ordersFromChatPaid, activeReservations, lastJobRuns, failures, rejectedReplies, usageRows, settings, todayCostUsd] = await Promise.all([
     prisma.chatConversation.count({ where: { ...real, createdAt: { gte: since } } }),
     prisma.chatConversation.count({ where: { ...real, updatedAt: { gte: since } } }),
     prisma.chatMessage.count({ where: { ...inPeriod, role: "customer" } }),
     prisma.chatMessage.findMany({ where: { ...inPeriod, role: "assistant" }, orderBy: { createdAt: "desc" }, take: 5000, select: { createdAt: true, metadata: true, clientMessageId: true, conversationId: true } }),
     prisma.chatLead.count({ where: { conversation: real, createdAt: { gte: since } } }),
     prisma.chatLead.groupBy({ by: ["reason"], where: { conversation: real, createdAt: { gte: since } }, _count: true }),
-    prisma.order.count({ where: { createdAt: { gte: since }, notes: { in: CHAT_ORDER_NOTES } } }),
+    prisma.order.count({ where: { createdAt: { gte: since }, source: "chat" } }),
+    prisma.order.count({ where: { createdAt: { gte: since }, source: "chat", status: { in: ["PAID", "DELIVERING", "DELIVERED"] } } }),
+    prisma.order.count({ where: { source: "chat", status: "WAITING_PAYMENT" } }),
+    prisma.jobRun.findMany({ where: { name: "expire-orders" }, orderBy: { startedAt: "desc" }, take: 5, select: { trigger: true, startedAt: true, finishedAt: true, ok: true, processed: true, error: true } }).catch(() => []),
     prisma.chatErrorLog.count({ where: { createdAt: { gte: since }, code: { in: FAILURE_CODES } } }),
     prisma.chatErrorLog.count({ where: { createdAt: { gte: since }, code: "writer.reply_rejected" } }),
     getAiUsageSummary(periodDays).catch(() => []),
@@ -51,7 +53,8 @@ export default apiRoute(async (req, res) => {
   const usage = summarizeUsage(usageRows.map((row) => ({ day: row.day, model: row.model, calls: row.calls, promptTokens: row.promptTokens, completionTokens: row.completionTokens, estCostUsd: row.estCostUsd })));
   return res.json({
     ok: true, periodDays, stats,
-    period: { ...period, conversationsStarted, activeConversations, customerMessages, leads: leadsInPeriod, leadsByReason: Object.fromEntries(leadsByReason.map((r) => [r.reason, r._count])), ordersFromChat, unansweredQuestions },
-    ai: { ...usage, failures, rejectedReplies, budgetUsd: settings.aiDailyBudgetUsd, todayCostUsd: Math.round(todayCostUsd * 10000) / 10000, model: settings.aiModel || process.env.OPENAI_MODEL || "gpt-4.1", configured: Boolean(process.env.OPENAI_API_KEY) },
+    period: { ...period, conversationsStarted, activeConversations, customerMessages, leads: leadsInPeriod, leadsByReason: Object.fromEntries(leadsByReason.map((r) => [r.reason, r._count])), ordersFromChat, ordersFromChatPaid, unansweredQuestions },
+    reservations: { active: activeReservations, minutes: settings.chatReservationMinutes, maxActivePerPhone: settings.chatMaxActiveReservationsPerPhone, maxQuantityPerItem: settings.chatMaxQuantityPerItem, lastJobRuns },
+    ai: { ...usage, failures, rejectedReplies, budgetUsd: settings.aiDailyBudgetUsd, todayCostUsd: Math.round(todayCostUsd * 10000) / 10000, model: resolveAiModel(settings.aiModel), configured: Boolean(process.env.OPENAI_API_KEY) },
   });
 });

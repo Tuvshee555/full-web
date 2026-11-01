@@ -59,7 +59,7 @@
     "products": "Products",
     "products_short": "Products",
     "revenue": "Sales",
-    "assistant": "Chat assistant",
+    "assistant": "AI Chatbot",
     "assistant_off": "Off",
     "settings_group": "Settings",
     "visit_store": "View your shop",
@@ -73,7 +73,8 @@
     "customers": "Customers",
     "customers_short": "Customers",
     "search": "Search",
-    "search_hint": "Find an order, customer or product"
+    "search_hint": "Find an order, customer or product",
+    "assistant_short": "Chatbot"
   },
   "bulk": {
     "region": "Actions for selected items",
@@ -723,7 +724,27 @@
     "faq_q": "Question",
     "faq_a": "Answer",
     "add_faq": "Add a question",
-    "remove_faq": "Remove question"
+    "remove_faq": "Remove question",
+    "usage_frequency": "How often to use",
+    "usage_frequency_placeholder": "e.g. Once a day, in the evening",
+    "storage": "Storage and shelf life",
+    "storage_placeholder": "e.g. Keep closed at room temperature, away from sunlight. Use within 6 months of opening.",
+    "section_verification": "Verification",
+    "verification_hint": "Tick each fact you have checked against the real product or its packaging. The chat assistant repeats only verified facts; unverified ones it reports as not published yet. The product page shows the text either way.",
+    "verification_note": "Editing a fact’s text clears its tick automatically.",
+    "verify": {
+      "description": "Description is accurate",
+      "claims": "Benefit claims in the description are supported",
+      "ingredients": "Ingredient list (INCI) matches the packaging",
+      "volume": "Volume or weight is correct",
+      "usage": "How-to-use steps are correct",
+      "frequency": "How often to use is correct",
+      "storage": "Storage and shelf life are correct",
+      "safety": "Safety notes match the packaging",
+      "photos": "Photos show the real product",
+      "price": "Price is the one you charge",
+      "stock": "Stock counts are real"
+    }
   },
   "revenue": {
     "title": "Sales",
@@ -893,7 +914,8 @@
       "medical": "Health question",
       "unanswered": "Unanswered",
       "order_problem": "Order problem",
-      "ai_error": "Error"
+      "ai_error": "Error",
+      "bulk_order": "Bulk purchase"
     }
   },
   "requests": {
@@ -938,18 +960,21 @@
     "reason_label": "Reason"
   },
   "assistant": {
-    "title": "Chat assistant",
-    "description": "The assistant answers customers on your website, Messenger and Instagram. Choose what it says and how it behaves.",
+    "title": "AI Chatbot",
+    "description": "Your shop assistant on the website, Messenger and Instagram: conversations, what it knows, how it behaves, what it costs.",
     "status_on": "Assistant is on",
     "status_off": "Assistant is off",
     "turn_on": "Turn on",
     "turn_off": "Turn off",
     "tabs": {
-      "settings": "Settings",
+      "settings": "AI settings",
       "test": "Try it",
       "activity": "Activity",
       "log": "Problems log",
-      "knowledge": "Knowledge"
+      "knowledge": "Knowledge",
+      "overview": "Overview",
+      "conversations": "Conversations",
+      "analytics": "Analytics and costs"
     },
     "contact_shown": "When the assistant can’t help, it gives customers these contact details:",
     "facts_rule": "Prices, stock and product facts come from your product list, so they are always right. Don’t write prices, percentages or promised results in the texts below; the save is refused if you do.",
@@ -967,7 +992,8 @@
       "handover_timer": "After you take a chat",
       "handover_timer_hint": "If you stop replying, the assistant takes over again so the customer is not left waiting.",
       "ai": "AI model and cost",
-      "ai_hint": "The model is used both to understand and to write. Over the daily budget, the assistant answers from its rules only."
+      "ai_hint": "The model is used both to understand and to write. Over the daily budget, the assistant answers from its rules only.",
+      "reservations_hint": "An order placed in the chat holds its stock for the minutes above, then is cancelled automatically and the stock returns. One phone number may hold the number of unpaid chat orders above at a time, and one chat order may contain at most the number of units above per product option; larger purchases get the website cart and a note for you. Website checkout orders are not limited by these settings."
     },
     "fields": {
       "metaOutbound": "Reply on Messenger and Instagram",
@@ -987,10 +1013,16 @@
       "handoverAutoResumeHours": "Assistant resumes automatically after (hours)",
       "handoverAutoResumeHours_hint": "After you take a chat, the assistant starts answering again once this many hours pass without a reply from you. 0 means never.",
       "aiModel": "Model",
-      "aiModel_hint": "Empty means the server default ({model}).",
+      "aiModel_hint": "Empty means the server default ({model}). Approved default: gpt-4.1-mini.",
       "aiModel_default": "Server default",
       "aiDailyBudgetUsd": "Daily budget ($)",
-      "aiDailyBudgetUsd_hint": "An estimate, not a bill. 0 means no limit."
+      "aiDailyBudgetUsd_hint": "An estimate, not a bill. 0 means no limit.",
+      "chatReservationMinutes": "Chat order holds stock for (minutes)",
+      "chatReservationMinutes_hint": "5 to 1440. Shown to the customer as the payment deadline.",
+      "chatMaxActiveReservationsPerPhone": "Unpaid chat orders per phone number",
+      "chatMaxActiveReservationsPerPhone_hint": "1 to 10. A second order from the same number waits until the first is paid or expires.",
+      "chatMaxQuantityPerItem": "Units per product option in one chat order",
+      "chatMaxQuantityPerItem_hint": "1 to 50. More goes to the website cart and to you."
     },
     "chars": "{count} / {max} characters",
     "unsaved": "You have unsaved changes.",
@@ -1013,7 +1045,10 @@
       "save_failed": "Couldn’t save the settings. Try again.",
       "load_failed": "Couldn’t load the assistant settings.",
       "hours": "A whole number from 0 to 720.",
-      "budget": "A number from 0 to 1000."
+      "budget": "A number from 0 to 1000.",
+      "minutes": "A whole number from 5 to 1440.",
+      "per_phone": "A whole number from 1 to 10.",
+      "per_item": "A whole number from 1 to 50."
     },
     "ai_key_ok": "The AI key is configured.",
     "ai_key_missing": "No AI key is configured: the assistant answers from its rules only."
@@ -1087,7 +1122,9 @@
     "topic": {
       "volume": "volume",
       "usage": "how to use",
-      "ingredients": "ingredients"
+      "ingredients": "ingredients",
+      "duration": "how long to use",
+      "storage": "storage"
     },
     "ai_title": "AI usage and cost",
     "ai_hint": "Estimated; the OpenAI bill may differ. Test chats are not counted.",
@@ -1286,7 +1323,7 @@
     "title": "What the assistant knows",
     "hint": "Prices and stock come from the product list; everything else comes from here. Fill a missing fact and the next answer uses it.",
     "products_title": "Facts per product",
-    "products_hint": "Whether volume, how-to-use and ingredients are filled in. When one is missing, the assistant tells the customer it is not published yet.",
+    "products_hint": "For each fact: verified (you checked it against the real product; the assistant quotes it), unverified (text exists but was never checked; the assistant does not quote it) or missing.",
     "col": {
       "product": "Product",
       "volume": "Volume",
@@ -1337,6 +1374,85 @@
     "payment": "Payment",
     "payment_methods": "QPay and bank transfer (no cards)",
     "contact": "Contact",
-    "bank": "Bank account"
+    "bank": "Bank account",
+    "status": {
+      "verified": "Verified",
+      "unverified": "Unverified",
+      "missing": "Missing"
+    },
+    "fact": {
+      "description": "Description",
+      "claims": "Claims",
+      "ingredients": "Ingredients",
+      "volume": "Volume",
+      "usage": "How to use",
+      "frequency": "How often",
+      "storage": "Storage",
+      "safety": "Safety",
+      "photos": "Photos",
+      "price": "Price",
+      "stock": "Stock"
+    },
+    "verified_count": "{done}/{total} products fully verified",
+    "unverified_title": "{count} facts are unverified",
+    "unverified_hint": "The starter catalogue was created by a script on 10 October 2026 and has not been checked against real products. Open each product, correct the text and tick what you verified; until then the assistant says these facts are not published yet.",
+    "legend": "Verify a fact on the product (Products → open product → Verification). Changing a fact’s text clears its tick, so what the assistant quotes is always what you checked."
+  },
+  "chatbot_overview": {
+    "hint": "Real customer chats only (last 7 days where it says so); test chats are not counted.",
+    "total": "Chats in total",
+    "total_hint": "Website, Messenger and Instagram",
+    "active": "Active this week",
+    "active_hint": "{started} started this week",
+    "waiting": "{count} waiting for a person",
+    "open_chats": "Open chats",
+    "see": "See details",
+    "change": "Change",
+    "links": "{count} checkout links sent",
+    "paid": "{count} paid or shipped",
+    "model_hint": "{calls} model calls this week",
+    "reservations_title": "Stock held by chat orders",
+    "reservations_hint": "Unpaid chat orders hold stock until they are paid or expire. The cleanup job cancels expired ones and returns the stock.",
+    "active_reservations": "Unpaid chat orders now",
+    "minutes": "min",
+    "job_ok": "Cleanup ran",
+    "job_failed": "Cleanup failed",
+    "job_last": "Last run {when} ({trigger}), {count} orders expired",
+    "job_none": "No cleanup run recorded yet. It runs on shop traffic and from the scheduled job; see the release notes to connect the scheduler.",
+    "shortcuts": "Go to",
+    "go_conversations": "Conversations and callback requests",
+    "go_knowledge": "What the assistant knows",
+    "go_settings": "AI settings",
+    "go_analytics": "Analytics and costs",
+    "go_activity": "Who changed what",
+    "go_test": "Try the assistant"
+  },
+  "audit": {
+    "hint": "A record of every change to the assistant: settings, questions and answers, product facts and their verification, chats you took over, and orders the assistant created or the cleanup cancelled.",
+    "title": "Activity",
+    "description": "Newest first.",
+    "filter": "Show",
+    "load_failed": "Couldn’t load the activity.",
+    "empty": "No activity yet",
+    "empty_hint": "Changes appear here as you make them.",
+    "group": {
+      "all": "All",
+      "settings": "Settings",
+      "knowledge": "Knowledge",
+      "handover": "Hand-overs",
+      "orders": "Orders"
+    },
+    "action": {
+      "settings_updated": "Settings changed",
+      "faq_created": "Question added",
+      "faq_updated": "Question edited",
+      "faq_deleted": "Question deleted",
+      "product_facts_updated": "Product facts changed",
+      "conversation_taken_over": "Chat taken over",
+      "conversation_handed_back": "Chat handed back",
+      "conversation_notes": "Notes saved",
+      "chat_order_created": "Order created in chat",
+      "orders_expired": "Unpaid orders expired"
+    }
   }
 }

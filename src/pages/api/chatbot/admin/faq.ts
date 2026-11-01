@@ -2,6 +2,7 @@ import { apiRoute, first } from "../../../../chatbot/api";
 import { requireAdminAccess } from "../../../../chatbot/adminAccess";
 import { prisma } from "../../../../chatbot/prisma";
 import { chatError } from "../../../../chatbot/security.js";
+import { actorOf, recordAudit } from "../../../../../server/utils/audit.js";
 
 export const config = { api: { bodyParser: { sizeLimit: "64kb" } } };
 const MAX_ROWS = 100;
@@ -37,6 +38,7 @@ export default apiRoute(async (req, res) => {
     if (count >= MAX_ROWS) throw chatError("FAQ_LIMIT", 400);
     const data = parseFaq(req.body);
     const row = await prisma.chatFaq.create({ data: { question: String(data.question), answer: String(data.answer), questionEn: String(data.questionEn ?? ""), answerEn: String(data.answerEn ?? ""), enabled: data.enabled !== false, sortOrder: typeof data.sortOrder === "number" ? data.sortOrder : count + 1 } });
+    recordAudit({ actor: await actorOf(req.user), action: "faq_created", target: row.id, details: { question: row.question } });
     return res.status(201).json(row);
   }
   if (req.method === "PATCH") {
@@ -46,12 +48,14 @@ export default apiRoute(async (req, res) => {
     delete (data as Record<string, unknown>).id;
     const row = await prisma.chatFaq.update({ where: { id }, data }).catch(() => null);
     if (!row) throw chatError("NOT_FOUND", 404);
+    recordAudit({ actor: await actorOf(req.user), action: "faq_updated", target: row.id, details: { question: row.question, fields: Object.keys(data) } });
     return res.json(row);
   }
   if (req.method === "DELETE") {
     const id = first(req.query.id) || req.body?.id;
     if (typeof id !== "string" || !id) throw chatError("INVALID_FAQ", 400);
-    await prisma.chatFaq.delete({ where: { id } }).catch(() => null);
+    const removed = await prisma.chatFaq.delete({ where: { id } }).catch(() => null);
+    if (removed) recordAudit({ actor: await actorOf(req.user), action: "faq_deleted", target: id, details: { question: removed.question } });
     return res.status(204).end();
   }
   return res.status(405).end();

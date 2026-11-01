@@ -17,11 +17,13 @@ import { stockLabel, stockLevel } from "../../../server/utils/stockLevel.js";
 import { intentProbe, normText, phoneticLatinText } from "../textNorm";
 import { parseNumberedChoice } from "../fastPathRouting";
 import { AIMAGS, AIMAG_DISTRICTS, ULAANBAATAR_DISTRICTS } from "../../data/mongoliaLocations";
+import { reservationPolicy, reservationWindowText } from "./reservationPolicy";
 
 export const DRAFT_TTL_MS = 30 * 60 * 1000;
+/** The most a message can mean; the owner's per-chat-order cap (reservationPolicy) is applied on top. */
 const MAX_QUANTITY = 999;
 
-export const BUY_INTENT = /(?:^|[^\p{L}])(?:авъя|авья|авая|авмаар|авна|авч\s+болох|авах\s+(?:гэсэн|хүсэлтэй|уу|боломж|гэж)|худалдаж\s+ав|худалдан\s+ав|захиалъя|захиалья|захиаля|захиалмаар|захиална|захиалах\s+(?:гэсэн|гэж|хүсэлтэй)|захиалга\s+(?:өгье|өгъе|өгмөөр|өгнө|хийе|хийье|хиймээр|хийх\s+гэсэн|үүсгэ)|нэгийг\s+ав|авч\s+үзье|\bbuy\b|\bpurchase\b|order\s+(?:it|one|this|that|now|the|a\b|two|2|3)|i(?:'ll|\s+will|\s+want\s+to|\s+would\s+like\s+to|'d\s+like\s+to)\s+(?:buy|order|take|get)|want\s+to\s+(?:buy|order)|place\s+(?:an?\s+)?order|take\s+(?:it|one|this))(?=$|[^\p{L}])/iu;
+export const BUY_INTENT = /(?:^|[^\p{L}])(?:авъя|авья|авая|авмаар|авна|авч\s+болох|авах\s+(?:гэсэн|хүсэлтэй|уу|боломж|гэж)|худалдаж\s+ав|худалдан\s+ав|захиалъя|захиалья|захиаля|захиалмаар|захиална|захиалах\s+(?:гэсэн|гэж|хүсэлтэй|болох\s+уу|боломжтой\s+юу)|захиалж\s+болох|захиалга\s+(?:өгье|өгъе|өгмөөр|өгнө|хийе|хийье|хиймээр|хийх\s+гэсэн|үүсгэ)|нэгийг\s+ав|авч\s+үзье|\bbuy\b|\bpurchase\b|order\s+(?:it|one|this|that|now|the|a\b|two|2|3)|i(?:'ll|\s+will|\s+want\s+to|\s+would\s+like\s+to|'d\s+like\s+to)\s+(?:buy|order|take|get)|i'?d\s+like\s+(?:\d+|a|an|one|two|three|the|some)\b|i'?ll\s+take\b|want\s+to\s+(?:buy|order)|place\s+(?:an?\s+)?order|take\s+(?:it|one|this))(?=$|[^\p{L}])/iu;
 /** Asking whether an order can be collected in person ("очиж авах", "ирж авах", "pick up"), never a purchase. */
 export const PICKUP_QUESTION = /(?:очиж|ирж|өөрөө)\s+(?:\p{L}+\s+)?ав(?:ч|ах|на|ъя)|(?:ochij|irj|uuruu)\s+av|pick\s*-?\s*(?:\p{L}+\s+){0,2}up|collect\s+(?:it|in\s+person)/iu;
 export const CHAT_ORDER_HERE = /(?:энд\s+захиал|энд\s+авъя|энд\s+үүсг|чатаар\s+(?:захиал|авъя|үүсг|өг)|дансаар\s+(?:захиал|авъя)|энд\s+бичээд|энд\s+хийе|here\s+in\s+(?:the\s+)?chat|order\s+here|in\s+(?:the\s+)?chat|via\s+chat|through\s+chat|by\s+bank\s+transfer\s+here)/iu;
@@ -33,7 +35,7 @@ const NUMBER_WORDS: Record<string, number> = { нэг: 1, нэгийг: 1, хо�
 /** "2 ширхэг", "2-ыг", "x2", "хоёр ширхэг", "гурван ш": the quantity a customer wants, or null. */
 export function parseQuantity(text: string): number | null {
   const probe = normText(text);
-  const explicit = /(?:^|\s)(\d{1,3})\s*(?:ширхэг|шир|ш|pcs?|pieces?|x|×|ыг|ийг|г|ийн|юм)(?=\s|$)/u.exec(probe)
+  const explicit = /(?:^|\s)(\d{1,3})\s*(?:ширхэг|шир|ш|pcs?|pieces?|units?|of|x|×|ыг|ийг|г|ийн|юм)(?=\s|$)/u.exec(probe)
     || /(?:^|\s)(?:x|×)\s*(\d{1,3})(?=\s|$)/u.exec(probe)
     || /(\d{1,3})\s*-\s*(?:ыг|ийг|г)/u.exec(text);
   if (explicit) return clampQuantity(Number(explicit[1]));
@@ -176,21 +178,22 @@ function confirmReply(product: CatalogProduct, draft: OrderDraft, context: Catal
     `• ${say(locale, "Нэр", "Name")}: ${draft.name}`,
     `• ${say(locale, "Утас", "Phone")}: ${draft.phone}`,
     `• ${say(locale, "Хаяг", "Address")}: ${place}${draft.address ? ` — ${draft.address}` : ""}`,
-    `• ${say(locale, "Төлбөр: дансаар шилжүүлнэ (24 цагийн дотор)", "Payment: bank transfer within 24 hours")}`,
+    `• ${say(locale, `Төлбөр: дансаар шилжүүлнэ (${reservationWindowText(reservationPolicy(context.settings).minutes, locale)} дотор)`, `Payment: bank transfer within ${reservationWindowText(reservationPolicy(context.settings).minutes, locale)}`)}`,
     "",
     say(locale, "Баталгаажуулах уу? «Тийм» гэж бичнэ үү. Засах бол зөв мэдээллээ бичээрэй, болих бол «үгүй».", "Confirm? Reply \"yes\". To change something, write the correct details; reply \"no\" to cancel."),
   ].join("\n");
 }
 
-function createdReply(result: { orderNumber: string; totalPrice: number }, context: CatalogueContext): string {
+function createdReply(result: { orderNumber: string; totalPrice: number; reservationMinutes?: number }, context: CatalogueContext): string {
   const locale = context.locale;
+  const window = reservationWindowText(result.reservationMinutes ?? reservationPolicy(context.settings).minutes, locale);
   return [
     say(locale, `Захиалга бүртгэгдлээ: №${result.orderNumber}`, `Order received: #${result.orderNumber}`),
     say(locale, `Нийт: ${money(result.totalPrice)}`, `Total: ${money(result.totalPrice)}`),
     say(locale, "Дансаар шилжүүлэх:", "Bank transfer:"),
     `${context.store.bank.name}\n${context.store.bank.holder}\n${context.store.bank.account}`,
     say(locale, `Гүйлгээний утга: ${result.orderNumber}`, `Payment reference: ${result.orderNumber}`),
-    say(locale, "24 цагийн дотор төлбөр хийгээгүй бол захиалга автоматаар цуцлагдана. Төлбөр орсны дараа ажилтан шалгаж баталгаажуулаад хүргэлтэд гаргана.", "Unpaid orders are cancelled after 24 hours. Once the transfer arrives, our team confirms it and ships your order."),
+    say(locale, `${window} дотор төлбөр хийгээгүй бол захиалга автоматаар цуцлагдаж, нөөц чөлөөлөгдөнө. Төлбөр орсны дараа ажилтан шалгаж баталгаажуулаад хүргэлтэд гаргана.`, `An order not paid within ${window} is cancelled automatically and its stock released. Once the transfer arrives, our team confirms it and ships your order.`),
     say(locale, `Захиалгаа шалгах: ${context.site}/${locale}/order-status`, `Check your order: ${context.site}/${locale}/order-status`),
   ].join("\n");
 }
@@ -241,11 +244,29 @@ function startPurchase(input: PurchaseInput, product: CatalogProduct | null, qua
   return offerOutcome(input, product, draft, events);
 }
 
+/** More units than one chat order may hold: offer the website cart (uncapped) and let staff follow up. */
+function bulkOutcome(input: PurchaseInput, product: CatalogProduct, draft: OrderDraft, events: string[]): PurchaseOutcome {
+  const { context } = input;
+  const locale = context.locale;
+  const cap = reservationPolicy(context.settings).maxQuantityPerItem;
+  const contact = [context.store.contact.phone, context.store.contact.email].filter(Boolean).join(" · ");
+  return { intent: "purchase", productIds: [product.id], events: [...events, "bulk_quantity"], needsHuman: true, handoffReason: "bulk_order",
+    text: [
+      say(locale, `Чатаар нэг захиалгад нэг бүтээгдэхүүнээс хамгийн ихдээ ${cap} ширхэг захиалж болно.`, `A chat order can hold at most ${cap} units of one product option.`),
+      say(locale, `${draft.quantity} ширхэг авах бол сайтаас сагсаар захиалаарай (QPay эсвэл дансаар төлнө):`, `For ${draft.quantity} units, please order through the website cart (QPay or bank transfer):`),
+      buyLink(product, draft.variantLabel || null, draft.quantity, context),
+      say(locale, `Бөөний тоогоор авах бол манай ажилтан тантай холбогдоно: ${contact}`, `For a bulk purchase our team will get in touch: ${contact}`),
+    ].join("\n"),
+    patch: draftPatch(null, focusPatch(product, draft.variantLabel ?? null)) };
+}
+
 function offerOutcome(input: PurchaseInput, product: CatalogProduct, draft: OrderDraft, events: string[]): PurchaseOutcome {
   const { context } = input;
   const locale = context.locale;
   const variant = draft.variantLabel ? product.sizes.find((size) => size.label === draft.variantLabel) ?? null : null;
   const level = variant ? stockLevel(variant, context.settings.lowStockThreshold) : "untracked";
+  const overCap = draft.quantity > reservationPolicy(context.settings).maxQuantityPerItem;
+  if (overCap && (!variant || variant.stock === null || variant.stock >= draft.quantity) && level !== "soldout") return bulkOutcome(input, product, draft, events);
   if (variant && level === "soldout") {
     return { intent: "purchase", productIds: [product.id], events, text: soldOutVariantReply(product, variant, context),
       patch: draftPatch({ ...draft, step: "pick_variant", variantLabel: null }, focusPatch(product, null)) };
@@ -307,6 +328,19 @@ async function createOrder(input: PurchaseInput, product: CatalogProduct, draft:
       return { intent: "chat_order_failed", productIds: [product.id], events: ["chat_order_failed"], patch: draftPatch(null),
         text: say(locale, "Уучлаарай, энэ сонголтын нөөц дөнгөж дууссан тул захиалга үүсгэж чадсангүй. Өөр сонголт авах бол бичээрэй, эсвэл ажилтнаас лавлана уу.", "Sorry, that option just sold out, so the order could not be created. Tell me if you would like another option, or ask our team.") };
     }
+    if (code === "RESERVATION_LIMIT") {
+      // This phone already holds an unpaid chat order: show it instead of reserving stock twice.
+      const extra = (error as { extra?: { orderNumber?: string; totalPrice?: number; expiresAt?: string | Date | null } }).extra || {};
+      const minutesLeft = extra.expiresAt ? Math.max(1, Math.round((new Date(extra.expiresAt).getTime() - (input.now ?? Date.now())) / 60_000)) : null;
+      return { intent: "chat_order_failed", productIds: [product.id], events: ["chat_order_failed", "reservation_limit"], needsHuman: true, handoffReason: "order_problem", patch: draftPatch(null),
+        text: [
+          say(locale, `Энэ утасны дугаар дээр төлбөр хүлээгдэж буй захиалга${extra.orderNumber ? ` №${extra.orderNumber}` : ""} бүртгэлтэй байна${typeof extra.totalPrice === "number" ? ` (нийт ${money(extra.totalPrice)})` : ""}.`, `This phone number already has an unpaid order${extra.orderNumber ? ` #${extra.orderNumber}` : ""}${typeof extra.totalPrice === "number" ? ` (total ${money(extra.totalPrice)})` : ""} waiting for payment.`),
+          say(locale, `Шинэ захиалга үүсгэхийн тулд эхлээд түүнийг төлөх${minutesLeft ? ` эсвэл ${minutesLeft} минутын дараа хугацаа нь дуусахыг хүлээнэ үү` : " эсвэл хугацаа нь дуусахыг хүлээнэ үү"}. Өөрчлөх бол манай ажилтан тусална.`, `To place a new order, pay that one first${minutesLeft ? ` or wait ${minutesLeft} minutes for it to expire` : " or wait for it to expire"}. Our team can change it for you.`),
+          say(locale, "Дансаар шилжүүлэх:", "Bank transfer:"), `${context.store.bank.name}\n${context.store.bank.holder}\n${context.store.bank.account}`,
+          [context.store.contact.phone, context.store.contact.email].filter(Boolean).join(" · "),
+        ].join("\n") };
+    }
+    if (code === "QUANTITY_LIMIT") return bulkOutcome(input, product, draft, ["chat_order_failed"]);
     if (code === "PRICE_CHANGED") {
       return { ...offerOutcome(input, product, { ...draft, step: "offer", updatedAt: input.now ?? Date.now() }, ["chat_order_failed"]),
         text: [say(locale, "Үнэ өөрчлөгдсөн тул шинэ дүнг харуулъя:", "The price changed; here is the updated total:"), offerReply(product, draft, context)].join("\n") };
@@ -328,8 +362,8 @@ async function continueDraft(input: PurchaseInput, draft: OrderDraft): Promise<P
   const now = input.now ?? Date.now();
   const product = draft.productId ? context.products.find((item) => item.id === draft.productId) ?? null : null;
   if (draft.step !== "pick_product" && !product) return null;
-  const isNo = NO.test(probe.split("\n")[0]) || NO.test(probe);
-  const isYes = YES.test(text);
+  const isNo = NO.test(probe.split("\n")[0]) || NO.test(normText(text));
+  const isYes = YES.test(text) || YES.test(normText(text));
   // A new product named with purchase intent restarts the purchase (handled by the caller).
   if (BUY_INTENT.test(probe) && ((input.namedProduct && input.namedProduct.id !== draft.productId) || input.ambiguousProducts?.length)) return null;
 
@@ -358,8 +392,9 @@ async function continueDraft(input: PurchaseInput, draft: OrderDraft): Promise<P
   }
   if (draft.step === "contact") {
     if (isNo) return cancelOutcome(input, [product.id]);
-    const phone = parsePhone(text);
-    const name = parseName(text, phone) || draft.name || "";
+    // The phone may have come one turn earlier ("99001122" then "Bold"): keep it.
+    const phone = parsePhone(text) || draft.phone || null;
+    const name = parseName(text, parsePhone(text)) || draft.name || "";
     if (!phone) {
       const digitsOnly = /\d{4,}/.test(text);
       if (digitsOnly) return { intent: "chat_order", productIds: [product.id], events: [], patch: draftPatch({ ...draft, name, updatedAt: now }),

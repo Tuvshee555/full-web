@@ -8,7 +8,8 @@ import { ArrowUpRight, Loader2, Plus, Trash2, X } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@admin/components/ui/sheet";
 import { ConfirmDialog } from "@admin/components/ui/confirm-dialog";
 import { Notice } from "@admin/components/ui/feedback";
-import { Switch } from "@admin/components/ui/controls";
+import { Checkbox, Switch } from "@admin/components/ui/controls";
+import { PRODUCT_FACT_KEYS } from "@admin/components/chatbot/types";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 import { useAuth } from "@admin/provider/AuthProvider";
 import { uploadMedia } from "@admin/utils/uploadMedia";
@@ -43,7 +44,11 @@ type Form = {
   howToUse: string;
   ingredientList: string;
   safetyNotes: string;
+  storage: string;
+  usageFrequency: string;
   faq: { q: string; a: string }[];
+  /** Facts the owner has checked against the real product (ticked = verified). */
+  verified: Record<string, boolean>;
 };
 
 type ErrorKey = "productName" | "price" | "oldPrice" | "categoryId" | "photos" | "sizes" | "faq";
@@ -85,6 +90,9 @@ function initialForm(product: ProductType | null | undefined, defaultCategoryId?
     howToUse: product?.howToUse ?? "",
     ingredientList: product?.ingredientList ?? "",
     safetyNotes: product?.safetyNotes ?? "",
+    storage: product?.storage ?? "",
+    usageFrequency: product?.usageFrequency ?? "",
+    verified: Object.fromEntries(PRODUCT_FACT_KEYS.map((key) => [key, Boolean(product?.verifiedFacts && typeof product.verifiedFacts === "object" && (product.verifiedFacts as Record<string, unknown>)[key])])),
     faq: Array.isArray(product?.faq) ? product.faq.filter((item) => item && typeof item.q === "string" && typeof item.a === "string").map((item) => ({ q: item.q, a: item.a })) : [],
   };
 }
@@ -264,7 +272,11 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
         howToUse: form.howToUse.trim() || null,
         ingredientList: form.ingredientList.trim() || null,
         safetyNotes: form.safetyNotes.trim() || null,
+        storage: form.storage.trim() || null,
+        usageFrequency: form.usageFrequency.trim() || null,
         faq: form.faq.map((item) => ({ q: item.q.trim(), a: item.a.trim() })).filter((item) => item.q && item.a),
+        // Ticked = checked against the real product; the assistant quotes only verified facts.
+        verifiedFacts: form.verified,
       };
       const headers = { Authorization: `Bearer ${token}` };
       phase = "save";
@@ -583,9 +595,17 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
                 <p className="admin-hint">{t("editor.ingredient_list_hint")}</p>
               </div>
               <div>
+                <label className={label} htmlFor="pe-frequency">{t("editor.usage_frequency")} <span className="font-normal text-taupe">({t("common.optional")})</span></label>
+                <input id="pe-frequency" value={form.usageFrequency} onChange={(e) => set("usageFrequency", e.target.value)} placeholder={t("editor.usage_frequency_placeholder")} maxLength={300} className="field" />
+              </div>
+              <div>
                 <label className={label} htmlFor="pe-safety">{t("editor.safety_notes")} <span className="font-normal text-taupe">({t("common.optional")})</span></label>
                 <textarea id="pe-safety" value={form.safetyNotes} onChange={(e) => set("safetyNotes", e.target.value)} rows={2} maxLength={2000} className="field resize-y" />
                 <p className="admin-hint">{t("editor.safety_notes_hint")}</p>
+              </div>
+              <div>
+                <label className={label} htmlFor="pe-storage">{t("editor.storage")} <span className="font-normal text-taupe">({t("common.optional")})</span></label>
+                <textarea id="pe-storage" value={form.storage} onChange={(e) => set("storage", e.target.value)} placeholder={t("editor.storage_placeholder")} rows={2} maxLength={1000} className="field resize-y" />
               </div>
               <div id="pe-faq">
                 <p className={label}>{t("editor.faq")} <span className="font-normal text-taupe">({t("common.optional")})</span></p>
@@ -608,6 +628,22 @@ export function ProductEditor({ open, onOpenChange, product, categories, default
                 )}
                 {err("faq")}
               </div>
+            </section>
+
+            <section className="admin-surface min-w-0 space-y-[12px] p-[18px]">
+              <div>
+                <h3 className="admin-section-title">{t("editor.section_verification")}</h3>
+                <p className="admin-hint mt-[4px]">{t("editor.verification_hint")}</p>
+              </div>
+              <ul className="grid gap-[4px] md:grid-cols-2">
+                {PRODUCT_FACT_KEYS.map((key) => (
+                  <li key={key} className="flex items-center gap-[4px] border border-ink/10 bg-paper pr-[12px]">
+                    <Checkbox checked={Boolean(form.verified[key])} onChange={(on) => set("verified", { ...form.verified, [key]: on })} label={t(`editor.verify.${key}`)} />
+                    <span className="text-[13px] text-ink">{t(`editor.verify.${key}`)}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="admin-hint">{t("editor.verification_note")}</p>
             </section>
 
             <section className="admin-surface min-w-0 p-[18px]">

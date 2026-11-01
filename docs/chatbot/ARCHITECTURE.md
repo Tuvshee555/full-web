@@ -16,7 +16,8 @@ travel business) keeps the engine and writes its own adapter and knowledge sourc
 | Reply presentation rules | `chatbotReplyPolicy.ts`, `reply.ts` |
 | Hand-over detection and reasons | `handoffDetection.ts`, `turn.ts` (`HandoffReason`), `pause.ts` |
 | Owner FAQ matching | `knowledge.ts` |
-| Model spend ledger and budget | `aiUsage.ts` + `ChatAiUsage` |
+| Model spend ledger, budget and the default-model rule | `aiUsage.ts` (`resolveAiModel`: admin choice → known env model → gpt-4.1-mini) + `ChatAiUsage` |
+| Audit trail (settings, FAQ, product facts, takeovers, chat orders, expiry runs) | `server/utils/audit.js` + `ChatAuditLog`, admin `audit.ts` |
 | Analytics aggregation (pure) | `analytics.ts` |
 | Rate limits, signatures, admin auth, Meta delivery | `rateLimit.ts`, `webhookSecurity.ts`, `adminAccess.ts`, `metaDelivery.ts` |
 | Evaluation harness and spend guard | `tests/chatbot/eval/harness.mjs`, `scripts/lib/evalGuard.mjs` |
@@ -29,7 +30,10 @@ travel business) keeps the engine and writes its own adapter and knowledge sourc
 | Product matching and request topics | `productSearch.ts`, `productRequest.ts` |
 | Deterministic product answers (price, variants, stock, volume, usage, ingredients, FAQ) | `productAnswerPlan.ts`, `productPriceBlock.ts`, `productFacts.ts` |
 | Purchase intent, checkout link, chat order draft (confirmation required) | `commerce/purchase.ts` |
-| Order creation through the shop's own service | `commerce/placeOrder.ts` → `server/services/placeOrder.js` |
+| Order creation through the shop's own service, with the reservation policy | `commerce/placeOrder.ts` (per-phone lock, inline expiry, cap, deadline) → `server/services/placeOrder.js` (`source`, `expiresAt`, retry after expiry) |
+| Reservation policy (pure) and the customer's wording for it | `commerce/reservationPolicy.ts` |
+| Reservation expiry: due-order queries, once-only claim, run record | `server/jobs/expireOrders.js`, `src/pages/api/jobs/expire-orders.ts`, `vercel.json` |
+| Fact verification: which facts the assistant may quote | `productFacts.ts` (`verifiedFacts`), `catalogue.ts` (`productKnowledge`), `server/controller/products/validate-product.js` (`nextVerifiedFacts`) |
 | Private order status lookup | `security.js` (`privateOrderStatus`) |
 
 A different business replaces the adapter rows: an appointment business would read services and
@@ -38,12 +42,20 @@ Everything above the line stays.
 
 ## Data
 
-- `Product.volume / howToUse / ingredientList / safetyNotes / faq`: published facts, one source for the
-  product page and the assistant. Empty means "not published": the assistant says so and offers contact.
+- `Product.volume / howToUse / ingredientList / safetyNotes / storage / usageFrequency / faq`: published facts,
+  one source for the product page and the assistant. `Product.verifiedFacts` ({ fact: ISO date }) says which of
+  them the owner checked against the real product: the assistant quotes **only verified** facts (the product
+  page shows the text either way), an empty or unverified fact is said to be "not published yet" with the
+  contact line, and editing a fact's text clears its tick. The description's claims need both "description"
+  and "claims" ticked before the writer may use them.
 - `ChatFaq`: the owner's shop questions; the assistant quotes answers verbatim and the FAQ page shows them.
 - `ChatConversation.customerName / customerPhone / notes / handoffReason / handoffAt / lastHumanAt / botReleasedAt`.
 - `ChatLead.reason / context`.
-- `ChatSettings.chatOrdersEnabled / handoverAutoResumeHours / aiModel / aiDailyBudgetUsd`.
+- `ChatSettings.chatOrdersEnabled / handoverAutoResumeHours / aiModel / aiDailyBudgetUsd /
+  chatReservationMinutes / chatMaxActiveReservationsPerPhone / chatMaxQuantityPerItem`.
+- `Order.source` ("web" | "chat"), `Order.expiresAt` (when the reservation ends; null on rows from before
+  2026-11-02, which fall back to the payment method's window), `Order.expiredAt` (set by the expiry job).
+- `ChatAuditLog`: who changed what (actor, action, target, summarised details). `JobRun`: each expiry run.
 - `ChatAiUsage`: daily calls, tokens and estimated cost per environment, model and caller.
 - `ChatMessage.metadata.events`: `purchase_intent`, `checkout_link`, `chat_order_started`,
   `chat_order_created`, `unanswered`, `unpublished_fact:<topic>`, `shop_faq`, `safety_question`,
@@ -51,13 +63,17 @@ Everything above the line stays.
 
 ## Turn order (turn.ts)
 
-1. Payment claim → human/complaint requests.
+1. Payment claim → human/complaint requests (Cyrillic and Latin: "hun bnu", "huntei yarimaar", "ajiltantai holbogdoh", "chatbot bish hun", "baraa evdersen irsen").
 2. Purchase layer: an active chat-order draft (variant → offer → contact → address → confirm), or
    new purchase intent ("авъя", "order it", model intent `buy`).
 3. Order status (number + phone), contact capture, thanks, greetings.
-4. Keyword fast paths: safety, growth, how to order, bank, delivery, payment, returns, contact, about,
-   the owner's shop FAQ.
-5. Product routing (named, numbered, in focus) → deterministic product answer.
+4. Keyword fast paths: safety, growth, how to order, bank, delivery (including delivery-time and
+   "can you send it to <place>" questions), payment, returns, contact, about, the owner's shop FAQ.
+5. Product routing (named, numbered, in focus) → deterministic product answer. Guards around the model's
+   reading: "what do you sell" is always the numbered catalogue; a word that fits several products
+   answers for all of them unless the text narrows it; "how long should I use it" is a usage question
+   (owner's FAQ, frequency) and never the growth refusal when a product is in play; a bare "үнэ хэд"
+   with nothing in focus asks which product.
 6. The AI writer behind the verifier (recommendations, open questions, chit-chat).
 7. Fallbacks: catalogue list, "which product?", contact line. Never silence, never a control token.
 
@@ -65,7 +81,9 @@ Everything above the line stays.
 
 - Every amount, link, stock label, phone and email in a model reply is checked against the catalogue.
 - No growth, timeframe, medical or safety promise; reactions get "stop, rinse, see a doctor".
-- Payment is never confirmed by the assistant. Orders are created only after "тийм" on a server-priced
-  summary, through the same service as checkout, as bank-transfer orders that expire unpaid in 24 hours.
+- Payment is never confirmed by the assistant. Orders are created only after "тийм"/"tiim"/"за" on a
+  server-priced summary, through the same service as checkout, as bank-transfer orders that hold stock for
+  the owner's reservation window (default 60 minutes), at most one unpaid per phone number and at most
+  5 units of one option per chat order (both owner-configurable; website checkout is not limited).
 - Customer text, catalogue text and owner notes are data, never instructions.
 - The admin test chat and evaluation runs never create real orders or alerts.

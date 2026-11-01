@@ -7,10 +7,14 @@ export type CatalogProduct = {
   category?: { categoryName?: string; name?: string } | null;
   /** Product facts the owner publishes in the admin (also shown on the product page). */
   volume?: string | null; howToUse?: string | null; ingredientList?: string | null; safetyNotes?: string | null;
+  storage?: string | null; usageFrequency?: string | null;
   faq?: ProductFaqItem[] | null;
+  /** Facts the owner checked against the real product ({ fact: ISO date }); unverified facts are never quoted. */
+  verifiedFacts?: Record<string, string> | null;
 };
+export type ProductFactKey = "description" | "ingredients" | "volume" | "usage" | "frequency" | "storage" | "safety" | "claims" | "photos" | "price" | "stock";
 export type ProductContent = {
-  tagline?: string; fullIngredients?: string; howTo?: string[];
+  tagline?: string; fullIngredients?: string; howTo?: string[]; frequency?: string; storage?: string; safety?: string; description?: string;
   keyIngredients?: Array<{ name: string; text: string }>;
   faq?: Array<{ q: string; a: string }>;
 };
@@ -23,6 +27,10 @@ export type BotSettings = {
   handoverAutoResumeHours?: number;
   aiModel?: string;
   aiDailyBudgetUsd?: number;
+  /** Chat order reservation policy (defaults: 60 minutes, 1 unpaid order per phone, 5 units per option). */
+  chatReservationMinutes?: number;
+  chatMaxActiveReservationsPerPhone?: number;
+  chatMaxQuantityPerItem?: number;
 };
 export type ShopFaqItem = { q: string; a: string };
 export type CatalogueContext = {
@@ -37,7 +45,7 @@ export type CatalogueContext = {
 export type ChatMessage = { role: "user" | "assistant"; text: string };
 export type ConversationState = Record<string, unknown>;
 /** Why the assistant asked for a person; stored on the lead and the conversation for the inbox. */
-export type HandoffReason = "customer_request" | "complaint" | "payment_claim" | "medical" | "unanswered" | "order_problem" | "ai_error";
+export type HandoffReason = "customer_request" | "complaint" | "payment_claim" | "medical" | "unanswered" | "order_problem" | "ai_error" | "bulk_order";
 
 /** A chat order the customer is building (bank transfer). Cleared after creation, cancellation or 30 minutes. */
 export type OrderDraft = {
@@ -67,5 +75,5 @@ export type ChatOrderRequest = {
   address: string;
   idempotencyKey: string;
 };
-export type ChatOrderResult = { orderNumber: string; totalPrice: number; deliveryFee: number; status: string; paymentMethod: string };
+export type ChatOrderResult = { orderNumber: string; totalPrice: number; deliveryFee: number; status: string; paymentMethod: string; expiresAt?: string; reservationMinutes?: number };
 export type PlaceChatOrder = (request: ChatOrderRequest) => Promise<ChatOrderResult>;

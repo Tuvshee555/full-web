@@ -18,7 +18,11 @@ export type ProductType = {
   howToUse?: string | null;
   ingredientList?: string | null;
   safetyNotes?: string | null;
+  storage?: string | null;
+  usageFrequency?: string | null;
   faq?: { q: string; a: string }[];
+  /** Facts the owner checked against the real product: { fact: ISO date }. */
+  verifiedFacts?: Record<string, string> | null;
   categoryId: string;
   category?: string | { id: string; categoryName: string };
 
@@ -64,7 +68,11 @@ export type ProductData = {
   howToUse?: string | null;
   ingredientList?: string | null;
   safetyNotes?: string | null;
+  storage?: string | null;
+  usageFrequency?: string | null;
   faq?: { q: string; a: string }[];
+  /** Facts the owner checked against the real product: { fact: ISO date }. */
+  verifiedFacts?: Record<string, string> | null;
   image: File | null;
   category: string;
 };

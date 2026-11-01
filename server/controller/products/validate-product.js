@@ -1,5 +1,7 @@
 /** Reject malformed money/inventory before Prisma can persist invalid values. */
-const TEXT_LIMITS = { volume: 60, howToUse: 4000, ingredientList: 4000, safetyNotes: 2000 };
+const TEXT_LIMITS = { volume: 60, howToUse: 4000, ingredientList: 4000, safetyNotes: 2000, storage: 1000, usageFrequency: 300 };
+/** Facts the owner can mark as checked against the real product; the assistant quotes only verified ones. */
+export const PRODUCT_FACT_KEYS = ["description", "ingredients", "volume", "usage", "frequency", "storage", "safety", "claims", "photos", "price", "stock"];
 
 /** The product FAQ as stored: up to 30 question/answer pairs, each a short plain string. */
 export function normalizeProductFaq(value) {
@@ -29,6 +31,8 @@ export function validateProductInput(body, creating = false) {
     if (body[key] !== undefined && body[key] !== null && (typeof body[key] !== "string" || body[key].length > limit)) return `Invalid ${key}`;
   }
   if (body.faq !== undefined && normalizeProductFaq(body.faq) === null) return "Invalid faq";
+  if (body.verifiedFacts !== undefined && (!body.verifiedFacts || typeof body.verifiedFacts !== "object" || Array.isArray(body.verifiedFacts)
+    || Object.entries(body.verifiedFacts).some(([key, value]) => !PRODUCT_FACT_KEYS.includes(key) || typeof value !== "boolean"))) return "Invalid verifiedFacts";
   if (body.categoryId != null && typeof body.categoryId !== "string") return "Invalid category";
   if (body.isFeatured !== undefined && typeof body.isFeatured !== "boolean") return "Invalid featured flag";
   if (body.extraImages !== undefined && (!Array.isArray(body.extraImages) || body.extraImages.length > 30 || body.extraImages.some((image) => typeof image !== "string"))) return "Invalid product images";
@@ -73,4 +77,24 @@ export function knowledgeFields(body) {
   const faq = normalizeProductFaq(body.faq);
   if (faq !== undefined && faq !== null) data.faq = faq;
   return data;
+}
+
+/**
+ * The next verification map: a key ticked now keeps its earlier date or gets today's; an unticked
+ * key is removed. Keys the request does not mention are left as they were. A fact whose text was
+ * cleared or changed in the same request loses its verification (the owner checked different text).
+ */
+export function nextVerifiedFacts(current, body, changedTextKeys = []) {
+  const existing = current && typeof current === "object" && !Array.isArray(current) ? { ...current } : {};
+  const map = { usage: "howToUse", ingredients: "ingredientList", safety: "safetyNotes", frequency: "usageFrequency", volume: "volume", storage: "storage", description: "ingredients", claims: "ingredients" };
+  for (const [fact, field] of Object.entries(map)) if (changedTextKeys.includes(field)) delete existing[fact];
+  const requested = body?.verifiedFacts;
+  if (requested && typeof requested === "object" && !Array.isArray(requested)) {
+    for (const [key, value] of Object.entries(requested)) {
+      if (!PRODUCT_FACT_KEYS.includes(key)) continue;
+      if (value === true) existing[key] = existing[key] || new Date().toISOString();
+      else delete existing[key];
+    }
+  }
+  return existing;
 }

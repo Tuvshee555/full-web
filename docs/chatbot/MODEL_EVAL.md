@@ -1,5 +1,55 @@
 # Model comparison (1 November 2026)
 
+## 2 November 2026: the final engine on gpt-4.1-mini (approved budget $0.30, spent $0.19)
+
+The engine was changed on 2 November (delivery time, numbered catalogue, person requests, duration
+of use, Latin aliases, verification, reservations). Per the held-out rule the first held-out set and
+the second-edition cases that were tuned against joined the main gate; the remaining held-out cases
+were run once, as they are. All runs: invented catalogue, dead database address, `channel: test`.
+
+| Set | Turns | Rules only | gpt-4.1-mini | Calls | Tokens in / out | Cost |
+| --- | --- | --- | --- | --- | --- | --- |
+| Held-out, second edition (fresh phrasings, 66 conversations) | 84 | 80 (95.2%) | **82 (97.6%)** | 48 | 48,121 / 1,961 | $0.0224 |
+| Main gate (215 conversations incl. both retired held-out sets) | 299 | 299 (100%) | **298 (99.7%)** | 147 | 144,957 / 6,673 | $0.0687 |
+| Hard rules (nothing invented, no silence, no private data, no order without confirmation) | 383 | 383 | 383 | | | |
+
+Earlier runs of the same day on the pre-fix engine (held-out 81/84 at $0.0233, main 288/299 at
+$0.0749) are superseded; the four runs together cost **$0.189** of the authorized $0.30.
+
+### By how the customer wrote (gpt-4.1-mini, final engine)
+
+| Group | Held-out | Main gate |
+| --- | --- | --- |
+| Latin-script Mongolian | 69/71 | 111/112 |
+| Cyrillic Mongolian | 5/5 | 156/156 |
+| English | 8/8 | 31/31 |
+
+### Held-out by topic (gpt-4.1-mini / rules only / turns)
+
+pricing 8/7/8 · availability 5/5/5 · usage 3/3/3 · duration 3/3/3 · storage 1/1/1 · ingredients 2/1/2 · volume 2/2/2 ·
+shipping 5/5/5 · returns 1/1/1 · payment 4/4/4 · purchase 8/8/8 · chat order 8/8/9 · context 11/11/11 ·
+handover 4/4/4 · order status 1/1/1 · safety 4/4/5 · sync (admin edits) 8/8/8 · unknown 2/2/2 · injection 2/2/2.
+Unsupported claims (invented amount, forbidden claim, promise, private data): 0 in every run.
+
+### Every incorrect answer, final engine
+
+| Turn | Rules | gpt-4.1-mini | What went wrong |
+| --- | --- | --- | --- |
+| «serum bolon gel hoyulaa hed bolh ve» (both prices) | wrong | right | The rules answer one product per message; the model read both. |
+| «serum ni yunaas butsen be» (what is it made of) | wrong | right | "yunaas" is not in the alias table; the model read the topic. |
+| «Darhan hot, 3-r bag» (a countryside address in Latin letters, mid chat order) | wrong | wrong | Aimag names are matched in Cyrillic only; the draft did not advance. Rules: generic line; model: asked for an order number. Nothing wrong was claimed. |
+| «arisand turhsnii daraa zagatnaad bna» (itching after applying) | wrong | wrong | "zagatnaad" is not in the alias table, so the reaction rule did not fire; the model's "medical" label gave the no-promise answer without the stop/rinse/doctor advice and no hand-over. |
+| «nud ruu orchihloo yah ve» (it got into my eye), main gate | right | wrong at run time | The model labelled it "human" and the hand-over text had no rinse advice. Fixed after the run (Latin "nud"/"orchihloo" aliases, the reaction rule now fires first); confirmed by the rules-only gate and a unit check, not re-run live. |
+
+### Reading
+
+gpt-4.1-mini fixed two rules-only misses and broke none on the fresh held-out set; on the main
+gate it lost one turn to a wrong "human" label that the rules now intercept. The remaining misses are
+Latin spellings the alias table lacks and a countryside address typed in Latin letters: engine work,
+not a reason to change model. The decision stands: **gpt-4.1-mini is the production default**
+(`DEFAULT_AI_MODEL`, stored in `ChatSettings.aiModel` by the migration).
+
+
 ## Held-out comparison (approved run, $0.30 limit)
 
 The held-out set (`tests/chatbot/eval/heldout.mjs`, 51 conversations, 59 customer turns, written

@@ -21,7 +21,7 @@ import { contactFallback } from "./reply";
 import { contactDetails } from "./orderHelp";
 import { notifyStaffOfLead, shouldAlertWaitingMessage } from "./staffAlerts";
 import { placeChatOrder } from "./commerce/placeOrder";
-import { aiAllowedToday, SELECTABLE_MODELS } from "./aiUsage";
+import { aiAllowedToday, resolveAiModel } from "./aiUsage";
 import { logInfo } from "./observability";
 import { runCustomerTurn, type TurnOutput } from "./turn";
 import type { BotSettings, ChatMessage, ChatOrderRequest, ChatOrderResult, ConversationState, Locale } from "./types";
@@ -139,7 +139,7 @@ export async function handleCustomerMessage(input: { conversationId: string; tex
       const currentState = (conversation.state && typeof conversation.state === "object" && !Array.isArray(conversation.state) ? conversation.state : {}) as ConversationState;
 
       // The owner's model choice and daily budget: over budget, the assistant answers from rules only.
-      const model = settings.aiModel && (SELECTABLE_MODELS as readonly string[]).includes(settings.aiModel) ? settings.aiModel : undefined;
+      const model = resolveAiModel(settings.aiModel);
       const aiOn = Boolean(process.env.OPENAI_API_KEY) && await aiAllowedToday(settings.aiDailyBudgetUsd);
       let turn: TurnOutput;
       try {
@@ -169,7 +169,7 @@ export async function handleCustomerMessage(input: { conversationId: string; tex
       if (!(await getSettings()).enabled || current.paused) return { conversationId, reply: null, paused: true };
 
       const saved = await prisma.chatMessage.create({ data: { conversationId, role: "assistant", text: turn.text, clientMessageId: `reply:${clientMessageId}`,
-        metadata: { intent: turn.intent, productIds: turn.productIds, model: turn.model, durationMs: Date.now() - started, handoff: turn.needsHuman, ...(turn.handoffReason ? { handoffReason: turn.handoffReason } : {}), events: turn.events, aiModel: aiOn ? model || process.env.OPENAI_MODEL || "default" : "off" } } });
+        metadata: { intent: turn.intent, productIds: turn.productIds, model: turn.model, durationMs: Date.now() - started, handoff: turn.needsHuman, ...(turn.handoffReason ? { handoffReason: turn.handoffReason } : {}), events: turn.events, aiModel: aiOn ? model : "off" } } });
       await prisma.chatConversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } });
       return { conversationId, reply: saved, paused: false };
     });

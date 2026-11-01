@@ -4,10 +4,10 @@ import { createContext, useContext } from "react";
 import { api } from "./api";
 import type { OrderStatus, RawOrder } from "@/app/(admin)/admin/[locale]/(orders)/components/type";
 
-export type AdminView = "overview" | "orders" | "messages" | "products" | "customers" | "revenue" | "assistant";
-export const ADMIN_VIEWS: AdminView[] = ["overview", "orders", "messages", "products", "customers", "revenue", "assistant"];
-/** Older links (Telegram alerts, bookmarks) keep working. */
-export const VIEW_ALIASES: Record<string, AdminView> = { chatbot: "messages" };
+export type AdminView = "overview" | "orders" | "products" | "customers" | "revenue" | "assistant";
+export const ADMIN_VIEWS: AdminView[] = ["overview", "orders", "products", "customers", "revenue", "assistant"];
+/** Older links (Telegram alerts, bookmarks, the former "Chat" page) land in the AI Chatbot section. */
+export const VIEW_ALIASES: Record<string, AdminView> = { chatbot: "assistant", messages: "assistant" };
 
 export type ChatCounts = { unread: number; needsHuman: boolean; paused: boolean };
 /** A chat needs the owner when the customer wrote something new, or asked for a person and nobody has taken it yet. */

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { aiFailureKind, reportAiOutage } from "./aiHealth";
-import { recordAiUsage } from "./aiUsage";
+import { recordAiUsage, resolveAiModel } from "./aiUsage";
 import { fixMojibake } from "./encoding";
 import { getEnv } from "./env";
 import {
@@ -51,7 +51,7 @@ export async function askOpenAIChatParts(
     return null;
   }
 
-  const model = options?.model || process.env.OPENAI_MODEL || "gpt-4o-mini";
+  const model = options?.model || resolveAiModel();
   const source = options?.source || "unknown";
   const startedAt = Date.now();
 

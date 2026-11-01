@@ -13,7 +13,7 @@ function BottomNav({ active, onNavigate, summary, onMore }: { active: AdminView;
   const { main } = useNavItems(summary);
   // Customers and sales live under "More": the bar keeps five targets a thumb can hit.
   const tabs = main.filter((item) => item.id !== "revenue" && item.id !== "customers");
-  const inMore = active === "revenue" || active === "customers" || active === "assistant";
+  const inMore = active === "revenue" || active === "customers";
   return (
     <nav
       aria-label={t("nav.label")}

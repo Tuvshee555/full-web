@@ -4,6 +4,7 @@ import { prisma } from "../../../../../chatbot/prisma";
 import { pauseBot, resumeBot } from "../../../../../chatbot/pause";
 import { sendMetaMessage } from "../../../../../chatbot/metaDelivery";
 import { chatError } from "../../../../../chatbot/security.js";
+import { actorOf, recordAudit } from "../../../../../../server/utils/audit.js";
 
 export const config = { api: { bodyParser: { sizeLimit: "64kb" } }, maxDuration: 30 };
 const LIST_SELECT = { id: true, channel: true, locale: true, paused: true, needsHuman: true, unread: true, updatedAt: true, customerName: true, customerPhone: true, handoffReason: true, handoffAt: true, lastHumanAt: true, messages: { orderBy: { createdAt: "desc" as const }, take: 1, select: { text: true, role: true } } };
@@ -38,10 +39,12 @@ export default apiRoute(async (req, res) => {
     if (typeof body.notes === "string") {
       if (body.notes.length > 4000) throw chatError("INVALID_NOTES", 400);
       await prisma.chatConversation.update({ where: { id }, data: { notes: body.notes.trim() } });
+      recordAudit({ actor: await actorOf(req.user), action: "conversation_notes", target: id, details: { length: body.notes.trim().length } });
       if (typeof body.paused !== "boolean") return res.json({ notes: body.notes.trim() });
     }
     if (typeof body.paused !== "boolean") throw chatError("INVALID_TAKEOVER", 400);
     if (body.paused) await pauseBot(id); else await resumeBot(id);
+    recordAudit({ actor: await actorOf(req.user), action: body.paused ? "conversation_taken_over" : "conversation_handed_back", target: id, details: { channel: c.channel, handoffReason: c.handoffReason } });
     return res.json({ paused: body.paused });
   }
   if (action === "messages" && req.method === "POST") {
@@ -53,6 +56,7 @@ export default apiRoute(async (req, res) => {
     const message = await prisma.chatMessage.upsert({ where: { conversationId_clientMessageId: { conversationId: id, clientMessageId: `human:${receipt}` } }, create: { conversationId: id, role: "human", text: text.trim(), clientMessageId: `human:${receipt}` }, update: {} });
     // A person is answering now: the automatic hand-back timer starts from this reply.
     await prisma.chatConversation.update({ where: { id }, data: { lastHumanAt: new Date(), unread: 0 } });
+    if (!c.paused) recordAudit({ actor: await actorOf(req.user), action: "conversation_taken_over", target: id, details: { channel: c.channel, by: "reply" } });
     if (["messenger", "instagram"].includes(c.channel)) await sendMetaMessage(c, message, { human: true });
     return res.json(message);
   }

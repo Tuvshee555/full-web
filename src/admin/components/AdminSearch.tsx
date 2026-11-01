@@ -114,7 +114,7 @@ export function AdminSearch({ open, onOpenChange }: { open: boolean; onOpenChang
       return [
         { id: "go-ship", group: "go", icon: ArrowRight, title: t("search.go.to_ship"), open: jump("orders", { tab: "to_ship" }) },
         { id: "go-pay", group: "go", icon: ArrowRight, title: t("search.go.awaiting_payment"), open: jump("orders", { tab: "awaiting_payment" }) },
-        { id: "go-chats", group: "go", icon: ArrowRight, title: t("search.go.chats"), open: jump("messages", { filter: "attention" }) },
+        { id: "go-chats", group: "go", icon: ArrowRight, title: t("search.go.chats"), open: jump("assistant", { tab: "conversations", filter: "attention" }) },
         { id: "go-restock", group: "go", icon: ArrowRight, title: t("search.go.restock"), open: jump("products", { stock: "restock" }) },
         { id: "go-customers", group: "go", icon: ArrowRight, title: t("search.go.customers"), open: jump("customers") },
         { id: "go-revenue", group: "go", icon: ArrowRight, title: t("search.go.revenue"), open: jump("revenue") },

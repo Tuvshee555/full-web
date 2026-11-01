@@ -2,8 +2,9 @@ import type { CatalogueContext, CatalogProduct, Locale, BotSettings, ProductCont
 import { STORE, BRAND_COPY, PRODUCT_CONTENT, POLICIES } from "../config/store-data.mjs";
 import { deliveryFee } from "../../server/utils/deliveryFee.js";
 import { siteUrl } from "../../server/utils/siteUrl.js";
+import { verifiedFacts } from "./productFacts";
 
-type ProductRow = Omit<CatalogProduct, "faq"> & { faq?: unknown };
+type ProductRow = Omit<CatalogProduct, "faq" | "verifiedFacts"> & { faq?: unknown; verifiedFacts?: unknown };
 
 /** The product's FAQ column as stored (JSON); anything malformed is ignored rather than shown. */
 export function productFaqItems(value: unknown): ProductFaqItem[] {
@@ -15,8 +16,14 @@ export function productFaqItems(value: unknown): ProductFaqItem[] {
     .slice(0, 30);
 }
 
+/** The verification map as stored ({ fact: ISO date }); anything malformed is ignored. */
+export function productVerification(value: unknown): Record<string, string> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).filter(([, date]) => typeof date === "string" && date.trim()).map(([key, date]) => [key, String(date)]));
+}
+
 export function normalizeCatalogProduct(row: ProductRow): CatalogProduct {
-  return { ...row, faq: productFaqItems(row.faq) };
+  return { ...row, faq: productFaqItems(row.faq), verifiedFacts: productVerification(row.verifiedFacts) };
 }
 
 /** Steps as the owner typed them: one per line, numbering removed. */
@@ -24,14 +31,24 @@ export function howToSteps(text: string | null | undefined): string[] {
   return (text || "").split(/\r?\n/).map((line) => line.replace(/^\s*(?:\d+[.)]|[-•*])\s*/, "").trim()).filter(Boolean).slice(0, 12);
 }
 
-/** What the assistant may quote about a product: the database fields first, the config file as a fallback. */
+/**
+ * What the assistant may quote about a product: the database fields the owner has VERIFIED (the
+ * product page may still show unverified text; the assistant never repeats it), the owner's own
+ * FAQ answers, and the config file as a fallback. The description's claims need both "description"
+ * and "claims" ticked before the writer may use them.
+ */
 export function productKnowledge(product: CatalogProduct): ProductContent {
   const configured: ProductContent = { ...PRODUCT_CONTENT.default, ...(PRODUCT_CONTENT as Record<string, ProductContent>)[product.id] };
+  const verified = verifiedFacts(product);
   const steps = howToSteps(product.howToUse);
   return {
     ...configured,
-    ...(steps.length ? { howTo: steps } : {}),
-    ...(product.ingredientList?.trim() ? { fullIngredients: product.ingredientList.trim() } : {}),
+    ...(steps.length && verified.has("usage") ? { howTo: steps } : {}),
+    ...(product.ingredientList?.trim() && verified.has("ingredients") ? { fullIngredients: product.ingredientList.trim() } : {}),
+    ...(product.usageFrequency?.trim() && verified.has("frequency") ? { frequency: product.usageFrequency.trim() } : {}),
+    ...(product.storage?.trim() && verified.has("storage") ? { storage: product.storage.trim() } : {}),
+    ...(product.safetyNotes?.trim() && verified.has("safety") ? { safety: product.safetyNotes.trim() } : {}),
+    ...(product.ingredients?.trim() && verified.has("description") && verified.has("claims") ? { description: product.ingredients.trim().replace(/\s+/g, " ").slice(0, 600) } : {}),
     ...(product.faq?.length ? { faq: product.faq } : {}),
   };
 }

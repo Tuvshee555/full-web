@@ -37,7 +37,9 @@ test("the longest shade label wins when a shorter one is contained in it", () =>
 
 test("volume questions are read in both scripts and answered from the published volume or a size label", () => {
   for (const text of ["хэдэн мл вэ", "heden ml ve", "How many ml is it?", "хэмжээ нь хэд вэ"]) assert.ok(buildProductRequest(text, products).topics.includes("volume"), text);
-  assert.equal(productVolume({ id: "x", productName: "X", price: 1, sizes: [], volume: "5 мл" }), "5 мл");
+  // A published volume counts once the owner verified it; until then only a size label can say it.
+  assert.equal(productVolume({ id: "x", productName: "X", price: 1, sizes: [], volume: "5 мл", verifiedFacts: { volume: "2026-11-02" } }), "5 мл");
+  assert.equal(productVolume({ id: "x", productName: "X", price: 1, sizes: [], volume: "5 мл" }), null);
   assert.equal(productVolume({ id: "x", productName: "X", price: 1, sizes: [{ id: "s", label: "10 мл", stock: null }] }), "10 мл");
   assert.equal(productVolume({ id: "x", productName: "X", price: 1, sizes: [{ id: "s", label: "Хүрэн", stock: null }] }), null);
 });
@@ -54,10 +56,19 @@ test("the owner's FAQ matches typo-tolerant questions and never loose ones", () 
 test("published product facts come from the database fields, and an unpublished fact is said so", () => {
   assert.deepEqual(howToSteps("1. Орой түрхэнэ.\n- Өдөрт нэг удаа.\n\n"), ["Орой түрхэнэ.", "Өдөрт нэг удаа."]);
   assert.deepEqual(productFaqItems([{ q: " A ", a: " B " }, { q: "", a: "x" }, "junk"]), [{ q: "A", a: "B" }]);
-  const product = { id: "p", productName: "Сэрум", price: 1000, sizes: [], howToUse: "Орой түрхэнэ.", ingredientList: "Aqua", faq: [{ q: "Хэдий хугацаанд хэрэглэх вэ?", a: "8 долоо хоног." }] };
+  const product = { id: "p", productName: "Сэрум", price: 1000, sizes: [], howToUse: "Орой түрхэнэ.", ingredientList: "Aqua", usageFrequency: "Өдөрт нэг удаа", storage: "Сэрүүн газар", ingredients: "Хөмсөг тэжээнэ.", faq: [{ q: "Хэдий хугацаанд хэрэглэх вэ?", a: "8 долоо хоног." }], verifiedFacts: { usage: "2026-11-02", ingredients: "2026-11-02", frequency: "2026-11-02", storage: "2026-11-02", description: "2026-11-02" } };
   const knowledge = productKnowledge(product);
   assert.deepEqual(knowledge.howTo, ["Орой түрхэнэ."]);
   assert.equal(knowledge.fullIngredients, "Aqua");
+  assert.equal(knowledge.frequency, "Өдөрт нэг удаа");
+  assert.equal(knowledge.storage, "Сэрүүн газар");
+  assert.equal(knowledge.description, undefined, "a description needs both 'description' and 'claims' verified");
+  assert.equal(productKnowledge({ ...product, verifiedFacts: { ...product.verifiedFacts, claims: "2026-11-02" } }).description, "Хөмсөг тэжээнэ.");
+  // The same text, unverified: the assistant treats it as not published.
+  const unverified = productKnowledge({ ...product, verifiedFacts: {} });
+  assert.equal(unverified.howTo, undefined);
+  assert.equal(unverified.fullIngredients, undefined);
+  assert.deepEqual(unverified.faq, product.faq, "the owner's own FAQ answers are always theirs to quote");
   const ctx = baseContext("mn");
   ctx.products = [product];
   ctx.content = { default: {}, p: knowledge };

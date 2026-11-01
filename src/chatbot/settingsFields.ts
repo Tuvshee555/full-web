@@ -25,6 +25,11 @@ export function parseSettingsFields(fields: unknown) {
     if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 1000) throw new Error("invalid budget");
     data.aiDailyBudgetUsd = Math.round(value * 100) / 100;
   }
+  for (const [key, min, max] of [["chatReservationMinutes", 5, 1440], ["chatMaxActiveReservationsPerPhone", 1, 10], ["chatMaxQuantityPerItem", 1, 50]] as const) if (key in input) {
+    const value = input[key];
+    if (typeof value !== "number" || !Number.isInteger(value) || value < min || value > max) throw new Error(`invalid ${key}`);
+    data[key] = value;
+  }
   if ("aiModel" in input) {
     const value = input.aiModel;
     if (typeof value !== "string" || !(SELECTABLE_MODELS as readonly string[]).includes(value)) throw new Error("invalid model");

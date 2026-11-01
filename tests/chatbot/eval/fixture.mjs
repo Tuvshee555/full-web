@@ -7,8 +7,18 @@ export const FEE = 7000;
 export const SITE = "https://shop.example.invalid";
 export const ORDER = { number: "EV00001", phone: "00000001", wrongPhone: "00000002", status: "PAID", privateMarker: "EVAL_PRIVATE_ADDRESS" };
 
+const VERIFIED_AT = "2026-11-02T00:00:00.000Z";
+/** A product whose published facts the (invented) owner has verified; the assistant quotes only verified facts. */
 function product(p) {
-  return { oldPrice: null, discount: null, ingredients: "", category: null, sizes: [], volume: null, howToUse: null, ingredientList: null, safetyNotes: null, faq: [], ...p };
+  const base = { oldPrice: null, discount: null, ingredients: "", category: null, sizes: [], volume: null, howToUse: null, ingredientList: null, safetyNotes: null, storage: null, usageFrequency: null, faq: [], ...p };
+  const verifiedFacts = {};
+  if (base.volume) verifiedFacts.volume = VERIFIED_AT;
+  if (base.howToUse) verifiedFacts.usage = VERIFIED_AT;
+  if (base.ingredientList) verifiedFacts.ingredients = VERIFIED_AT;
+  if (base.safetyNotes) verifiedFacts.safety = VERIFIED_AT;
+  if (base.storage) verifiedFacts.storage = VERIFIED_AT;
+  if (base.usageFrequency) verifiedFacts.frequency = VERIFIED_AT;
+  return { ...base, verifiedFacts: { ...verifiedFacts, ...(p.verifiedFacts || {}) } };
 }
 
 export function freshCatalogue() {
@@ -21,6 +31,8 @@ export function freshCatalogue() {
       ingredientList: "Aqua, Glycerin, Panthenol, Test Peptide Complex",
       faq: [{ q: "Хэдий хугацаанд хэрэглэх вэ?", a: "Тасралтгүй 8 долоо хоног хэрэглэхийг зөвлөдөг." }],
       safetyNotes: "Нүдэнд орвол усаар зайлна.",
+      storage: "Сэрүүн, нарны гэрэлгүй газар таглаатай хадгална.",
+      usageFrequency: "Өдөрт нэг удаа, орой",
     }),
     pencilA: product({
       id: "ev-pencil-a", productName: "Нарийн хөмсөгний харандаа", price: 23000, category: { categoryName: "Харандаа ба помад" },
@@ -80,9 +92,13 @@ export class EvalWorld {
     const policies = this.policies[locale];
     const content = { default: {} };
     for (const p of products) {
+      const verified = p.verifiedFacts || {};
       content[p.id] = {
-        ...(p.howToUse ? { howTo: p.howToUse.split("\n").map((s) => s.trim()).filter(Boolean) } : {}),
-        ...(p.ingredientList ? { fullIngredients: p.ingredientList } : {}),
+        ...(p.howToUse && verified.usage ? { howTo: p.howToUse.split("\n").map((s) => s.trim()).filter(Boolean) } : {}),
+        ...(p.ingredientList && verified.ingredients ? { fullIngredients: p.ingredientList } : {}),
+        ...(p.usageFrequency && verified.frequency ? { frequency: p.usageFrequency } : {}),
+        ...(p.storage && verified.storage ? { storage: p.storage } : {}),
+        ...(p.safetyNotes && verified.safety ? { safety: p.safetyNotes } : {}),
         ...(p.faq?.length ? { faq: p.faq } : {}),
       };
     }
@@ -112,7 +128,9 @@ export class EvalWorld {
     if (change.stock) { const [key, label, stock] = change.stock; const size = this.catalogue[key].sizes.find((s) => s.label === label); if (size) size.stock = stock; }
     if (change.howToUse) { const [key, text] = change.howToUse; this.catalogue[key].howToUse = text; }
     if (change.description) { const [key, text] = change.description; this.catalogue[key].ingredients = text; }
-    if (change.volume) { const [key, text] = change.volume; this.catalogue[key].volume = text; }
+    if (change.volume) { const [key, text] = change.volume; this.catalogue[key].volume = text; this.catalogue[key].verifiedFacts = { ...this.catalogue[key].verifiedFacts, volume: VERIFIED_AT }; }
+    if (change.howToUse) { const [key] = change.howToUse; this.catalogue[key].verifiedFacts = { ...this.catalogue[key].verifiedFacts, usage: VERIFIED_AT }; }
+    if (change.verified) { const [key, facts] = change.verified; this.catalogue[key].verifiedFacts = facts; }
     if (change.delivery) { this.policies.mn.delivery = change.delivery.mn; this.policies.en.delivery = change.delivery.en; }
     if (change.fee !== undefined) this.fee = change.fee;
     if (change.settings) Object.assign(this.settings, change.settings);
