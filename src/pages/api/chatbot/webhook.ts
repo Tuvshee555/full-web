@@ -1,6 +1,6 @@
 import { apiRoute, first, limitRequest } from "../../../chatbot/api";
 import { metaConfigured } from "../../../chatbot/metaDelivery";
-import { parseMetaEvents, processMetaEvents } from "../../../chatbot/webhookRuntime";
+import { parseMetaEvents, parseStaffEchoes, processMetaEvents, recordStaffEchoes } from "../../../chatbot/webhookRuntime";
 import { readRawBody, verifyToken, isRetryableWebhookError } from "../../../chatbot/webhookDedup";
 import { parseWebhookJson, PayloadTooLargeError, verifyMetaSignature } from "../../../chatbot/webhookSecurity";
 export const config = { api: { bodyParser: false }, maxDuration: 30 };
@@ -18,7 +18,8 @@ export default apiRoute(async (req, res) => {
   await limitRequest(req, "webhook", 120);
   let body: unknown;
   try { body = parseWebhookJson(raw); } catch { return res.status(400).json({ code: "INVALID_META_JSON" }); }
-  try { await processMetaEvents(parseMetaEvents(body)); }
+  // Staff replies first: a person answering in the same batch must silence the bot before it replies.
+  try { await recordStaffEchoes(parseStaffEchoes(body)); await processMetaEvents(parseMetaEvents(body)); }
   catch (error) { if (isRetryableWebhookError(error)) return res.status(503).json({ code: "META_RETRY" }); throw error; }
   return res.json({ received: true });
 });

@@ -6,7 +6,8 @@ import { isMetaOutboundDisabled } from "./metaOutboundKillSwitch";
 import { sendTextMessage as sendFacebookText } from "./messenger";
 import { sendTextMessage as sendInstagramText } from "./instagram";
 
-export function metaConfigured() { return Boolean(process.env.META_PAGE_ACCESS_TOKEN && process.env.META_APP_SECRET && process.env.META_VERIFY_TOKEN); }
+// META_PAGE_ID is required too: without it no event could be routed to this store's Page.
+export function metaConfigured() { return Boolean(process.env.META_PAGE_ACCESS_TOKEN && process.env.META_APP_SECRET && process.env.META_VERIFY_TOKEN && process.env.META_PAGE_ID); }
 export async function sendMetaMessage(conversation: ChatConversation, message: ChatMessage, { human = false } = {}) {
   if (message.deliveryStatus === "sent" || message.deliveryStatus === "uncertain") return message.deliveryStatus;
   const [settings, current] = await Promise.all([getSettings(), prisma.chatConversation.findUniqueOrThrow({ where: { id: conversation.id } })]);
