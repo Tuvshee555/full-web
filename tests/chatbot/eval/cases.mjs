@@ -80,6 +80,9 @@ export const evalCases = [
   // Two questions in one message: the product answer and the delivery policy together.
   c("ship-06-price-and-days", "shipping", "mn", [t(`${SERUM} хэд вэ, хүргэлт хэд хоногт ирэх вэ?`, { must: ["61,000₮", "1–2 ажлын өдөр"] })]),
   c("ship-07-focus-price-and-days", "shipping", "mn", [t(`${SERUM} хэд вэ?`, { must: ["61,000₮"] }), t("Энэ хэд хоногт ирэх вэ, үнэ нь хэд билээ?", { must: ["61,000₮", "1–2 ажлын өдөр"] })]),
+  // "What's in the set?" asks for the set's items, not an ingredient list.
+  c("set-01-contents", "products", "mn", [t(`${SET} дотор юу орсон бэ?`, { must: ["Багцад"], mustNot: ["Найрлагын жагсаалтыг"] })]),
+  c("set-02-contents-verified", "products", "mn", [mutate({ verified: ["set", { description: "2026-11-16T00:00:00.000Z", claims: "2026-11-16T00:00:00.000Z" }] }), t(`${SET} дотор юу орсон бэ?`, { must: ["Багцад: Сэрум, гель, харандаа"] })]),
   c("ship-06-en-city", "shipping", "en", [t("Do you deliver to Darkhan?", { must: ["countryside|2–5"] })]),
 
   // ── Returns ──

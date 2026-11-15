@@ -99,6 +99,7 @@ export class EvalWorld {
         ...(p.usageFrequency && verified.frequency ? { frequency: p.usageFrequency } : {}),
         ...(p.storage && verified.storage ? { storage: p.storage } : {}),
         ...(p.safetyNotes && verified.safety ? { safety: p.safetyNotes } : {}),
+        ...(p.ingredients?.trim() && verified.description && verified.claims ? { description: p.ingredients.trim().replace(/\s+/g, " ").slice(0, 600) } : {}),
         ...(p.faq?.length ? { faq: p.faq } : {}),
       };
     }

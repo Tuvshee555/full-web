@@ -78,7 +78,13 @@ export function buildProductAnswerPlan(input: { text: string; context: Catalogue
       else if (product.sizes.length) sections.volume = sizeLines.join(NEWLINE);
       else { sections.volume = say(`Хэмжээний мэдээллийг одоогоор нийтлээгүй байна. Ажилтнаас тодруулж болно: ${contactLine}`, `The volume is not published yet. Our team can confirm it: ${contactLine}`); unpublished.add("volume"); }
     }
-    if (topics.includes("ingredients")) {
+    // "Багц дотор юу орсон бэ?" asks what a set contains, not its ingredient list: the owner's verified
+    // description names the items; without it, the product page (linked above) does.
+    const kit = /багц|иж\s*бүрдэл|\bset\b|\bkit\b|bundle/iu.test(`${product.productName} ${product.category?.categoryName ?? product.category?.name ?? ""}`);
+    if (topics.includes("ingredients") && kit && !/найрлага|орц|ingredient|юунаас|made\s+of/iu.test(input.text)) {
+      if (content.description && safeProductText(content.description, context.locale)) sections.ingredients = say("Багцад: ", "In the set: ") + content.description;
+      else sections.ingredients = say("Багцад юу орсныг дээрх холбоосоор бүтээгдэхүүний хуудаснаас харна уу.", "The product page linked above lists what the set includes.");
+    } else if (topics.includes("ingredients")) {
       const text = content.fullIngredients || "";
       if (safeProductText(text, context.locale)) sections.ingredients = say("Найрлага: ", "Ingredients: ") + text;
       else { sections.ingredients = say(`Найрлагын жагсаалтыг одоогоор нийтлээгүй байна. Ажилтнаас тодруулж болно: ${contactLine}`, `The ingredient list is not published yet. Our team can confirm it: ${contactLine}`); unpublished.add("ingredients"); }
