@@ -15,7 +15,7 @@ export function buildProductRequest(text: string, products: CatalogProduct[], un
   const patterns: Array<[ProductTopic, RegExp]> = [
     ["price", /үнэ|үнийн|хэд\s*(?:вэ|төг)|хэдтэй|хэдэн\s*төгрөг|price|cost|how\s*much/i],
     ["availability", /нөөц|дууссан|бэлэн|байгаа\s*(?:юу|уу)|байна\s*уу|available|in\s+stock|stock|sold\s+out/i],
-    ["variants", /өнгө|color|colour|variant|shade|сонголт/i],
+    ["variants", /өнг(?:ө|ий)|color|colour|variant|shade|сонголт/i],
     ["volume", /хэдэн\s*(?:мл|ml)|(?<!\p{L})(?:мл|ml)(?!\p{L})|millilit|how\s+many\s+(?:ml|мл)|хэмжээ(?:тэй)?\s*(?:нь)?\s*(?:хэд|юу|вэ)|хэмжээ(?:тэй)?\s*(?:вэ|юу)|хэдий\s+хэмжээ|size\s+in\s+(?:ml|мл)|how\s+big/iu],
     ["ingredients", /найрлага|орц|ingredient|what(?:'s|\s+is|s)\s+in\b|бүрэлдэхүүн|made\s+of|contain|дотор\s+юу|юу\s+юу\s+(?:байдаг|орсон|байна|бий|орд)|юунаас/iu],
     ["usage", /хэрэгл|түрх|яаж|хэрхэн|заавар|how\s*(?:do|to|often|long)|use\b|apply|direction|instruction|өдөрт\s+хэд|хэдэн\s+удаа|хугацаанд|хэдий\s+хугац|how\s+many\s+times/i],
@@ -28,7 +28,7 @@ export function buildProductRequest(text: string, products: CatalogProduct[], un
   ];
   for (const [topic, pattern] of patterns) if (pattern.test(turn)) topics.add(topic);
   // "хэмжээ" alone can mean a shade/size choice; volume wins only when the product publishes one.
-  if (topics.has("volume") && /өнгө|color|colour|shade/i.test(turn)) topics.add("variants");
+  if (topics.has("volume") && /өнг(?:ө|ий)|color|colour|shade/i.test(turn)) topics.add("variants");
   const variantName = understanding?.variant || null;
   const variants = products.flatMap((product) => product.sizes);
   const query = normText(text);

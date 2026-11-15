@@ -127,10 +127,15 @@ export function buildProductAnswerPlan(input: { text: string; context: Catalogue
     lines.push(block.join("\n"));
   }
   if (sharedNote) lines.push(sharedNote);
+  // "Which shade suits me?": the reply lists the shades on sale; choosing one is the team's advice, never a guess.
+  const shadeAdvice = topics.includes("variants") && answered.size > 0 && /тохир|сонгох|сонгоё|сонгож|зөвлө|suit|recommend|which\s+(?:shade|colou?r)\s+(?:should|would|is)/iu.test(input.text);
+  if (shadeAdvice) lines.push(contactLine
+    ? say(`Өнгө сонгоход эргэлзвэл ажилтнаас зөвлөгөө аваарай: ${contactLine}`, `Not sure which shade suits you? Our team can advise: ${contactLine}`)
+    : say("Өнгө сонгоход эргэлзвэл энд бичээрэй — ажилтан зөвлөгөө өгнө.", "Not sure which shade suits you? Write here and our team will advise."));
   if (missing.size && answered.size) lines.push(say("Үлдсэн асуултыг ажилтнаас тодруулж болно.", "Our team can confirm the remaining details."));
   if (answered.size && products.length > 1) lines.unshift(route.scopedClarify?.length && !route.chosenProductId
     ? say("Аль бүтээгдэхүүнийг сонирхож байна вэ?", "Which one are you interested in?")
     : say("Таны асуусан бүтээгдэхүүнүүд:", "Here are the matching products:"));
-  else if (answered.size && !missing.size && !unpublished.size) lines.push(say("Захиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.", "To order, write \"buy\" here or add it to your cart from the product page."));
+  else if (answered.size && !missing.size && !unpublished.size && !shadeAdvice) lines.push(say("Захиалах бол «авъя» гэж бичээрэй, эсвэл бүтээгдэхүүний хуудаснаас сагсандаа нэмээрэй.", "To order, write \"buy\" here or add it to your cart from the product page."));
   return { status: answered.size === 0 ? "handoff" : "answered", productIds: products.slice(0, 3).map((product: CatalogProduct) => product.id), selection: selected, reply: lines.join("\n\n"), answeredTopics: [...answered], missingTopics: [...missing], unpublished: [...unpublished] };
 }
