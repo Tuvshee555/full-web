@@ -129,9 +129,7 @@ export function buildProductAnswerPlan(input: { text: string; context: Catalogue
   if (sharedNote) lines.push(sharedNote);
   // "Which shade suits me?": the reply lists the shades on sale; choosing one is the team's advice, never a guess.
   const shadeAdvice = topics.includes("variants") && answered.size > 0 && /тохир|сонгох|сонгоё|сонгож|зөвлө|suit|recommend|which\s+(?:shade|colou?r)\s+(?:should|would|is)/iu.test(input.text);
-  if (shadeAdvice) lines.push(contactLine
-    ? say(`Өнгө сонгоход эргэлзвэл ажилтнаас зөвлөгөө аваарай: ${contactLine}`, `Not sure which shade suits you? Our team can advise: ${contactLine}`)
-    : say("Өнгө сонгоход эргэлзвэл энд бичээрэй — ажилтан зөвлөгөө өгнө.", "Not sure which shade suits you? Write here and our team will advise."));
+  if (shadeAdvice) lines.push(say("Өнгө сонгоход эргэлзвэл «ажилтантай холбогдох» гэж бичээрэй — ажилтан зөвлөгөө өгнө.", "Not sure which shade suits you? Write \"talk to a person\" and our team will advise."));
   if (missing.size && answered.size) lines.push(say("Үлдсэн асуултыг ажилтнаас тодруулж болно.", "Our team can confirm the remaining details."));
   if (answered.size && products.length > 1) lines.unshift(route.scopedClarify?.length && !route.chosenProductId
     ? say("Аль бүтээгдэхүүнийг сонирхож байна вэ?", "Which one are you interested in?")
