@@ -3,7 +3,7 @@ import type { CatalogProduct } from "./types";
 import { isNoProductText } from "./customerTurn";
 import { keywordTokens, normText, phoneticKeywordTokens, phoneticLatinText, phoneticTokenMatches, unique } from "./textNorm";
 export { keywordTokens, normText, phoneticKeywordTokens, phoneticLatinText, unique } from "./textNorm";
-export type ProductMatch = { product: CatalogProduct; matchedWords: string[]; keywordCoverage: number; score: number };
+export type ProductMatch = { product: CatalogProduct; matchedWords: string[]; keywordCoverage: number; score: number; aliasHit: number; exactRouteHit: number };
 export type ProductResolution =
   | { status: "verified"; product: CatalogProduct; candidates: CatalogProduct[] }
   | { status: "ambiguous"; product: null; candidates: CatalogProduct[] }
@@ -122,7 +122,7 @@ export function findProductMatches(text: string, products: CatalogProduct[]): Pr
     // Unknown catalogue words cannot be rescued by a weak shared word.
     const unknown = queryWords.filter((word) => word.length >= 4 && !vocabulary.entries.some((entry) => sameWordStem(word, entry.word) || phoneticTokenMatches(phoneticLatinText(word), entry.phonetic)));
     const score = exactRouteHit * 100 + aliasHit * 80 + matchedWords.length * 20 + coverage * 10 - Math.max(0, routeKeywords.length - matchedWords.length) - unknown.length * 15;
-    matches.push({ product, matchedWords, keywordCoverage: coverage, score });
+    matches.push({ product, matchedWords, keywordCoverage: coverage, score, aliasHit, exactRouteHit });
   }
   return matches.sort((a, b) => b.score - a.score || b.matchedWords.length - a.matchedWords.length || a.product.productName.localeCompare(b.product.productName, "mn"));
 }
@@ -136,12 +136,22 @@ export function resolveProductFromUserMessage(text: string, products: CatalogPro
   const fullNameMentions = matches.filter((match) => normText(match.product.productName).length >= 8 && normalizedQuery.includes(normText(match.product.productName)));
   if (fullNameMentions.length === 1) return { status: "verified", product: fullNameMentions[0].product, candidates: [] };
   const queryTokens = unique(phoneticKeywordTokens(text));
+  const namedByEveryWord = matches.filter((match) => {
+    const tokens = phoneticKeywordTokens(match.product.productName);
+    return queryTokens.length > 0 && queryTokens.every((word) => tokens.some((token) => phoneticTokenMatches(word, token)));
+  });
+  if (namedByEveryWord.length === 1 && matches.some((match) => match !== namedByEveryWord[0])) return { status: "verified", product: namedByEveryWord[0].product, candidates: [] };
   const indistinguishable = matches.filter((match) => {
     const tokens = phoneticKeywordTokens(getProductSearchHaystack(match.product));
     return queryTokens.length > 0 && queryTokens.every((word) => tokens.some((token) => phoneticTokenMatches(word, token)));
   });
   if (indistinguishable.length > 1) return { status: "ambiguous", product: null, candidates: indistinguishable.slice(0, MAX_PRODUCT_CANDIDATES).map((match) => match.product) };
   if (indistinguishable.length === 1 && indistinguishable[0].product.id === best.product.id) return { status: "verified", product: best.product, candidates: [] };
+  // The same evidence (the same shared word, the same alias hit) for two products is a tie whatever
+  // the name-length penalties say: an unknown product name that shares one word with the catalogue
+  // ("Test Oil E" next to "Test Balm D") must ask, never pick the product with the shorter name.
+  const sameEvidence = (a: ProductMatch, b: ProductMatch) => a.exactRouteHit === b.exactRouteHit && a.aliasHit === b.aliasHit && a.matchedWords.length === b.matchedWords.length && a.matchedWords.every((word) => b.matchedWords.includes(word));
+  if (second && sameEvidence(best, second)) return { status: "ambiguous", product: null, candidates: matches.filter((match) => sameEvidence(best, match)).slice(0, MAX_PRODUCT_CANDIDATES).map((match) => match.product) };
   if (second && best.score - second.score <= 5 && Math.abs(best.keywordCoverage - second.keywordCoverage) <= 0.15) return { status: "ambiguous", product: null, candidates: matches.slice(0, MAX_PRODUCT_CANDIDATES).map((match) => match.product) };
   if (best.score <= 0 && matches.length > 1) return { status: "ambiguous", product: null, candidates: matches.slice(0, MAX_PRODUCT_CANDIDATES).map((match) => match.product) };
   return { status: "verified", product: best.product, candidates: [] };

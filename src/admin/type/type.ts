@@ -13,6 +13,16 @@ export type ProductType = {
   productName: string;
   price: string | number;
   ingredients: string;
+  // Product facts for the product page and the chat assistant (admin editor)
+  volume?: string | null;
+  howToUse?: string | null;
+  ingredientList?: string | null;
+  safetyNotes?: string | null;
+  storage?: string | null;
+  usageFrequency?: string | null;
+  faq?: { q: string; a: string }[];
+  /** Facts the owner checked against the real product: { fact: ISO date }. */
+  verifiedFacts?: Record<string, string> | null;
   categoryId: string;
   category?: string | { id: string; categoryName: string };
 
@@ -53,6 +63,16 @@ export type ProductData = {
   productName: string;
   price: string;
   ingredients: string;
+  // Product facts for the product page and the chat assistant (admin editor)
+  volume?: string | null;
+  howToUse?: string | null;
+  ingredientList?: string | null;
+  safetyNotes?: string | null;
+  storage?: string | null;
+  usageFrequency?: string | null;
+  faq?: { q: string; a: string }[];
+  /** Facts the owner checked against the real product: { fact: ISO date }. */
+  verifiedFacts?: Record<string, string> | null;
   image: File | null;
   category: string;
 };

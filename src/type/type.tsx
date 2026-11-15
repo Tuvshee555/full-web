@@ -19,6 +19,13 @@ export type ProductType = {
   address?: string;
   category?: string;
 
+  // Product facts shown on the product page and used by the chat assistant (edited in admin)
+  volume?: string | null;
+  howToUse?: string | null;
+  ingredientList?: string | null;
+  safetyNotes?: string | null;
+  faq?: { q: string; a: string }[];
+
   // Media
   image?: string | File; // main image
   extraImages?: (string | File)[]; // multiple images

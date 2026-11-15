@@ -151,10 +151,14 @@ const { backgroundSettled } = await import("../../server/utils/background.js");
 const { transporter } = await import("../../server/utils/mailer.js");
 transporter.sendMail = async (message) => { sentEmails.push(message); return { accepted: [message.to] }; };
 
+// Orders carry the deadline placeOrder stamps at creation (QPay 15 minutes, bank transfer 24 hours);
+// only that deadline can expire an order.
+const deadlineMs = { QPAY: 15 * 60000, BANK: 24 * 60 * 60000 };
 const reset = ({ status = "WAITING_PAYMENT", paymentMethod = "QPAY", expired = false, payment = true, ageMinutes } = {}) => {
+  const createdAt = new Date(Date.now() - (ageMinutes ?? (expired ? 20 : 1)) * 60000);
   state = {
     orders: [{ id: "order-1", orderNumber: "TEST-1", userId: "owner", paymentMethod, status, totalPrice: 200,
-      deliveryFee: 0, createdAt: new Date(Date.now() - (ageMinutes ?? (expired ? 20 : 1)) * 60000), updatedAt: new Date() }],
+      deliveryFee: 0, createdAt, expiresAt: deadlineMs[paymentMethod] ? new Date(createdAt.getTime() + deadlineMs[paymentMethod]) : null, updatedAt: new Date() }],
     items: [{ id: "item-1", orderId: "order-1", productId: "product-1", quantity: 2, size: "Small" }],
     products: [{ id: "product-1", price: 100, productName: "Test product", salesCount: 0 }],
     sizes: [{ id: "size-1", productId: "product-1", label: "Small", stock: status === "CANCELLED" ? 5 : 3 }],

@@ -93,18 +93,24 @@ export function ShopChatWidget() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  const send = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!session || busy || !text.trim()) return;
-    const value = text.trim();
-    if (pending.current?.text !== value) pending.current = { text: value, id: crypto.randomUUID() };
+  const sendText = async (value: string) => {
+    if (!session || busy || !value.trim()) return;
+    const clean = value.trim();
+    if (pending.current?.text !== clean) pending.current = { text: clean, id: crypto.randomUUID() };
     setBusy(true); setError("");
     try {
-      const data = await request(`/conversations/${session.conversationId}/messages`, { method: "POST", headers: { "Content-Type": "application/json", "X-Chat-Token": session.token }, body: JSON.stringify({ text: value, clientMessageId: pending.current!.id, locale }) });
+      const data = await request(`/conversations/${session.conversationId}/messages`, { method: "POST", headers: { "Content-Type": "application/json", "X-Chat-Token": session.token }, body: JSON.stringify({ text: clean, clientMessageId: pending.current!.id, locale }) });
       setMessages(data.messages); setPaused(data.paused); setText(""); pending.current = null;
     } catch { setError(t("chatbot.send_error")); }
     finally { setBusy(false); }
   };
+  const send = async (event: React.FormEvent) => {
+    event.preventDefault();
+    await sendText(text);
+  };
+  // Common first questions, shown until the customer writes something themselves.
+  const starters: Array<[string, string]> = [["price", t("chatbot.chip_price")], ["usage", t("chatbot.chip_usage")], ["delivery", t("chatbot.chip_delivery")], ["order", t("chatbot.chip_order")]];
+  const showStarters = Boolean(session) && !paused && !messages.some((message) => message.role === "customer");
 
   // Low in the corner; on a phone's product page it lifts above the buy bar while that bar is showing (html[data-buybar], set by ProductPage).
   return <div className="fixed bottom-[calc(16px+env(safe-area-inset-bottom))] right-4 z-widget text-ink transition-[bottom] duration-300 [html[data-buybar=on]_&]:bottom-[calc(88px+env(safe-area-inset-bottom))] lg:bottom-6 lg:[html[data-buybar=on]_&]:bottom-6">
@@ -115,6 +121,9 @@ export function ShopChatWidget() {
       </header>
       {paused && <p className="border-b border-terracotta/20 bg-sand px-4 py-2 text-xs text-terracotta">{t("chatbot.human_mode")}</p>}
       <div className="flex-1 overflow-y-auto overscroll-contain p-4"><ChatThread messages={messages} empty={t("chatbot.welcome")} staffLabel={t("chatbot.staff")} /><div ref={bottom} /></div>
+      {showStarters && <div className="flex flex-wrap gap-[6px] px-4 pb-2" aria-label={t("chatbot.starters")}>
+        {starters.map(([key, label]) => <button key={key} type="button" disabled={busy} onClick={() => void sendText(label)} className="min-h-[36px] border border-ink/20 bg-white px-3 text-xs text-ink hover:border-ink disabled:opacity-40">{label}</button>)}
+      </div>}
       {error && <p role="alert" className="px-4 pb-2 text-xs text-terracotta">{error}<br /><a href={`tel:${STORE.contact.phone}`} className="underline">{STORE.contact.phone}</a> · {STORE.contact.email}</p>}
       <form onSubmit={send} className="flex gap-2 border-t border-ink/15 p-3">
         <label className="sr-only" htmlFor="shop-chat-message">{t("chatbot.placeholder")}</label>

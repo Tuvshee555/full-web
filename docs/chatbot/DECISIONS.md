@@ -34,3 +34,33 @@
 - The model's own "medical" label is not trusted on its own: it labelled "how often do I apply it" as medical. Growth and safety questions are matched deterministically and answered without promises.
 - Untracked stock (`stock = null`) is reported as "available to order", never with a count or urgency.
 - Not-yet-converted Uudam test suites are parked in `tests/chatbot/uudam-pending/` rather than deleted or left failing the build.
+
+## Intelligence, commerce and admin round (Claude, 2026-11-01)
+
+- Product facts live on the `Product` row (volume, howToUse, ingredientList, safetyNotes, faq), edited in the admin and read by both the product page and the assistant. The config file `PRODUCT_CONTENT` stays as a fallback. An unpublished fact is said so with the contact line; it never becomes a lead on its own, but it is counted as "unanswered" in the Activity page so the owner sees what to fill in.
+- The shop FAQ (`ChatFaq`) is quoted verbatim by a deterministic matcher; answers with amounts are refused on save because they would go stale unnoticed.
+- Purchase intent is deterministic first ("авъя", "захиалъя", "order it", Latin forms) and the model's `buy` intent second; the model's `order` label is corrected to `buy` when the text is a purchase, because a live customer's "odo hudaldaj away" had been treated as an order-status question.
+- Chat orders are bank-transfer only and go through the same `placeOrder` service as checkout; QPay stays on the website because the invoice/QR flow needs the browser. The assistant creates an order only after "тийм" on a summary it priced itself, with an idempotency key per draft, and never says anything is paid. The admin test chat and QA runs get simulated order numbers.
+- Every intent pattern reads the customer's text and its normalized form (`intentProbe`), so one alias table in `textNorm.ts` serves routing, topics and the purchase layer. Function words were added to the generic list after "Харин" matched the pencil "Нарийн".
+- Identical matching evidence for two products is a tie (ask which), whatever the name-length penalties say.
+- Hand-offs carry a reason (`customer_request`, `complaint`, `payment_claim`, `medical`, `unanswered`, `order_problem`, `ai_error`) and the conversation context; a taken-over chat returns to the assistant after the owner's silence limit (default 24 hours, 0 = never), with `botReleasedAt` so old staff replies cannot re-pause it.
+- Model spend is estimated per day/model/source (`ChatAiUsage`); over the owner's daily budget the assistant keeps answering from its rules. The model is selectable from an allow-list; gpt-5 models get no temperature parameter.
+- Evaluation runs that spend credit are opt-in (`EVAL_RUN_APPROVED=1`), capped and refused against production; CI runs the 147-conversation set with no model.
+
+## Pre-merge review (2026-11-01)
+
+- gpt-5-mini was removed from the admin's model list: in the comparison its reasoning tokens used up the output limit and most calls returned empty. Adding it back needs a larger output budget and a reasoning-effort setting, then a new comparison.
+- "Очиж авч болох уу?" (can I pick it up?) was read as a purchase and answered with a checkout link; pickup questions are now excluded from purchase intent so the owner's FAQ answers them.
+- Chat-order customers get `guest-chat-…@guest.invalid` addresses, the same shape as checkout guests, so the admin shows them as guests. No email was ever at risk: addresses ending in `.invalid` are never mailed.
+- The evaluation runner always points the database at a dead local address and removes alert settings, so a live run started with `.env.local` cannot reach the shop's database or staff.
+- A held-out evaluation set was added and kept out of `npm test`, so the engine is not tuned against it. A case that gets fixed moves to the main set and is replaced.
+
+## Intelligence overhaul round 2 (Claude, 2026-11-02)
+
+- gpt-4.1-mini is the production default (`DEFAULT_AI_MODEL`, `resolveAiModel`): the held-out comparison showed the same accuracy as gpt-4.1 at about a fifth of the cost. The stored admin setting now names it explicitly (migration), so a deployment's `OPENAI_MODEL` only matters when the owner picks "server default", and only when it is a model with a known price.
+- The assistant quotes a product fact only when the owner ticked it as verified (`Product.verifiedFacts`). Editing the text clears the tick. The product page is unchanged: it is the owner's own content; the assistant is the part that must never present unverified claims as facts. Consequence: on the live shop nothing is verified yet, and the assistant says so until the owner completes the checklist.
+- Reservation policy approved by the owner: 60-minute hold, one unpaid chat order per phone, 5 units per option, all owner-editable. Enforced server-side under a per-phone advisory lock with an inline release of that phone's expired orders first, so a customer whose earlier order expired is never refused. Website checkout is deliberately outside these limits (its own 15-minute / 24-hour deadlines stay in the Terms).
+- Every new order carries `expiresAt`; the expiry job claims each due order with a compare-and-set and restocks in the same transaction (once, whichever of the four triggers runs). A `JobRun` row and an audit entry record each run, and the admin overview shows the last run, so "it runs" is checkable rather than assumed. Vercel Hobby cron is daily at most, so the release notes ask for an external scheduler; until its first recorded run the schedule is reported as configured but unverified.
+- Held-out discipline: the first held-out set (2026-11-01) and the cases of the second set that the engine was tuned against on 2026-11-02 moved into the main gate (`heldout-2026-11-01.mjs`, `tuned-2026-11-02.mjs`), and fresh replacement cases were written. The remaining held-out misses are reported as they are, not fixed.
+- The model's reading is guarded where it lost to the rules: "what do you sell" is always the numbered catalogue; a word that fits several products answers for all unless narrowed; a bare "үнэ хэд" asks which product; "how long to use" with a product in play is a usage question. A hand-over reason `bulk_order` marks chats where more than the per-item cap was requested.
+- The admin's "Chat" and "Chat assistant" pages became one "AI Chatbot" section (overview, conversations, knowledge, AI settings, analytics and costs, activity, try it, problems log); old links (`view=messages`, `view=chatbot`) land there.

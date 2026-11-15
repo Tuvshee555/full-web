@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowUpRight, BarChart3, Bot, ClipboardList, LayoutDashboard, LogOut, MessageCircle, Package, Search, Users, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, BarChart3, Bot, ClipboardList, LayoutDashboard, LogOut, Package, Search, Users, type LucideIcon } from "lucide-react";
 import { useI18n } from "@admin/components/i18n/ClientI18nProvider";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@admin/components/ui/sheet";
 import { adminLogout } from "@admin/utils/logout";
@@ -27,14 +27,13 @@ export function useNavItems(summary: AdminSummary) {
   const main: NavItem[] = [
     { id: "overview", label: t("nav.overview"), short: t("nav.overview_short"), icon: LayoutDashboard },
     { id: "orders", label: t("nav.orders"), short: t("nav.orders_short"), icon: ClipboardList, badge: orders, badgeLabel: t("nav.orders_badge", { count: orders }) },
-    { id: "messages", label: t("nav.messages"), short: t("nav.messages_short"), icon: MessageCircle, badge: messages, badgeLabel: t("nav.messages_badge", { count: messages }) },
+    // The AI Chatbot section: conversations and callback requests (the badge), knowledge, settings, analytics, activity.
+    { id: "assistant", label: t("nav.assistant"), short: t("nav.assistant_short"), icon: Bot, badge: messages, badgeLabel: t("nav.messages_badge", { count: messages }), note: summary.bot && !summary.bot.enabled ? t("nav.assistant_off") : undefined },
     { id: "products", label: t("nav.products"), short: t("nav.products_short"), icon: Package },
     { id: "customers", label: t("nav.customers"), short: t("nav.customers_short"), icon: Users },
     { id: "revenue", label: t("nav.revenue"), short: t("nav.revenue"), icon: BarChart3 },
   ];
-  const settings: NavItem[] = [
-    { id: "assistant", label: t("nav.assistant"), short: t("nav.assistant"), icon: Bot, note: summary.bot && !summary.bot.enabled ? t("nav.assistant_off") : undefined },
-  ];
+  const settings: NavItem[] = [];
   return { main, settings };
 }
 
@@ -123,8 +122,10 @@ export const Sidebar = ({ active, onNavigate, summary, onSearch, isMobile, open,
 
       <nav aria-label={t("nav.label")} className="flex flex-1 flex-col overflow-y-auto px-[12px]">
         <div className="flex flex-col gap-[2px]">{main.map(item)}</div>
-        <p className="mb-[6px] mt-[20px] px-[12px] text-[12px] text-paper/55">{t("nav.settings_group")}</p>
-        <div className="flex flex-col gap-[2px]">{settings.map(item)}</div>
+        {settings.length > 0 && <>
+          <p className="mb-[6px] mt-[20px] px-[12px] text-[12px] text-paper/55">{t("nav.settings_group")}</p>
+          <div className="flex flex-col gap-[2px]">{settings.map(item)}</div>
+        </>}
       </nav>
 
       <div className="space-y-[10px] border-t border-paper/10 px-[24px] py-[16px]">

@@ -72,6 +72,20 @@ model Product {
   avgRating   Float    @default(0)
   reviewCount Int      @default(0)
 
+  /// Product facts the product page and the chat assistant both read (edited in the admin).
+  /// Null/empty means "not published yet": the assistant then says so instead of guessing.
+  volume         String?
+  howToUse       String?
+  ingredientList String?
+  safetyNotes    String?
+  faq            Json    @default("[]")
+  /// Storage and shelf-life information; and how often to use (both optional, shown when published).
+  storage        String?
+  usageFrequency String?
+  /// Which facts the owner has checked against the real product: { "<fact>": "<ISO date>" }.
+  /// Facts not listed here are unverified: the product page may show them, the assistant will not quote them.
+  verifiedFacts  Json    @default("{}")
+
   @@index([categoryId])
   @@index([createdAt])
   @@index([salesCount])
@@ -121,6 +135,12 @@ model Order {
   khoroo    String?
   address   String?
   notes     String?
+  /// Where the order was placed: "web" (checkout) or "chat" (the assistant).
+  source    String   @default("web")
+  /// When an unpaid order's stock reservation ends (null on orders from before 2026-11-02: the payment method's default window applies).
+  expiresAt DateTime?
+  /// Set by the expiry job when it cancelled this order and returned its stock (a manual cancellation leaves it null).
+  expiredAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -132,6 +152,8 @@ model Order {
 
   @@index([userId, status])
   @@index([status])
+  @@index([status, expiresAt])
+  @@index([phone, status])
 }
 
 model OrderItem {
@@ -238,6 +260,20 @@ model ChatSettings {
   showExactStock    Boolean  @default(false)
   extraKnowledgeMn  String   @default("")
   extraKnowledgeEn  String   @default("")
+  /// The assistant may create bank-transfer orders in the chat after an explicit confirmation.
+  chatOrdersEnabled Boolean  @default(true)
+  /// After a staff reply, the assistant resumes on its own once this many hours pass (0 = never).
+  handoverAutoResumeHours Int @default(24)
+  /// Model used for understanding and writing replies; "" = the deployment default.
+  aiModel           String   @default("gpt-4.1-mini")
+  /// Estimated daily spend (USD) above which the assistant answers from rules only.
+  aiDailyBudgetUsd  Float    @default(5)
+  /// How long an unpaid chat (bank-transfer) order holds its stock before it is cancelled.
+  chatReservationMinutes Int @default(60)
+  /// Unpaid chat orders one phone number may hold at the same time.
+  chatMaxActiveReservationsPerPhone Int @default(1)
+  /// Units of one product option a single chat order may contain; more goes to staff.
+  chatMaxQuantityPerItem Int @default(5)
   updatedAt         DateTime @updatedAt
 }
 
@@ -253,6 +289,17 @@ model ChatConversation {
   state          Json     @default("{}")
   leaseUntil     DateTime?
   leaseOwner     String?
+  /// Who the customer is, once they said so (also kept in `state` for the engine).
+  customerName   String?
+  customerPhone  String?
+  /// Staff-only notes shown in the admin inbox.
+  notes          String   @default("")
+  /// Why the assistant asked for a person, and when; cleared when staff hand the chat back.
+  handoffReason  String?
+  handoffAt      DateTime?
+  /// When a person last replied from the admin, and when staff last handed the chat back to the assistant.
+  lastHumanAt    DateTime?
+  botReleasedAt  DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   messages       ChatMessage[]
@@ -262,6 +309,7 @@ model ChatConversation {
   @@unique([channel, externalId])
   @@index([updatedAt])
   @@index([needsHuman, updatedAt])
+  @@index([customerPhone])
 }
 
 model ChatMessage {
@@ -286,12 +334,47 @@ model ChatLead {
   phone          String?
   question       String
   status         String   @default("new")
+  /// Why staff were asked (customer_request, complaint, medical, payment_claim, unanswered, order_problem, ai_error).
+  reason         String   @default("customer_request")
+  /// What the conversation had established, so staff can act without reading the whole chat.
+  context        String   @default("")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([status, createdAt])
   @@index([conversationId])
+}
+
+/// Shop-level questions and answers the owner maintains in the admin; the assistant and the FAQ page read them.
+model ChatFaq {
+  id         String   @id @default(uuid())
+  question   String
+  answer     String
+  questionEn String   @default("")
+  answerEn   String   @default("")
+  enabled    Boolean  @default(true)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([enabled, sortOrder])
+}
+
+/// Daily model usage per environment, model and caller, with an estimated cost (never a bill).
+model ChatAiUsage {
+  id               String   @id @default(uuid())
+  day              DateTime @db.Date
+  environment      String   @default("production")
+  model            String
+  source           String
+  calls            Int      @default(0)
+  promptTokens     Int      @default(0)
+  completionTokens Int      @default(0)
+  estCostUsd       Float    @default(0)
+  updatedAt        DateTime @updatedAt
+
+  @@unique([day, environment, model, source])
 }
 
 model ChatErrorLog {
@@ -327,4 +410,31 @@ model ChatWebhookEvent {
 
   @@index([createdAt])
   @@index([completed, createdAt])
+}
+
+/// Who changed what in the chatbot's configuration and conversations (settings, FAQ, product facts, takeovers, chat orders).
+model ChatAuditLog {
+  id         String   @id @default(uuid())
+  actor      String
+  action     String
+  target     String?
+  details    Json     @default("{}")
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([action, createdAt])
+}
+
+/// One row per background job run (order expiry), so the owner can see the cleanup really runs.
+model JobRun {
+  id         String    @id @default(uuid())
+  name       String
+  trigger    String    @default("request")
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  ok         Boolean   @default(false)
+  processed  Int       @default(0)
+  error      String?
+
+  @@index([name, startedAt])
 }

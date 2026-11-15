@@ -2,7 +2,8 @@
 import { prisma } from "../../prismaClient.js";
 import { normalizeSizeInput } from "../../utils/sizes.js";
 import { invalidateCatalog } from "../../utils/cache.js";
-import { validateProductInput } from "./validate-product.js";
+import { knowledgeFields, nextVerifiedFacts, validateProductInput } from "./validate-product.js";
+import { actorOf, recordAudit } from "../../utils/audit.js";
 
 export const updateProduct = async (req, res) => {
   const invalid = validateProductInput(req.body);
@@ -92,9 +93,25 @@ export const updateProduct = async (req, res) => {
       video: typeof video === "string" ? video : undefined,
       isFeatured: typeof isFeatured === "boolean" ? isFeatured : undefined,
       salesCount: salesCount != null && salesCount !== "" ? Number(salesCount) : undefined,
+      // Product facts the product page and the chat assistant read (volume, how to use, ingredients, FAQ).
+      ...knowledgeFields(req.body),
     };
 
+    const facts = knowledgeFields(req.body);
+    let factChanges = null;
     const updatedProduct = await prisma.$transaction(async (tx) => {
+      // The verification map: text the owner changed loses its tick; ticks sent now are applied.
+      // (The admin editor always sends verifiedFacts; an API client that only edits the description keeps its ticks.)
+      if (Object.keys(facts).length || req.body.verifiedFacts !== undefined) {
+        const current = await tx.product.findUnique({ where: { id }, select: { verifiedFacts: true, volume: true, howToUse: true, ingredientList: true, safetyNotes: true, storage: true, usageFrequency: true, ingredients: true } });
+        if (current) {
+          const changedText = [...Object.keys(facts).filter((key) => key !== "faq" && (current[key] ?? null) !== (facts[key] ?? null)), ...(typeof ingredients === "string" && ingredients !== current.ingredients ? ["ingredients"] : [])];
+          updateData.verifiedFacts = nextVerifiedFacts(current.verifiedFacts, req.body, changedText);
+          const before = Object.keys(current.verifiedFacts && typeof current.verifiedFacts === "object" ? current.verifiedFacts : {}).sort();
+          const after = Object.keys(updateData.verifiedFacts).sort();
+          factChanges = { changedText, verified: after.filter((key) => !before.includes(key)), unverified: before.filter((key) => !after.includes(key)) };
+        }
+      }
       // Legacy label-only edits preserve the current inventory. Explicit null
       // switches an option back to untracked stock.
       if (Array.isArray(sizes)) {
@@ -162,6 +179,9 @@ export const updateProduct = async (req, res) => {
     }, { isolationLevel: "Serializable" });
 
     invalidateCatalog();
+    if (factChanges && (factChanges.changedText.length || factChanges.verified.length || factChanges.unverified.length)) {
+      recordAudit({ actor: await actorOf(req.user), action: "product_facts_updated", target: updatedProduct.productName, details: { productId: id, ...factChanges } });
+    }
 
     return res.json(updatedProduct);
   } catch (error) {

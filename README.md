@@ -51,6 +51,48 @@ the screens rely on are in `(orders)/components/type.ts` and must keep matching
 `src/admin/messages/{mn,en}.json`; `tests/commerce/admin-i18n.test.ts` fails if a
 key used in the code, or a placeholder, is missing in either language.
 
+## Chat assistant
+
+The assistant (`src/chatbot/`, engine notes in `docs/chatbot/ARCHITECTURE.md`) answers on the
+website widget, the admin test chat and, when Meta credentials exist, Messenger and Instagram.
+It reads live data on every turn: products, variants and stock from the catalogue, the product
+facts the owner publishes and **verifies** in Admin → Products (volume, how to use, how often,
+ingredients, safety note, storage, FAQ; an unverified fact is reported as not published), the shop
+FAQ from Admin → AI Chatbot → Knowledge, and the policies in
+`src/config/store-data.mjs`. A fact that is not published is said to be missing, with the team's
+contact details; prices, stock labels, links and phone numbers in model-written replies are
+checked against the catalogue before they are sent. Mongolian typed in Latin letters, glued words
+and slang are normalized in `src/chatbot/textNorm.ts`.
+
+"Нэгийг авъя" / "order it" starts a purchase: the assistant confirms the variant and quantity,
+checks stock, and gives a `/[locale]/buy/[id]` link that puts the item in the cart and opens
+checkout. With "Чатаар захиалга авах" on (Settings), the customer can instead give a name, phone
+and address in the chat and confirm a bank-transfer order; it is created through the same
+`server/services/placeOrder.js` as checkout and holds its stock for the reservation window set in
+AI settings (default 60 minutes; at most one unpaid chat order per phone number and 5 units of an
+option per order). Expired reservations are released by `server/jobs/expireOrders.js`, which runs on
+shop and chat traffic, inline before a chat order, and from `POST /api/jobs/expire-orders` with
+`CRON_SECRET` (Vercel Cron daily; see `docs/chatbot/RELEASE_2026-11.md` for an external scheduler).
+The assistant never says a payment arrived.
+
+Hand-offs flag the conversation with a reason (person requested, complaint, payment to check,
+health question, unanswered, order problem), write one lead with the conversation context and
+send one Telegram alert. "Take over" in AI Chatbot → Conversations pauses the assistant for that
+customer; it resumes on its own after the silence limit in AI settings (default 24 hours, 0 = never).
+Model calls are counted per day with an estimated cost; over the daily budget the assistant answers
+from its rules only. The default model is gpt-4.1-mini (`docs/chatbot/MODEL_EVAL.md`). Every settings,
+FAQ, product-fact, takeover and chat-order change is listed under AI Chatbot → Activity.
+`docs/chatbot/OWNER_CHECKLIST.md` lists what the owner still has to fill in and verify.
+
+`npm run eval:chatbot` runs the 215-conversation evaluation (`tests/chatbot/eval/`, including the
+retired held-out sets) without a model; `npm test` runs it too. `npm run eval:chatbot -- --set heldout` runs the held-out set, which
+is kept out of `npm test` so the engine is never tuned against it. `EVAL_RUN_APPROVED=1 npm run
+eval:chatbot:live` runs with the real model, capped by `EVAL_MAX_MODEL_CALLS`; the runner always
+points the database at a dead local address, so it cannot touch the shop. Results and how far to
+trust them are in `docs/chatbot/AUDIT_2026-11.md`, `docs/chatbot/EVAL_*.md` and
+`docs/chatbot/MODEL_EVAL.md`. `npm run test:chatbot:db` checks the database path (facts, leads, chat
+orders, hand-back, admin API permissions, model budget) on its own temporary PostgreSQL.
+
 ## Local development
 
 ```powershell

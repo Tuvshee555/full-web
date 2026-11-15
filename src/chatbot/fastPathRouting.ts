@@ -28,7 +28,7 @@ function addsNarrowing(text: string, candidates: CatalogProduct[]): boolean {
 function looseNorm(value: string): string { return value.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim(); }
 export function parseNumberedChoice(text: string): { index: number; namePrefix: string } | null {
   if (/^\s*(?:the\s+)?first(?:\s+one)?[.!?]?\s*$/i.test(text) || /^\s*(?:эхнийх?|нэгдүгээр|ehnii(?:h)?|ehnih)(?:\s+(?:нь|ni))?[.!?]?\s*$/iu.test(text)) return { index: 0, namePrefix: "" };
-  const ordinal = /^\s*(\d{1,2})\s*-?\s*(?:р|дугаар|дахь|dahi)(?:\s+(?:нь|бүтээгдэхүүн|ni))?\s*[.!?]?\s*$/iu.exec(text);
+  const ordinal = /^\s*(\d{1,2})\s*-?\s*(?:р|дугаар|дахь|dahi|dah|dugaar)(?:\s+(?:нь|бүтээгдэхүүн|ni))?(?:\s*[.!?]\s*|\s+(?!(?:хороо|horoo|khoroo|байр|bair|тоот|toot|сар|sar|өдөр|odor|udur|цаг|tsag))|$)/iu.exec(text);
   if (ordinal) return { index: Number(ordinal[1]) - 1, namePrefix: "" };
   const numbered = /^\s*(\d{1,2})\s*(?:[.)]\s*([\s\S]*))?$/u.exec(text);
   if (!numbered) return null;

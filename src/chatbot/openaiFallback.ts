@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { aiFailureKind, reportAiOutage } from "./aiHealth";
+import { recordAiUsage, resolveAiModel } from "./aiUsage";
 import { fixMojibake } from "./encoding";
 import { getEnv } from "./env";
 import {
@@ -50,7 +51,7 @@ export async function askOpenAIChatParts(
     return null;
   }
 
-  const model = options?.model || process.env.OPENAI_MODEL || "gpt-4o-mini";
+  const model = options?.model || resolveAiModel();
   const source = options?.source || "unknown";
   const startedAt = Date.now();
 
@@ -74,12 +75,9 @@ export async function askOpenAIChatParts(
   }
   messages.push({ role: "user", content });
 
-  const requestBody: Record<string, unknown> = {
-    model,
-    messages,
-    temperature:
-      typeof options?.temperature === "number" ? options.temperature : 0,
-  };
+  const requestBody: Record<string, unknown> = { model, messages };
+  // The gpt-5 family accepts only its default temperature; sending one is a 400.
+  if (!/^gpt-5/i.test(model)) requestBody.temperature = typeof options?.temperature === "number" ? options.temperature : 0;
   if (options?.jsonMode) {
     requestBody.response_format = { type: "json_object" };
   }
@@ -138,6 +136,7 @@ export async function askOpenAIChatParts(
 
     const usage = data?.usage ?? {};
     recordCounter("openai.fallback_success_total", 1, { model, source });
+    recordAiUsage({ model, source, usage: { prompt_tokens: usage.prompt_tokens ?? 0, completion_tokens: usage.completion_tokens ?? 0 } });
     logInfo("openai.fallback_success", {
       source,
       model,
