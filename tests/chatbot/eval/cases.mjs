@@ -77,6 +77,9 @@ export const evalCases = [
   c("ship-03-fee", "shipping", "mn", [t("хүргэлтийн төлбөр хэд вэ", { must: ["7,000₮"] })]),
   c("ship-04-rural", "shipping", "mn", [t("Орон нутагт хүргэдэг үү?", { must: ["орон нутагт 2–5"] })]),
   c("ship-05-latin-ugh", "shipping", "mn", [t("hurgej ugh uu", { must: ["7,000₮|ажлын өдөр"] })]),
+  // Two questions in one message: the product answer and the delivery policy together.
+  c("ship-06-price-and-days", "shipping", "mn", [t(`${SERUM} хэд вэ, хүргэлт хэд хоногт ирэх вэ?`, { must: ["61,000₮", "1–2 ажлын өдөр"] })]),
+  c("ship-07-focus-price-and-days", "shipping", "mn", [t(`${SERUM} хэд вэ?`, { must: ["61,000₮"] }), t("Энэ хэд хоногт ирэх вэ, үнэ нь хэд билээ?", { must: ["61,000₮", "1–2 ажлын өдөр"] })]),
   c("ship-06-en-city", "shipping", "en", [t("Do you deliver to Darkhan?", { must: ["countryside|2–5"] })]),
 
   // ── Returns ──

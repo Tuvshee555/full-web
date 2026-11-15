@@ -236,6 +236,21 @@ export async function runCustomerTurn(input: TurnInput): Promise<TurnOutput> {
   const topic = ruleTopic(probe);
   if (topic) {
     const composed = composeReply({ intent: topic }, context);
+    // "Хөмсөгний сэрум хэд вэ, хүргэлт хэд хоногт ирэх вэ?": the product answer first, then the policy.
+    // Only for a product named here, or the one in focus when "энэ" / "үнэ" points at it.
+    // The product part is read without the policy clause, so "хэд хоногт ирэх" is not taken for a usage question.
+    const clauses = text.split(/[,?？.!;]|\s(?:ба|бас|мөн|and)\s/iu).map((part) => part.trim()).filter(Boolean);
+    const productText = clauses.filter((part) => !ruleTopic(intentProbe(part))).join(". ");
+    const productTopics = ["delivery", "payment", "returns"].includes(topic) && productText ? buildProductRequest(productText, context.products).topics : [];
+    const about = namedProduct || (focusedProduct && /(?:^|\s)(?:энэ|үүн|үүний|түүний|this|it)(?:\s|$)|үнэ|price/iu.test(probe) ? focusedProduct : null);
+    if (productTopics.length && about) {
+      const plan = buildProductAnswerPlan({ text: productText, context, route: { matchText: productText, scopedClarify: null, chosenProductId: about.id }, pendingTopics: [] });
+      if (plan && plan.status === "answered") {
+        return done({ intent: "product", productIds: plan.productIds,
+          patch: { productSelection: { selection: { productId: about.id, variantId: null }, updatedAt: Date.now() }, clarification: null, pendingTopics: [] },
+          text: `${plan.reply}\n\n${composed.text}` });
+      }
+    }
     return done({ intent: topic, text: composed.text, needsHuman: composed.needsHuman, handoffReason: "unanswered" });
   }
   // The owner's own shop FAQ (opening hours, pickup, anything they wrote) answers verbatim when it fits the question.
@@ -283,6 +298,13 @@ export async function runCustomerTurn(input: TurnInput): Promise<TurnOutput> {
   // routeFastPathText records selection/clarification on `state`; carry them into the next turn.
   const routed = { productSelection: state.productSelection ?? null, clarification: state.clarification ?? null };
   const intent = route.understanding?.intent;
+  // A product answer also carries the delivery / payment / returns answer the same message asked for.
+  const extraPolicy = ruleTopic(probe);
+  const withPolicy = (reply: string) => {
+    if (!extraPolicy || !["delivery", "payment", "returns"].includes(extraPolicy)) return reply;
+    const policy = composeReply({ intent: extraPolicy }, context).text;
+    return reply.includes(policy) ? reply : `${reply}\n\n${policy}`;
+  };
 
   if (intent === "buy") {
     const chosen = route.chosenProductId ? context.products.find((product) => product.id === route.chosenProductId) ?? null : null;
@@ -298,6 +320,22 @@ export async function runCustomerTurn(input: TurnInput): Promise<TurnOutput> {
   }
   if (intent && ["delivery", "payment", "bank", "returns", "about", "contact"].includes(intent) && !route.chosenProductId && !route.scopedClarify?.length) {
     const composed = composeReply({ intent }, context);
+    // "Энэ сэрум хэд вэ, хүргэлт хэд хоногт ирэх вэ?": the product answer first, then the policy.
+    const productTopics = buildProductRequest(text, context.products, route.understanding).topics;
+    if (productTopics.length && ["delivery", "payment", "returns"].includes(intent)) {
+      const product = namedProduct || (ambiguousProducts.length ? null : focusedProduct);
+      if (product) {
+        const productPlan = buildProductAnswerPlan({ text, context, route: { matchText: text, scopedClarify: null, chosenProductId: product.id }, pendingTopics: [] });
+        if (productPlan && productPlan.status === "answered") {
+          return done({ intent: "product", productIds: productPlan.productIds,
+            patch: { ...routed, productSelection: { selection: { productId: product.id, variantId: null }, updatedAt: Date.now() }, clarification: null, pendingTopics: [] },
+            text: `${productPlan.reply}\n\n${composed.text}` });
+        }
+      } else if (ambiguousProducts.length > 1) {
+        const list = listProducts(ambiguousProducts, context, say(locale, "Аль бүтээгдэхүүний үнийг асууж байна вэ?", "Which product do you mean?"));
+        return done({ intent: "clarify", productIds: list.productIds, patch: { ...routed, ...list.patch, pendingTopics: productTopics }, text: `${composed.text}\n\n${list.text}` });
+      }
+    }
     return done({ intent, patch: routed, text: composed.text, needsHuman: composed.needsHuman, handoffReason: "unanswered" });
   }
   if (route.notInCatalog) {
@@ -336,12 +374,12 @@ export async function runCustomerTurn(input: TurnInput): Promise<TurnOutput> {
   }
   const resolvedSeveral = !route.chosenProductId && !route.scopedClarify?.length && intent === "product" && (route.understanding?.products.length || 0) > 1;
   const plan = route.chosenProductId || route.scopedClarify?.length || resolvedSeveral ? answerFor(route) : null;
-  if (plan && plan.status !== "handoff") return done({ intent: plan.status === "clarify" ? "clarify" : "product", productIds: plan.productIds, patch: { ...routed, ...topicMemory(plan.status) }, text: plan.reply, events: unpublishedEvents(plan) });
+  if (plan && plan.status !== "handoff") return done({ intent: plan.status === "clarify" ? "clarify" : "product", productIds: plan.productIds, patch: { ...routed, ...topicMemory(plan.status) }, text: plan.status === "answered" ? withPolicy(plan.reply) : plan.reply, events: unpublishedEvents(plan) });
   // A follow-up that names nothing ("how much is it?") is about the product already in focus.
   const focused = (state.productSelection as { selection?: { productId?: string } } | null)?.selection?.productId;
   if (!plan && focused && namesNothing && askedTopics.length && context.products.some((product) => product.id === focused) && !route.understanding?.products.length) {
     const focusedPlan = answerFor({ matchText: text, scopedClarify: null, chosenProductId: focused });
-    if (focusedPlan && focusedPlan.status !== "handoff") return done({ intent: "product", productIds: focusedPlan.productIds, patch: { ...routed, pendingTopics: [] }, text: focusedPlan.reply, events: unpublishedEvents(focusedPlan) });
+    if (focusedPlan && focusedPlan.status !== "handoff") return done({ intent: "product", productIds: focusedPlan.productIds, patch: { ...routed, pendingTopics: [] }, text: focusedPlan.status === "answered" ? withPolicy(focusedPlan.reply) : focusedPlan.reply, events: unpublishedEvents(focusedPlan) });
   }
 
   if (!plan && namesNothing && !focused && askedTopics.length && !openQuestion && !RECOMMEND.test(probe) && !(route.understanding?.products.length && route.understanding.products.length < context.products.length)) {
